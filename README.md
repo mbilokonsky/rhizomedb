@@ -77,7 +77,7 @@ When we talk about "domain objects", we're talking about the things represented 
 
 In a rhizomatic database, on the other hand, *domain objects don't exist* except as the intersection of all deltas that reference a given ID. We don't have tables, and we don't handle schemas as fixed definitions of columns with rigid foreign key joins and constraints that have to all be set up in advance. Instead, if you wanted to represent keanu reeves, you might do that by creating a bunch of deltas:
 
-```
+```typescript
 const author: string = "uuid_representing_me"
 const system: string = "uuid_representing_this_database_instance"
 const keanu: string = "uuid_representing_keanu_reeves"
@@ -214,7 +214,6 @@ If you've ever used GraphQL, though, you know that your actual *query* can draw 
 In our case, a *HyperSchema* defines a *HyperView*. A hyperview represents a domain object, but the properties of that object don't contain values directly - instead, each property resolves to an array of deltas that have targeted our domain object using that property's name as the `targetContext`. It also specifies the *HyperSchema* to apply to the `target` of the pointers on those nested deltas that are not targeting the parent. This is easier to show by example, but first we're going to need to add a few more deltas to flesh this out.
 
 ```typescript
-
 const lily: string = 'UUID of Lily Wachowski'
 const lana: string = 'UUID of Lana Wachowski'
 

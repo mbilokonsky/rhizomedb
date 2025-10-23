@@ -2,7 +2,9 @@
 
 A rhizomatic database using immutable delta-CRDTs as hyperedges in a hypergraph that treats state as a side-effect assembled at query-time. This repository contains the specification and a reference implementation in TypeScript.
 
-> **Note**: For aspirational long-term goals and speculative use cases, see [docs/long_term_vision.md](docs/long_term_vision.md). This README focuses on the core technical architecture. 
+> **Note**: For aspirational long-term goals and speculative use cases, see [docs/long_term_vision.md](docs/long_term_vision.md). This README focuses on the core technical architecture.
+>
+> For a detailed and formal specification (in progress), see [spec/spec.md](spec/spec.md).
 
 ## A rhizowhat now?
 A _rhizome_ is a plant whose root structure expands horizontally, not vertically. The result is that a rhizomatic plant - like grass, or bamboo - may have many different "shoots" that appear to those of us above the ground to be individual different plants. Just under the surface, though, all of those many different blades of grass are just different _views_ of the same complex invisible structure. Philosophers Deleuze and Guattari borrowed this concept when developing their radical process-oriented philosophy - but you don't need to read _A Thousand Plateaus_ to understand the point that a rhizome is a single unified structure that to an observer appears as many distinct structures.

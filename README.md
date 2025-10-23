@@ -209,76 +209,7 @@ This has profound implications:
 
 **Reactive schemas** - When a schema changes (new deltas extend it), any materialized HyperViews or indexes using that schema can detect the change and rebuild themselves.
 
-Here's what a HyperSchema might look like as deltas:
-
-<details>
-<summary>Example: MovieSchema defined as deltas (click to expand)</summary>
-
-```typescript
-// Delta defining the MovieSchema itself
-{
-  id: "delta_movie_schema_1",
-  timestamp: t1,
-  author: "system",
-  system,
-  pointers: [{
-    localContext: 'schemaType',
-    target: { id: 'MovieSchema' },
-    targetContext: 'definition'
-  }, {
-    localContext: 'schemaName',
-    target: 'Movie'
-  }]
-}
-
-// Delta adding a selection rule to MovieSchema
-{
-  id: "delta_movie_schema_2",
-  timestamp: t2,
-  author: "system",
-  system,
-  pointers: [{
-    localContext: 'schema',
-    target: { id: 'MovieSchema' },
-    targetContext: 'selectionRule'
-  }, {
-    localContext: 'rule',
-    target: { id: 'select_by_cast_rule' }
-  }, {
-    localContext: 'ruleType',
-    target: 'targetContext'
-  }, {
-    localContext: 'ruleValue',
-    target: 'cast'
-  }]
-}
-
-// Delta adding a transformation rule to MovieSchema
-{
-  id: "delta_movie_schema_3",
-  timestamp: t3,
-  author: "system",
-  system,
-  pointers: [{
-    localContext: 'schema',
-    target: { id: 'MovieSchema' },
-    targetContext: 'transformationRule'
-  }, {
-    localContext: 'rule',
-    target: { id: 'transform_actor_rule' }
-  }, {
-    localContext: 'matchContext',
-    target: 'actor'
-  }, {
-    localContext: 'applySchema',
-    target: { id: 'ActorSchema' }
-  }]
-}
-```
-
-</details>
-
-This "schemas as data" principle is what makes the system truly evolvable and federated. There's no central schema authority, no migration scripts, no version conflicts. Schemas flow through the system just like any other data, with the same provenance, the same conflict resolution, and the same eventual consistency guarantees.
+This "schemas as data" principle is what makes the system truly evolvable and federated. There's no central schema authority, no migration scripts, no version conflicts. Schemas flow through the system just like any other data, with the same provenance, the same conflict resolution, and the same eventual consistency guarantees. The exact delta structure for representing schemas will be defined during implementation.
 
 Now, with that foundation in place, let's look at those three schema tiers we mentioned.
 
@@ -927,14 +858,7 @@ This means different schemas can handle negations differently:
 - **Include but mark**: Audit trails might want to show "this was claimed but later retracted"
 - **Require authorization**: Only respect negations from certain authors
 
-**Partial vs. Complete Negation:**
-
-The example above negates an entire delta. But you could also imagine more granular approaches:
-- **Negating specific pointers**: Target individual pointers within a delta
-- **Negating property values**: Mark specific assertions as wrong while keeping others
-- **Conditional negation**: "This is negated IF condition X holds"
-
-The exact semantics of negation are something we'll refine during implementation, but the key principle is: **negation is just more deltas**. There's no special "delete" operation - retraction is an additive assertion, just like everything else.
+The key principle is: **negation is just more deltas**. There's no special "delete" operation - retraction is an additive assertion, just like everything else. Deltas are atomic - you must accept or negate the entire delta, which means the granularity of negation is determined when you create the delta, not when you negate it.
 
 **Why this matters:**
 

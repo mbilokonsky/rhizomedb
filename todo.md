@@ -84,8 +84,9 @@ This document tracks planned improvements and changes to the project.
   - Covers core principle: Everything except DeltaSchema is composed of deltas
   - Explains bootstrap: DeltaSchema hardcoded, everything else is data
   - Details implications: schema sync, evolution, conflicts, discovery, reactivity
-  - Includes collapsible example of MovieSchema defined as deltas
+  - ~~Includes collapsible example of MovieSchema defined as deltas~~ (removed - too hand-wavy)
   - Emphasizes philosophical importance of "schemas as data"
+  - Note: Exact delta structure for schemas deferred to implementation
 
 ### Why HyperViews? (New Section)
 - [x] Add section explaining why HyperViews solve tractability problem
@@ -117,7 +118,8 @@ This document tracks planned improvements and changes to the project.
   - Explains: negation is just another delta (append-only preserved)
   - Shows collapsible example of delta + negation delta
   - Covers how HyperViews handle negations (exclude, mark, or authorize)
-  - Discusses partial vs complete negation
+  - ~~Discusses partial vs complete negation~~ (removed - deltas are atomic)
+  - Clarifies: Deltas are atomic - granularity determined at creation, not negation
   - Emphasizes: "negation is just more deltas" - no special delete operation
   - Benefits: auditability, time-travel, federation, conflict resolution
 

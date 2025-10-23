@@ -1,2 +1,431 @@
 # rhizomedb
-Once more with feeling: a rhizomatic database using immutable delta-crdts as hyperedges in a deleuzean hypergraph that treats state as a side-effect assembled at query-time.
+Once more with feeling: a rhizomatic database using immutable delta-crdts as hyperedges in a deleuzean hypergraph that treats state as a side-effect assembled at query-time. "Once more with feeling" because I've been starting and rewriting this project many times over the years, but I've got a good feeling about *this* implementation. I think this is the one, where we can get this into a production-ready state. This repo is going to contain a spec and an initial reference implementation in typescript. Once completed, the reference implementation will be published as a library to NPM and anyone who wants to implement the spec in any other language of their choice can immediately interop with typescript code using the library. 
+
+## A rhizowhat now?
+A _rhizome_ is a plant whose root structure expands horizontally, not vertically. The result is that a rhizomatic plant - like grass, or bamboo - may have many different "shoots" that appear to those of us above the ground to be individual different plants. Just under the surface, though, all of those many different blades of grass are just different _views_ of the same complex invisible structure. Philosophers Deleuze and Guattari borrowed this concept when developing their radical process-oriented philosophy - but you don't need to read _A Thousand Plateaus_ to understand the point that a rhizome is a single unified structure that to an observer appears as many distinct structures.
+
+This is what I'm calling a _rhizomatic database_ because on the surface you may interact with it as if it were any other database, a source of _domain objects_ with _state_ that you can read and write at will. But behind the scenes, the implementation diverges radically from traditional database design. There *is no state* at a fundamental level, or least not in the sense that we usually think of it. Instead, each instance of this database represents a single _hypergraph_ where _hyper edges_ create rich semantic relationships between nodes. Those nodes - the domain objects you're keeping track of in the database, and primitive values that populate terminal values - *only exist* once they've been referenced by at least one delta. State is literally created by referring to it, and has no independent existence outside of a given set of deltas that reference it.
+
+Further, this is designed so that different instances of this database can configure pub/sub streams and exchange deltas as they run. I'm really shooting for the moon here, but what I'd love to see is an eventual globally-federated knowledge graph where information is created, forked, computed, merged and broadcast freely. But we'll get to that part. For now, let's focus on what this thing *is*.
+
+## Definitions, Properties and Goals
+This database is doing things pretty differently from what you might expect. For instance, it is both *fully relational* and *NoSQL*. It rejects traditional database constraints around consistency and coherence by supporting arbitrarily many concurrent values for any given property - even if they seem to contract! No more last-write-wins, instead we hold everything in superposition and resolve it into meaningful state at query time. Sometimes, if I squint, I start to understand this thing as a latent space - but let's stay focused here.
+
+The core engine is an *append-only* *stream* of *immutable* *zero-knoweldge* *fully relational* *deltas*. Let's unpack what that means:
+  * *append-only* means that once written a delta may not be deleted. Every write is ~forever, and if you want to undo a delta you must submit a new negation delta that targets it.
+  * *stream* means that within a given system deltas are ingested over time and written to a stream that consumers can subscribe to. Each time a new delta comes in, anyone in this system - or outside of it, with access! - can be notified and react.
+  * *immutable* means that a delta has no mutable state - once it is created it may not be changed.
+  * *zero-knowledge* means that a "delta" in this sense is not aware of the state of the system. It is not a change from some fixed state `s1` into some new state `s2`, it is agnostic as to the context against which it is applied. _There is no state_.
+  * *fully-relational* means that even though we're not using SQL or tables we're still *conserving the fundamental guarantees of [Codd's relational algebra](https://en.wikipedia.org/wiki/Relational_algebra)*. I think.
+  * *deltas* are the atomic units of this data store. A delta represents an assertion with a unique identifier `id` created at time `t` by author `a` on system `s` which contains pointers `p`. 
+
+"Like sure, okay," you may be thinking. "It's an event-sourced data store using delta-CRDTs to assemble state at query time across a partitioned space, what, like it's hard?" But it also:
+  * natively supports time-travel, meaning you may execute any query against some past timestamp to see how it would have resolved in the past, and you may replay state over time to see how it evolved.
+  * is platform-and-language agnostic, because the primitives involved are quite simple and trivial to implement on servers, in clients and in arbitrarily unexpected places
+  * exposes a novel tripartite ontology - you know how in most database there's "the database layer" and then there's "the application layer", and as a programmer you query the database layer for stateful objects you can use in your application? We complicate that a bit.
+  * doesn't impose a single source of truth, meaning different users querying the same database may end up with different results to the same query
+  * treats state as a side-effect, because the rhizome itself is always in a superposition of possible states - so _state_ state emerges only by resolving a query into a hyperview and then into a view
+  * is also a compute fabric, but we'll get to that
+
+If we've done our job correctly, downstream consumers of this database won't actually have to understand most of that -- they'll be able to access it using GraphQL or a similar interface. But it allows behind-the-scenes superpowers:
+  * Full provenance on every delta, meaning that for every claim made you know where it came from and when.
+  * Dynamic schemas and hyperschemas, meaning that everything is "just data" and the only "baked-in" schema is the Delta Schema itself. Everything else is up for grabs and can be evolved.
+  * Fork/Merge structured data between different instances, making collaboration trivial without needing to agree on a schema up front.
+
+## Technical Details
+This is... a lot. So we're going to start simple, and we're going to build this up one level of abstraction at a time. Below we're going to talk about:
+
+1. The Delta Schema
+2. The Tripartite Schema Structure
+3. Mutation
+4. Streaming
+5. The Reactor
+
+Believe it or not this is not an exhaustive list of what this system can do, but we have to start somewhere so I'm starting here. As we go this document will evolve to embed source code and tests rather than hand-written code-fences making bold claims. 
+
+Ready? Ok, let's dig in.
+
+### Delta Schema
+At the root of this project is the concept of a "Delta". A delta is several things at once: it is an event, dispatched by an instance of this database to represent a new assertion being made about reality. It is a hyperedge in a hypergraph, connecting two or more "things" together in a way that encodes the nature of the relationship between them. And it is a CRDT, meaning it has certain properties that make it trivial to combine it with other deltas in order to assemble complex structures. A delta looks like this:
+
+```typescript
+interface Delta {
+  // a UUID representing this specific delta
+  id: string 
+
+  // a timestamp identifying the moment at which this delta was first created
+  timestamp: number  
+
+  // the UUID of the person or process that created this delta
+  author: string
+
+  // the UUID of the specific instance rhizomedb in which this delta was created
+  system: string
+
+  // this is the magic, these pointers reference different domain nodes or primitives with specific context.
+  pointers: {
+    localContext: string
+    target: DomainNodeReference | Primitive
+    targetContext?: string
+  }[]
+}
+```
+
+To understand deltas you have to understand pointers. Let's say you're using this system to model some domain -- the IMDB database, maybe. Your *domain objects* are things like `Actor`, `Director`, or `Movie. In traditional relational databases you'll generally define tables to represent your domain objects, and you'd normalize them. So you might have a `People` table, with columns for `id` and `name` and `birthday` and the like, and then maybe a `Movies` column, which would include columns like `id` and `title` and `release_year`. Then you'd create tables like `Cast` with columns like `movie_id`, `person_id`, and `character_name`, where those first two columns reference specific rows in `Movies` and `People`. You might have a `Directors` table that referenced `movie_id` and `person_id` -- the same columns, but different semantics! So a row in the `Cast` table implies that the person references played the character named in the movie referenced, but a row in the `Directors` table implies that the person referenced directed the movie referenced, etc. This is a very brief and high-level summary of how traditional database work - you need to define all of these tables and relationships in advance, and then you can use that set of schemas to keep track of your data in a way that allows it to be efficiently written and queried.
+
+When we talk about "domain objects", we're talking about the things represented across those tables. So things like `keanu_reeves` or `the_matrix` or `keanu_reeves_as_neo_in_the_matrix` or whatever ways you want to slice up the data, "domain objects" are the things *inside of* the tables. A traditional database uses a bunch of complexity to ensure that you can easily manage your set of domain objects. Using a traditional database is all about reading and writing domain objects. Domain objects - as expressed in rows across tables - are the primary *thing* that a traditional database uses. A database stores *state*, and *state* is the specifically canonically true configuration of domain objects at a given point in time.
+
+In a rhizomatic database, on the other hand, *domain objects don't exist* except as the intersection of all deltas that reference a given ID. We don't have tables, and we don't handle schemas as fixed definitions of columns with rigid foreign key joins and constraints that have to all be set up in advance. Instead, if you wanted to represent keanu reeves, you might do that by creating a bunch of deltas:
+
+```
+const author: string = "uuid_representing_me"
+const system: string = "uuid_representing_this_database_instance"
+const keanu: string = "uuid_representing_keanu_reeves"
+const the_matrix: string = "uuid_representing_the_matrix"
+
+// Keanu Reeves also created a comic book series called "brzrkr" you'll see why I'm using this below
+const brzrkr: string = "uuid_representing_brzrkr"
+
+const deltas = [
+  {
+    id: "delta1",
+    timestamp: t1,
+    author,
+    system,
+    pointers: [{
+      localContext: 'actor',
+      target: { id: keanu },
+      targetContext: 'appearedIn'
+    },{
+      localContext: 'movie',
+      target: { id: the_matrix },
+      targetContext: 'cast'
+    },{
+      localContext: 'characterName',
+      target: 'Neo'
+    }]
+  }, {
+    id: "delta2",
+    timestamp: t2,
+    author,
+    system,
+    pointers: [{
+      localContext: 'creator',
+      target: { id: keanu },
+      targetContext: 'projects'
+    },{
+      localContext: 'creation',
+      target: { id: brzrkr },
+      targetContext: 'createdBy'
+    }]
+  }
+]
+```
+
+So if I have those two deltas in my local database store, and I do a query to extract the domain object with the id `keanu`, what do I get back? Well, I get back those two deltas! You can see how, if you think about it for a moment, you *could* convert those deltas into a domain object that looks something like this:
+
+```typescript
+{
+  id: keanu,                            // this is a UUID
+  appearedIn: {
+    movie: { id: the_matrix },         // note this is still a UUID, given what we have above, but         
+    characterName: "Neo"              // this is a primitive string
+  },
+  projects: [
+    {
+      id: brzrkr,                    // similarly, this is still a UUID, we don't have any other properties around it
+    }                   
+  ]
+}
+```
+
+That's... not *quite* usable in an application, but it's interesting, right? But what's *more* interesting is that *without adding any new deltas anywhere* you could *also* query the database for a domain object with the id `the_matrix`. You can see how you could get back something like this:
+
+```typescript
+{
+  id: the_matrix,
+  cast: [
+    {
+      actor: { id: keanu },
+      characterName: "Neo"
+    }
+  ]
+}
+```
+
+And if you really wanted to get wild you could even start nesting this stuff arbitrarily, right? Like you could just as easily imagine querying for the domain object with the id `the_matrix` and getting back something that looked more like this:
+
+```typescript
+{
+  id: the_matrix,
+  cast: [
+    {
+      actor: {
+        id: keanu,
+        projects: [
+          {
+            id: brzrkr,
+            createdBy: { id: keanu }        // hmm, this is a circular reference. More about this below.
+          }
+        ]
+      },
+      characterName: "Neo"
+  ]
+}
+```
+
+Do you see how with two deltas we can support a bunch of different equally valid views? The "rhizome" is the deeply interconnected knot of concepts stored in the references between pointers of deltas with any given instance's stream. But how do we reliably get the specific shapes we want out of the rhizome? How does it know whether or not to include `keanu.projects` when Keanu is referenced as an actor within the cast of the matrix? You can see how our deltas can make *whatever associations they want*, so we can't know in advance what deltas will show up in our system. You can imagine writing a query tier that just grabs all the deltas associated with a given key and munges them together according to some rules you give it, but that won't really scale well as the system grows - and besides, structure is helpful! We don't want to have to define rigid schemas in advance, but we do like schemas! In fact, we like them so much that we've got three tiers of them!
+
+### Tripartite Schema Structure
+Our system uses three layers of representation, for reasons that will become apparent. We have deltas, hyperviews, and views. The first and third ones are fairly straightforward.
+
+*Deltas* are just what you see above, nothing fancy - the schema is straightforward, and every delta adheres to it.
+
+*Views* are what we might find exposed by GraphQL. A view is a representation of a domain object, and is backed by a schema. Your graphQL schema might define a `movie` as something like the following - this is pseudocode but I hope the meaning is clear:
+
+```typescript
+Actor = {
+  name: string
+  roles: Role[]
+}
+
+Director = {
+  name: string
+  films: Movie[]
+}
+
+Role = {
+  actor: Actor,
+  characterName: string,
+  movie: Movie
+}
+
+Movie = {
+  id: string,
+  title: string,
+  directorName: Director,
+  releaseYear: string,
+  cast: Role[]
+}
+```
+
+If you've ever used GraphQL, though, you know that your actual *query* can draw from the graph expressed by the schema, but it requires you to terminate every selected property in a string. So you actually *can't* write a query where you pick a movie, and the cast includes a role has an actor that contains a role that has has the Movie you started with, etc. In fact, your query *must* terminate in primitive values for all properties - this is how GraphQL prevents you from "returning the whole graph" with a simple query. We're dealing with a similar challenge in the rhizomatic database, but the indirection of having deltas requires a slightly different approach.
+
+In our case, a *HyperSchema* defines a *HyperView*. A hyperview represents a domain object, but the properties of that object don't contain values directly - instead, each property resolves to an array of deltas that have targeted our domain object using that property's name as the `targetContext`. It also specifies the *HyperSchema* to apply to the `target` of the pointers on those nested deltas that are not targeting the parent. This is easier to show by example, but first we're going to need to add a few more deltas to flesh this out.
+
+```typescript
+
+const lily: string = 'UUID of Lily Wachowski'
+const lana: string = 'UUID of Lana Wachowski'
+
+const additional_deltas = [
+  {
+    id: "delta3",
+    timestamp: t3,
+    author,
+    system,
+    pointers: [{
+      localContext: 'named',
+      target: { id: keanu },
+      targetContext: 'name'
+    },{
+      localContext: 'name',
+      target: 'Keanu Reeves'
+    }]
+  },
+  {
+    id: "delta4",
+    timestamp: t4,
+    author,
+    system,
+    pointers: [{
+      localContext: 'named',
+      target: { id: lily },
+      targetContext: 'name'
+    },{
+      localContext: 'name',
+      target: 'Lily Wachowski'
+    }]
+  },
+  {
+    id: "delta5",
+    timestamp: t5,
+    author,
+    system,
+    pointers: [{
+      localContext: 'named',
+      target: { id: lana },
+      targetContext: 'name'
+    },{
+      localContext: 'name',
+      target: 'Lana Wachowski'
+    }]
+  },
+  {
+    id: "delta6",
+    timestamp: t6,
+    author,
+    system,
+    pointers: [{
+      localContext: 'movie',
+      target: { id: the_matrix },
+      targetContext: 'directed_by'
+    },{
+      localContext: 'director',
+      target: { id: lily },
+      targetContext: 'films_directed'
+    },
+    {
+      localContext: 'director',
+      target: { id: lana },
+      targetContext: 'films_directed'
+    }]
+  },
+]
+```
+
+There, we've added a 'name' to our `keanu` object, and we've introduced deltas that assign names to Lily and Lana Wachowski, as well as a delta that establishes them as the directors of The Matrix. 
+
+Now, let's identify the following `HyperSchema` objects, and let's use natural language to keep this a bit more accessible:
+
+  * The `NamedEntity` HyperSchema is used to create an object `namedEntity`, and takes a domain object id `n`
+    * its job is to select each delta `d` in the system that contains a pointer where `{ localContext: "named", target: { id: n } }`.
+    * If `d` also contains a pointer such that `{ localContext: 'name', target: string }`, embed `d` under the `namedEntity.name`.
+  * The `Movie` HyperSchema is used to create an object `movie`, and takes a domain object id `m`
+    * it will identify each delta `d` in the system that contain a pointer `p` where `{ localContext: 'movie', target: m }`
+    * if `p.targetContext` is 'directed_by', embed this delta under `m.directed_by` AND
+      * for each reamining pointer `p` on `d`, if `p.localContext` is 'director' then replace `p.target` with `NamedEntity(p.target)`
+    * if `p.targetContext` is 'cast', embed this delta under `m.cast` AND
+      * for each remaining pointer `p` on `d`, if `p.localContext` is 'actor' then replace `p.target` with `NamedEntity(p.target)`
+     
+Do you see what we're doing? A `HyperObject` represents a domain object, but its properties always resolve an *array* of deltas. Those deltas have one `pointer` pointing "up" to the domain object, and one or more additional pointers pointing "down" to either other domain objects or to primitives. So if we do something like `Movie(the_matrix)` it will return a complex object that looks like this:
+
+```typescript
+const matrixHyperview = {
+  id: the_matrix,
+  directed_by: [
+    {
+      id: "delta6",
+      timestamp: t6,
+      author,
+      system,
+      pointers: [{
+        localContext: 'movie',
+        target: { id: the_matrix },
+        targetContext: 'directed_by'
+      },{
+        localContext: 'director',
+        target: {
+          id: lily,
+          name: [
+            {
+              id: "delta4",
+              timestamp: t4,
+              author,
+              system,
+              pointers: [{
+                localContext: 'named',
+                target: { id: lily },
+                targetContext: 'name'
+              },{
+                localContext: 'name',
+                target: 'Lily Wachowski'
+              }]
+            }
+          ]
+        },
+        targetContext: 'films_directed'
+      },
+      {
+        localContext: 'director',
+        target: { 
+          id: lana,
+          name: [
+            {
+              id: "delta5",
+              timestamp: t5,
+              author,
+              system,
+              pointers: [{
+                localContext: 'named',
+                target: { id: lana },
+                targetContext: 'name'
+              },{
+                localContext: 'name',
+                target: 'Lana Wachowski'
+              }]
+            }
+          ]
+        },
+        targetContext: 'films_directed'
+      }]
+    }
+  ],
+  cast: [
+    {
+      id: "delta1",
+      timestamp: t1,
+      author,
+      system,
+      pointers: [{
+        localContext: 'actor',
+        target: {
+          id: keanu,
+          name: [
+            {
+              id: "delta3",
+              timestamp: t3,
+              author,
+              system,
+              pointers: [{
+                localContext: 'named',
+                target: { id: keanu },
+                targetContext: 'name'
+              },{
+                localContext: 'name',
+                target: 'Keanu Reeves'
+              }]
+            }
+          ]
+        },
+        targetContext: 'appearedIn'
+      },{
+        localContext: 'movie',
+        target: { id: the_matrix },
+        targetContext: 'cast'
+      },{
+        localContext: 'characterName',
+        target: 'Neo'
+      }]
+    }
+  ]
+}
+```
+
+We've now got all information that the system has about "The Matrix" as projected through the `Movie` HyperSchema. What this means is we have the property `movie.directed_by`, which resolves to two deltas, each of which targets a different director. Each of those targets is in turn projected through the `NamedEntity` HyperSchema, which selects only those deltas which make a claim about the respective directors' names. Then we have a `movie.cast` property, which includes all deltas (well, all one, in this case) asserting cast membership in the matrix. One `target` of one `pointer` on that delta is Keanu, and our logic dictates that the `NamedEntity` be applied to him as well. So we include all one deltas that assert his name.
+
+This object is *large* and *complex* and you can imagine how you could go many layers deep, alernating DomainObject => Delta[] => DomainObject[] => Delta[] and using the property names on the Domain Objects and the target/local context on the delta pointers to impose a meaningful structure. And just like GraphQL requires that your query terminate in primitives, so too can our HyperSchema require that each property of the outermost nested DomainObject be projected through a HyperSchema like `NamedEntity` that doesn't replace the `target` on any pointer with any kind of additional layer. Why is this useful?
+
+Because from this `HyperView` you can implement a `Schema` (back to graphQL, for instance) where each property's `resolver` can be implemented by traversing the corresponding property on the `HyperView` and extracting `target` data from the nested deltas. What if there are multiple competing deltas asserting different things for the value of some property? No problem! Sometimes, you'll want to resolve directly into an array of values. Sometimes you'll want to take the `max` or `min` value. Sometimes you'll want to privilege claims made by `author: a` over claims made by `author: b`, or vice versa. Sometimes you'll want to compute the average. Every `Schema` can make its own decisions about how to resolve a situation where it receives multiple deltas for a given property. This is a feature, not a bug!
+
+### Mutation
+How do you mutate state in this system? You create and append deltas to your store. Just as GraphQL exposes queries, it exposes mutations - your application can define mutations that generate new deltas based on the values passed in, and push these into the instance. You can wire up your GraphQL interface to do this for you, or you can just literally create javascript objects that conform to the `Delta` schema and push them in.
+
+### Streaming
+The streaming model means that each delta can be treated as an event, and various subscribers can react to these events. A given instance probably has a default `persistDelta` handler which appends it to some underlying append-only durable stream. But you might also have an `indexDelta` handler which efficiently compares incoming deltas to the filters associated with any indexes, and replicates them there. You may also have a `pubsub` system connecting your instance of the database to a remote instance, to which you publish a subset of your deltas; or you may have a socket open to a client-side instance, where certain deltas get streamed as soon as they're created so that client state can be updated in realtime. Different instances of this technology can be optimized for different things - so you could spin up a different instance for each of the different examples I just mentioned, and have a canonical source of truth that you regenerate your index from, a dynamic and fast in-memory index instance, many client-side instances, horizontally scalable servers supporting different subsets of your clients, whatever. Streams are great because they make eventual consistency possible!
+
+### The Reactor
+As hinted at way up near the top of this document, this database also has the ability to drive a compute fabric. Consider: what if you define some domain objects that represent _functions_ - a function is just a signature with an implementation, right? So you can define a function, have its inputs defined using queries, subscribe to new deltas coming in that satisfy those queries, then trigger the function to execute against the query result. Functions always return new deltas, which in turn get written back out from the reactor into the input stream exposed by the database.
+
+## Use Cases
+It's a computational dao! Use it however you want!
+
+Consider: It's a global knowledge graph. Wrap this in an MCP so that every claude instance had its own local instance, but they can all share knowledge and draw from every new instance that comes online exposing any public data, or private data that's provisioned appropriately. Imagine an LLM arms race where instead of increasingly bloated weights and parameters because we're trying to front-load "knowledge" into a neural network that hallucinates as a feature we focused on generating the smallest possible models capable of meaningfully reading and writing from the global knowledge graph?
+
+Consider: It's an ideal way for independent researchers to share their findings with each other, not just by publishing academic papers but by making entire datasets available. Imagine being able to pull down some lab's research, instantly having their ontology and findings available, and then adding your own and opening the rhizomatic equivalent of a pull request to share your findings back with the original researchers?
+
+Consider: A social media fabric where every post you make is to *your local data store first*, and then your publication engine routes it out to the various feeds your social networks are distributed across. No more walled gardens, imagine large social aggregators and custom client-side apps designed to give optimized views into public feeds without a company in the middle trying to take a cut.
+
+Consider: Personal quantified self stuff, everything from health to finance, but you can easily generate reports to share with doctors or accountants just by pulling down helpful HyperSchemas.
+
+Consider: A GraphQL engine where the schema assembles itself from deltas, and includes a mutation *for itself* so that as you interact with the schema you can tune it. Pushing new deltas up updates the hyperview, which in turn generates a new snapshot view, which you can then send your next query against.

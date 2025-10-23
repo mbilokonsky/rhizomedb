@@ -89,22 +89,16 @@ This document tracks planned improvements and changes to the project.
   - Emphasizes philosophical importance of "schemas as data"
 
 ### Why HyperViews? (New Section)
-- [ ] Add section explaining why HyperViews solve tractability problem
-  - **The Problem**: Unbounded delta streams are intractable to query directly
-  - **The Solution**: HyperSchemas define "relevance closure"
-    1. Deltas directly targeting root object
-    2. Deltas targeting objects referenced by those deltas (via transforms)
-    3. Deltas targeting those deltas (negations, modifications)
-  - **Staging Area Concept**: HyperViews partially apply view resolution
-    - Without: `View = resolve(allDeltas, query)` (intractable)
-    - With: `HyperView = filter_and_transform(allDeltas, schema)` then `View = resolve_conflicts(hyperView)` (tractable)
-  - **HyperViews as Indexes**:
-    - An index IS a materialized HyperView
-    - Build: Scan stream to build initial index
-    - Maintain: Subscribe to stream, check each delta against HyperSchema select operations
-    - Update: Delta targets root? Update. Targets nested object? Update. Negates included delta? Update.
-    - Relevance closure computed automatically from HyperSchema definition
-  - **Multiple Purposes**: Same abstraction serves as views, indexes, query building blocks
+- [x] Add section explaining why HyperViews solve tractability problem
+  - ✅ Completed - added as new top-level section before Tripartite Schema
+  - Added after line 277, organized with subsections:
+    - The Tractability Problem: unbounded streams are intractable
+    - HyperSchemas Define Relevance Closure: bounded subsets of deltas
+    - HyperViews as Staging Area: partial application of view resolution
+    - HyperViews as Indexes: materialized HyperViews
+    - One Abstraction, Multiple Purposes: queries, indexes, templates
+  - Explains why HyperViews are central to making the system tractable
+  - Motivates the concept before diving into technical details
 
 ### Complete Round-Trip Example
 - [ ] Add simple end-to-end example showing all three layers

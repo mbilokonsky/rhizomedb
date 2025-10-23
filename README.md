@@ -276,6 +276,83 @@ This "schemas as data" principle is what makes the system truly evolvable and fe
 
 Now, with that foundation in place, let's look at those three schema tiers we mentioned.
 
+### Why HyperViews?
+
+Before we explain *what* the three schema tiers are, let's understand *why* we need them - specifically, why HyperViews are crucial to making this system tractable.
+
+#### The Tractability Problem
+
+An unbounded stream of deltas is fundamentally intractable to query directly. Imagine you have millions of deltas in your system. When you want to query for "The Matrix", which deltas do you look at? All of them? How do you know when you're done? What about nested objects - if you want the directors' names, do you search through all deltas again?
+
+Without some way to bound the search space, every query becomes a full scan of the entire delta stream. This doesn't scale.
+
+#### HyperSchemas Define Relevance Closure
+
+This is where HyperSchemas come in. A HyperSchema doesn't just define "what shape should this object have" - it defines **the closure of relevance** for a domain object. When you apply a HyperSchema to a domain object, you're computing exactly which deltas are relevant:
+
+1. **Deltas directly targeting the root object** - deltas with pointers targeting our domain object
+2. **Deltas targeting referenced objects** - when we transform a pointer's target by applying another HyperSchema, we include those deltas too
+3. **Deltas targeting deltas** - negations, retractions, or modifications of included deltas
+
+This creates a **bounded subset** of the delta stream. The HyperSchema tells us exactly where to look and when to stop looking.
+
+#### HyperViews as a Staging Area
+
+HyperViews solve another critical problem: they **partially apply** the view resolution function.
+
+Without HyperViews, building a view would look like this:
+```
+View = resolve(allDeltas, query)  // Intractable - too much data, too complex
+```
+
+With HyperViews, we split this into two steps:
+```
+HyperView = filter_and_transform(allDeltas, hyperSchema)  // Bounded by relevance closure
+View = resolve_conflicts(hyperView)                       // Simple conflict resolution on pre-filtered data
+```
+
+The HyperView has already:
+- Filtered down to relevant deltas
+- Organized them by property
+- Applied nested schemas recursively
+- Stopped at appropriate termination points
+
+The View resolver only needs to:
+- Handle conflict resolution (pick one value from multiple deltas)
+- Extract primitive values
+- Format for the consumer (GraphQL, REST, etc.)
+
+This separation of concerns makes both operations tractable and composable.
+
+#### HyperViews as Indexes
+
+Here's where it gets really powerful: **an index IS a materialized HyperView**.
+
+When you want to speed up queries, you typically create indexes. In RhizomeDB, creating an index means:
+
+1. Define a HyperSchema that captures what you want to index
+2. Scan the delta stream once to build initial HyperViews
+3. Subscribe to the delta stream for updates
+4. For each new delta, check: "Does this match any selection operation in my HyperSchema?"
+   - Does it target an indexed object? → Update that object's HyperView
+   - Does it target a nested object in an indexed object? → Update the parent's HyperView
+   - Does it negate a delta in an indexed object? → Update that object's HyperView
+
+The HyperSchema automatically defines the maintenance logic for the index. The relevance closure tells you exactly when to update the index.
+
+#### One Abstraction, Multiple Purposes
+
+By making HyperViews a first-class concept, we get:
+
+- **Ad-hoc queries**: Apply a HyperSchema on demand to answer a query
+- **Materialized indexes**: Pre-compute and maintain HyperViews for fast access
+- **View templates**: Define how data should be shaped for different consumers
+- **Schema boundaries**: Clear delineation of what's "in scope" for a given query
+
+The same abstraction serves all these purposes. Define a HyperSchema once, and you can use it for live queries, persistent indexes, or as a template for view resolution.
+
+This is why HyperViews are central to the system - they make an otherwise intractable problem (querying an unbounded delta stream) tractable, composable, and efficient.
+
 ### Tripartite Schema Structure
 Our system uses three layers of representation, for reasons that will become apparent. We have deltas, hyperviews, and views. The first and third ones are fairly straightforward.
 

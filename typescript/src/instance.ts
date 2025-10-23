@@ -4,6 +4,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
+import { LRUCache } from 'lru-cache';
 import {
   Delta,
   Pointer,
@@ -134,7 +135,8 @@ export class RhizomeDB
   private deltas: Delta[] = [];
   private deltaIndex: Map<string, Delta> = new Map();
   private subscriptions: Map<string, MemorySubscription> = new Map();
-  private materializedViews: Map<string, MaterializedHyperView> = new Map();
+  private materializedViews: LRUCache<string, MaterializedHyperView>;
+  private cacheStats = { hits: 0, misses: 0, evictions: 0 };
   private schemaRegistry: SchemaRegistry;
   private startTime: number = Date.now();
   private config: Required<RhizomeConfig>;
@@ -149,6 +151,15 @@ export class RhizomeDB
       enableIndexing: config.enableIndexing !== false,
       validateSchemas: config.validateSchemas || false
     };
+
+    // Initialize LRU cache for materialized views
+    this.materializedViews = new LRUCache<string, MaterializedHyperView>({
+      max: this.config.cacheSize,
+      // Track evictions
+      dispose: () => {
+        this.cacheStats.evictions++;
+      }
+    });
 
     // Initialize schema registry with validation setting
     this.schemaRegistry = new SchemaRegistry({
@@ -371,19 +382,10 @@ export class RhizomeDB
       _deltaCount: deltaCount
     };
 
-    // Cache if enabled
+    // Cache if enabled (LRU automatically handles eviction)
     if (this.config.enableIndexing) {
-      // Use composite key: objectId + schemaId
       const cacheKey = `${objectId}:${schema.id}`;
       this.materializedViews.set(cacheKey, materializedView);
-
-      // Evict oldest if cache is full
-      if (this.materializedViews.size > this.config.cacheSize) {
-        const firstKey = this.materializedViews.keys().next().value;
-        if (firstKey) {
-          this.materializedViews.delete(firstKey);
-        }
-      }
     }
 
     return materializedView;
@@ -403,16 +405,27 @@ export class RhizomeDB
     if (schemaId) {
       // Look for specific schema
       const cacheKey = `${objectId}:${schemaId}`;
-      return this.materializedViews.get(cacheKey) || null;
+      const view = this.materializedViews.get(cacheKey);
+
+      if (view) {
+        this.cacheStats.hits++;
+        return view;
+      }
+
+      this.cacheStats.misses++;
+      return null;
     }
 
     // Look for any materialized view for this object
-    for (const [key, view] of this.materializedViews.entries()) {
+    // Note: This is less efficient with LRU but rare operation
+    for (const view of this.materializedViews.values()) {
       if (view.id === objectId) {
+        this.cacheStats.hits++;
         return view;
       }
     }
 
+    this.cacheStats.misses++;
     return null;
   }
 
@@ -453,7 +466,15 @@ export class RhizomeDB
       cachedViews: this.materializedViews.size,
       activeSubscriptions: this.subscriptions.size,
       uptime: Date.now() - this.startTime,
-      storageType: 'memory'
+      storageType: 'memory',
+      cacheStats: {
+        hits: this.cacheStats.hits,
+        misses: this.cacheStats.misses,
+        evictions: this.cacheStats.evictions,
+        hitRate: this.cacheStats.hits + this.cacheStats.misses > 0
+          ? this.cacheStats.hits / (this.cacheStats.hits + this.cacheStats.misses)
+          : 0
+      }
     };
   }
 

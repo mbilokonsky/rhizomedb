@@ -389,6 +389,23 @@ export interface RhizomeConfig {
 }
 
 /**
+ * Cache statistics
+ */
+export interface CacheStats {
+  /** Number of cache hits */
+  hits: number;
+
+  /** Number of cache misses */
+  misses: number;
+
+  /** Number of cache evictions */
+  evictions: number;
+
+  /** Cache hit rate (0-1) */
+  hitRate: number;
+}
+
+/**
  * Instance statistics
  */
 export interface InstanceStats {
@@ -412,6 +429,9 @@ export interface InstanceStats {
 
   /** Storage backend type */
   storageType?: string;
+
+  /** Cache performance statistics */
+  cacheStats?: CacheStats;
 }
 
 // ============================================================================

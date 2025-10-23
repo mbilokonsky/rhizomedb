@@ -11,14 +11,16 @@ This document tracks planned improvements and changes to the project.
   - Also fixed typo "zero-knoweldge" → "context-free"
 
 ### Relational Algebra
-- [ ] Add note about relational algebra as research goal
-  - Add section or sidebar explaining:
-    - HyperSchema operations map to relational algebra (σ, π, ⋈, ∪, ∩, −)
-    - Selection = filtering deltas by predicates
-    - Projection = choosing which properties to include
-    - Joins = materialized as delta pointers
-    - Goal: Prove HyperSchemas are relationally complete
-    - Status: Aspirational, needs formal proof
+- [x] Add note about relational algebra as research goal
+  - ✅ Completed - added within HyperSchema Semantics subsection
+  - Added after "Why this matters" section (after line 533)
+  - Maps HyperSchema operations to relational algebra:
+    - Selection (σ): filter deltas by predicates
+    - Projection (π): choose which properties to include
+    - Join (⋈): delta pointers as materialized joins
+    - Union/Intersection/Difference: set operations over deltas
+  - Acknowledges this remains an open research question
+  - Emphasizes innovation: materialized joins vs computed joins
 
 ### Conflict Resolution
 - [x] Add conflict resolution example showing multiple deltas for same property

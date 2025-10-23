@@ -532,6 +532,29 @@ By abstracting HyperSchemas as selection + transformation, we keep the door open
 
 The examples we're showing use the simplest, most common pattern. But the abstraction is more powerful than the examples suggest.
 
+**Connection to Relational Algebra:**
+
+One of the early goals for this project was to prove that it's relationally complete - that is, it can express any operation from [Codd's relational algebra](https://en.wikipedia.org/wiki/Relational_algebra). While we haven't yet produced a formal proof, the HyperSchema abstraction suggests a clear mapping:
+
+- **Selection (σ)**: HyperSchema selection functions filter deltas by predicates
+  - `σ_{author='trusted'}(Deltas)` → "select only deltas from trusted authors"
+  - This is exactly what our selection function does
+
+- **Projection (π)**: HyperSchemas choose which properties to include
+  - `π_{name, cast}(Movie)` → "project only name and cast properties"
+  - By defining which targetContexts to expand, we project specific attributes
+
+- **Join (⋈)**: Delta pointers ARE materialized joins
+  - `Movie ⋈_{movie.id = cast.movie_id} Cast` in SQL
+  - Becomes a delta with pointers linking movie and cast objects
+  - **The innovation**: Joins are stored as hyperedges, not computed on read
+
+- **Union (∪), Intersection (∩), Difference (−)**: Set operations over deltas
+  - Multiple deltas for the same property = union of assertions
+  - Selection functions can implement: "deltas matching A ∪ deltas matching B"
+
+If we can prove that HyperSchemas can express arbitrary compositions of these operations, we'll have shown the system is relationally complete. This remains an open research question, but the abstraction is promising. The key insight is that we're implementing relational operations on **materialized joins** (deltas as hyperedges) rather than computed joins, which is a novel approach to achieving relational completeness.
+
 Do you see what we're doing? A `HyperObject` represents a domain object, but its properties always resolve an *array* of deltas. Those deltas have one `pointer` pointing "up" to the domain object, and one or more additional pointers pointing "down" to either other domain objects or to primitives. So if we do something like `Movie(the_matrix)` it will return a complex object that looks like this:
 
 <details>

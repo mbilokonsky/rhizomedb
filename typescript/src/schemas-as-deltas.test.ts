@@ -3,7 +3,9 @@
  */
 
 import { RhizomeDB } from './instance';
-import { Delta, HyperSchema } from './types';
+import { Delta, HyperSchema, HyperView, SelectionFunction, TransformationRules } from './types';
+import { selectByTargetContext } from './hyperview';
+import { isDomainNodeReference } from './validation';
 
 describe('Schemas as Deltas', () => {
   let db: RhizomeDB;
@@ -323,18 +325,146 @@ describe('Schemas as Deltas', () => {
   });
 });
 
-// Helper functions (to be implemented)
+// Helper functions
 
+/**
+ * Built-in selection pattern registry
+ */
+const BUILT_IN_SELECTORS: Record<string, SelectionFunction> = {
+  'select_by_target_context': selectByTargetContext
+};
+
+/**
+ * Create the meta-schema that queries schemas
+ *
+ * This is the bootstrap schema - it's hardcoded and not itself represented as deltas.
+ * It allows us to query schema-deltas to get schema-HyperViews.
+ */
 function createMetaHyperSchema(): HyperSchema {
-  // This is the bootstrap schema that queries schemas!
-  // For now, return a placeholder
-  throw new Error('createMetaHyperSchema not yet implemented');
+  return {
+    id: 'meta_hyperschema',
+    name: 'MetaHyperSchema',
+    select: selectByTargetContext, // Use the standard pattern
+    transform: {} // No transformations - schemas are terminal from meta-schema's perspective
+  };
 }
 
-function resolveHyperSchemaView(hyperView: any, db: RhizomeDB): HyperSchema {
-  // Resolve a HyperView of a schema into an executable HyperSchema
-  // For now, return a placeholder
-  throw new Error('resolveHyperSchemaView not yet implemented');
+/**
+ * Resolve a HyperView of a schema into an executable HyperSchema
+ *
+ * Converts: HyperView (deltas organized by property) → HyperSchema (executable object)
+ */
+function resolveHyperSchemaView(hyperView: HyperView, db: RhizomeDB): HyperSchema {
+  const schemaId = hyperView.id;
+
+  // Extract name
+  const name = extractName(hyperView);
+
+  // Resolve selection function
+  const select = resolveSelectionFunction(hyperView);
+
+  // Build transformation rules
+  const transform = resolveTransformationRules(hyperView);
+
+  return {
+    id: schemaId,
+    name,
+    select,
+    transform
+  };
+}
+
+/**
+ * Extract schema name from HyperView
+ */
+function extractName(hyperView: HyperView): string {
+  const nameDeltas = hyperView.name as Delta[] | undefined;
+  if (!nameDeltas || nameDeltas.length === 0) {
+    return hyperView.id; // Fallback to ID if no name
+  }
+
+  const nameDelta = nameDeltas[0]; // Take first (or could do conflict resolution)
+  const namePointer = nameDelta.pointers.find(p => p.localContext === 'name');
+
+  return (namePointer?.target as string) || hyperView.id;
+}
+
+/**
+ * Resolve selection function from HyperView
+ */
+function resolveSelectionFunction(hyperView: HyperView): SelectionFunction {
+  const selectDeltas = hyperView.select as Delta[] | undefined;
+  if (!selectDeltas || selectDeltas.length === 0) {
+    // Default to select_by_target_context if not specified
+    return selectByTargetContext;
+  }
+
+  const selectDelta = selectDeltas[0];
+
+  // Look for pattern reference (built-in selector)
+  const patternPointer = selectDelta.pointers.find(p => p.localContext === 'pattern');
+  if (patternPointer && isDomainNodeReference(patternPointer.target)) {
+    const patternId = patternPointer.target.id;
+    const builtIn = BUILT_IN_SELECTORS[patternId];
+    if (builtIn) {
+      return builtIn;
+    }
+  }
+
+  // Look for custom logic (e.g., JSONLogic)
+  const logicPointer = selectDelta.pointers.find(p => p.localContext === 'logic');
+  if (logicPointer && typeof logicPointer.target === 'string') {
+    // TODO: Parse JSONLogic and create selection function
+    // For now, fallback to default
+    return selectByTargetContext;
+  }
+
+  // Default
+  return selectByTargetContext;
+}
+
+/**
+ * Build transformation rules from HyperView
+ */
+function resolveTransformationRules(hyperView: HyperView): TransformationRules {
+  const transformDeltas = hyperView.transform as Delta[] | undefined;
+  if (!transformDeltas || transformDeltas.length === 0) {
+    return {};
+  }
+
+  const rules: TransformationRules = {};
+
+  for (const delta of transformDeltas) {
+    // Check if this is a JSON-encoded rules object (from terminal schema)
+    const rulesPointer = delta.pointers.find(p => p.localContext === 'rules');
+    if (rulesPointer && typeof rulesPointer.target === 'string') {
+      try {
+        const parsedRules = JSON.parse(rulesPointer.target);
+        Object.assign(rules, parsedRules);
+        continue;
+      } catch {
+        // Not valid JSON, skip
+        continue;
+      }
+    }
+
+    // Otherwise, extract individual transformation rule
+    const onContextPointer = delta.pointers.find(p => p.localContext === 'on-context');
+    const applySchemaPointer = delta.pointers.find(p => p.localContext === 'apply-schema');
+
+    if (onContextPointer && applySchemaPointer) {
+      const contextName = onContextPointer.target as string;
+
+      if (isDomainNodeReference(applySchemaPointer.target)) {
+        rules[contextName] = {
+          schema: applySchemaPointer.target.id,
+          when: (pointer) => isDomainNodeReference(pointer.target)
+        };
+      }
+    }
+  }
+
+  return rules;
 }
 
 async function createNamedEntitySchemaAsDeltas(db: RhizomeDB, schemaId: string): Promise<void> {

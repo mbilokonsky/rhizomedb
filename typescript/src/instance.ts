@@ -25,6 +25,7 @@ import {
 } from './types';
 import { validateDelta, isDomainNodeReference } from './validation';
 import { constructHyperView, SchemaRegistry } from './hyperview';
+import { DeltaIndexes } from './delta-indexes';
 
 /**
  * In-memory subscription implementation
@@ -134,6 +135,7 @@ export class RhizomeDB
   public readonly systemId: string;
   private deltas: Delta[] = [];
   private deltaIndex: Map<string, Delta> = new Map();
+  private deltaIndexes: DeltaIndexes = new DeltaIndexes();
   private subscriptions: Map<string, MemorySubscription> = new Map();
   private materializedViews: LRUCache<string, MaterializedHyperView>;
   private cacheStats = { hits: 0, misses: 0, evictions: 0 };
@@ -214,6 +216,9 @@ export class RhizomeDB
     this.deltas.push(delta);
     this.deltaIndex.set(delta.id, delta);
 
+    // Add to secondary indexes
+    this.deltaIndexes.addDelta(delta);
+
     // Publish to subscribers
     await this.publishDelta(delta);
 
@@ -246,45 +251,25 @@ export class RhizomeDB
   // =========================================================================
 
   queryDeltas(filter: DeltaFilter): Delta[] {
-    let results = [...this.deltas];
+    let results: Delta[];
 
+    // Try to use indexes for efficient filtering
+    const candidateIds = this.deltaIndexes.queryDeltaIds(filter);
+
+    if (candidateIds) {
+      // Index query returned candidates - fetch only those deltas
+      results = Array.from(candidateIds)
+        .map(id => this.deltaIndex.get(id))
+        .filter((d): d is Delta => d !== undefined);
+    } else {
+      // No indexed fields in filter - scan all deltas
+      results = [...this.deltas];
+    }
+
+    // Apply remaining filters not handled by indexes
     if (filter.ids) {
       const idSet = new Set(filter.ids);
       results = results.filter(d => idSet.has(d.id));
-    }
-
-    if (filter.authors) {
-      const authorSet = new Set(filter.authors);
-      results = results.filter(d => authorSet.has(d.author));
-    }
-
-    if (filter.systems) {
-      const systemSet = new Set(filter.systems);
-      results = results.filter(d => systemSet.has(d.system));
-    }
-
-    if (filter.timestampRange) {
-      const { start, end } = filter.timestampRange;
-      if (start !== undefined) {
-        results = results.filter(d => d.timestamp >= start);
-      }
-      if (end !== undefined) {
-        results = results.filter(d => d.timestamp <= end);
-      }
-    }
-
-    if (filter.targetIds) {
-      const targetSet = new Set(filter.targetIds);
-      results = results.filter(d =>
-        d.pointers.some(p => isDomainNodeReference(p.target) && targetSet.has(p.target.id))
-      );
-    }
-
-    if (filter.targetContexts) {
-      const contextSet = new Set(filter.targetContexts);
-      results = results.filter(d =>
-        d.pointers.some(p => p.targetContext && contextSet.has(p.targetContext))
-      );
     }
 
     if (filter.predicate) {
@@ -474,7 +459,8 @@ export class RhizomeDB
         hitRate: this.cacheStats.hits + this.cacheStats.misses > 0
           ? this.cacheStats.hits / (this.cacheStats.hits + this.cacheStats.misses)
           : 0
-      }
+      },
+      indexStats: this.deltaIndexes.getStats()
     };
   }
 
@@ -484,6 +470,7 @@ export class RhizomeDB
   clear(): void {
     this.deltas = [];
     this.deltaIndex.clear();
+    this.deltaIndexes.clear();
     this.materializedViews.clear();
     // Don't clear subscriptions or schema registry
   }

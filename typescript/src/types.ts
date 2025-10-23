@@ -406,6 +406,29 @@ export interface CacheStats {
 }
 
 /**
+ * Index statistics from delta-indexes module
+ */
+export interface IndexStats {
+  /** Number of deltas in target ID index */
+  targetIdIndexSize: number;
+
+  /** Number of deltas in target context index */
+  targetContextIndexSize: number;
+
+  /** Number of deltas in author index */
+  authorIndexSize: number;
+
+  /** Number of deltas in system index */
+  systemIndexSize: number;
+
+  /** Number of deltas in timestamp index */
+  timestampIndexSize: number;
+
+  /** Total memory estimate (bytes) */
+  estimatedMemory: number;
+}
+
+/**
  * Instance statistics
  */
 export interface InstanceStats {
@@ -432,6 +455,9 @@ export interface InstanceStats {
 
   /** Cache performance statistics */
   cacheStats?: CacheStats;
+
+  /** Index performance statistics */
+  indexStats?: IndexStats;
 }
 
 // ============================================================================

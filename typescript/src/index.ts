@@ -25,6 +25,9 @@ export * from './schema-validator';
 // Export Subscription Backpressure
 export * from './subscription-backpressure';
 
+// Export Delta Indexing
+export * from './delta-indexes';
+
 // Export instance implementation
 export { RhizomeDB } from './instance';
 

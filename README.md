@@ -863,7 +863,85 @@ The power of this tripartite structure is that each layer serves a distinct purp
 - Views provide clean interfaces for applications
 
 ### Mutation
+
 How do you mutate state in this system? You create and append deltas to your store. Just as GraphQL exposes queries, it exposes mutations - your application can define mutations that generate new deltas based on the values passed in, and push these into the instance. You can wire up your GraphQL interface to do this for you, or you can just literally create javascript objects that conform to the `Delta` schema and push them in.
+
+#### Delta Negation and Retraction
+
+Remember that this is an **append-only** system - once a delta is written, it cannot be deleted. But what if you need to "undo" a delta? What if someone made an incorrect assertion that needs to be retracted?
+
+This is where **negation deltas** come in. A negation delta is itself just another delta, but it specifically targets a previous delta to mark it as negated.
+
+Here's how it works:
+
+<details>
+<summary>Example: Negating a delta (click to expand)</summary>
+
+```typescript
+// Original delta: Alice's name
+const delta_alice_name = {
+  id: "delta_001",
+  timestamp: 1000,
+  author: "user_bob",
+  system: "instance_primary",
+  pointers: [{
+    localContext: 'named',
+    target: { id: 'alice_uuid' },
+    targetContext: 'name'
+  }, {
+    localContext: 'name',
+    target: 'Alice Smith'
+  }]
+}
+
+// Later, we discover this was wrong and want to retract it
+const delta_negation = {
+  id: "delta_002",
+  timestamp: 2000,
+  author: "user_bob",
+  system: "instance_primary",
+  pointers: [{
+    localContext: 'negates',
+    target: { id: 'delta_001' },  // Targeting the delta itself
+    targetContext: 'negated_by'
+  }, {
+    localContext: 'reason',
+    target: 'Incorrect information'
+  }]
+}
+```
+
+</details>
+
+Now both deltas exist in the stream. The original delta is still there (immutability!), but it's been marked as negated.
+
+**How do HyperViews handle negations?**
+
+When a HyperSchema computes relevance closure, it needs to account for negations:
+1. Select deltas targeting the domain object
+2. For each selected delta `d`, check if there exists a negation delta targeting `d`
+3. If negated, either exclude it or mark it as negated (depending on the schema's policy)
+
+This means different schemas can handle negations differently:
+- **Exclude negated deltas**: Most common - treat negated deltas as if they don't exist
+- **Include but mark**: Audit trails might want to show "this was claimed but later retracted"
+- **Require authorization**: Only respect negations from certain authors
+
+**Partial vs. Complete Negation:**
+
+The example above negates an entire delta. But you could also imagine more granular approaches:
+- **Negating specific pointers**: Target individual pointers within a delta
+- **Negating property values**: Mark specific assertions as wrong while keeping others
+- **Conditional negation**: "This is negated IF condition X holds"
+
+The exact semantics of negation are something we'll refine during implementation, but the key principle is: **negation is just more deltas**. There's no special "delete" operation - retraction is an additive assertion, just like everything else.
+
+**Why this matters:**
+
+- **Auditability**: You can see not just what's currently believed, but what was once believed and later retracted
+- **Time-travel**: Queries at timestamp 1500 would see the original delta; queries at timestamp 2500 would see it negated
+- **Federation**: Negations propagate just like any other delta - no special sync logic needed
+- **Conflict resolution**: If two instances negate the same delta, that's just convergent state
 
 ### Streaming
 The streaming model means that each delta can be treated as an event, and various subscribers can react to these events. A given instance probably has a default `persistDelta` handler which appends it to some underlying append-only durable stream. But you might also have an `indexDelta` handler which efficiently compares incoming deltas to the filters associated with any indexes, and replicates them there. You may also have a `pubsub` system connecting your instance of the database to a remote instance, to which you publish a subset of your deltas; or you may have a socket open to a client-side instance, where certain deltas get streamed as soon as they're created so that client state can be updated in realtime. Different instances of this technology can be optimized for different things - so you could spin up a different instance for each of the different examples I just mentioned, and have a canonical source of truth that you regenerate your index from, a dynamic and fast in-memory index instance, many client-side instances, horizontally scalable servers supporting different subsets of your clients, whatever. Streams are great because they make eventual consistency possible!

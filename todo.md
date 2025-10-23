@@ -111,11 +111,15 @@ This document tracks planned improvements and changes to the project.
   - Much simpler than IMDB examples, easier to follow
 
 ### Delta Negation
-- [ ] Add section showing how to negate deltas
-  - Show example of delta creation
-  - Show negation delta that targets it
-  - Clarify: Do you negate whole delta or specific pointers?
-  - Show how HyperViews handle negated deltas
+- [x] Add section showing how to negate deltas
+  - ✅ Completed - added as subsection within Mutation section
+  - Added "Delta Negation and Retraction" subsection
+  - Explains: negation is just another delta (append-only preserved)
+  - Shows collapsible example of delta + negation delta
+  - Covers how HyperViews handle negations (exclude, mark, or authorize)
+  - Discusses partial vs complete negation
+  - Emphasizes: "negation is just more deltas" - no special delete operation
+  - Benefits: auditability, time-travel, federation, conflict resolution
 
 ### Circular References
 - [x] Make circular reference handling more explicit

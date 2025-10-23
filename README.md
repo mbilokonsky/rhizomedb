@@ -50,10 +50,10 @@ At the root of this project is the concept of a "Delta". A delta is several thin
 ```typescript
 interface Delta {
   // a UUID representing this specific delta
-  id: string 
+  id: string
 
   // a timestamp identifying the moment at which this delta was first created
-  timestamp: number  
+  timestamp: number
 
   // the UUID of the person or process that created this delta
   author: string
@@ -69,6 +69,83 @@ interface Delta {
   }[]
 }
 ```
+
+#### Pointer Context Fields: localContext and targetContext
+
+Here's a complete example delta asserting a containment relationship:
+
+```typescript
+{
+  id: "delta_001",
+  timestamp: 1000,
+  author: "user_alice",
+  system: "instance_primary",
+  pointers: [
+    {
+      localContext: 'parent',
+      target: { id: 'some_container' },
+      targetContext: 'children'
+    },
+    {
+      localContext: 'child',
+      target: { id: 'some_contained_thing' },
+      targetContext: 'parent'
+    }
+  ]
+}
+```
+
+Each pointer has three fields that together define the semantics of the relationship:
+
+**`localContext`**: From this delta's perspective, what is this pointer targeting?
+- The first pointer is targeting a **parent**
+- The second pointer is targeting a **child**
+- Together, this delta is asserting a parent/child relationship between `some_container` and `some_contained_thing`
+
+**`targetContext`**: Where should this delta be organized when querying the target object?
+- When we query `some_container`, this delta should appear under its **children** property
+- When we query `some_contained_thing`, this delta should appear under its **parent** property
+- This creates navigable bidirectional relationships
+
+**`target`**: The thing being referenced (either a domain object `{ id }` or a primitive value)
+
+**Primitives and targetContext:**
+
+When targeting primitive values, `targetContext` is often omitted:
+
+```typescript
+{
+  id: "delta_002",
+  timestamp: 1001,
+  author: "user_alice",
+  system: "instance_primary",
+  pointers: [
+    {
+      localContext: 'sized',
+      target: { id: 'item_1' },
+      targetContext: 'size'
+    },
+    {
+      localContext: 'size',
+      target: 3  // primitive number
+      // no targetContext - it would be something like 'thingsThatAreThisSize', which is rarely useful
+    }
+  ]
+}
+```
+
+**Semantics and interpretation:**
+
+These context fields define **what the delta means**. They are the core semantics of the assertion being made. While a given HyperSchema may choose to interpret or organize these semantics differently when constructing a HyperView, the delta's meaning is established by its contexts and targets.
+
+**Naming divergence:**
+
+Different users or systems may use different terminology for the same concept ('parent'/'container', 'child'/'contents'). Within a single system, this can be largely mitigated by:
+- **Defined mutations**: Route all writes through mutation functions that enforce consistent vocabulary
+- **Tooling and linters**: Detect and flag inconsistent context naming
+- **Schema definitions**: Document the expected context values for your domain
+
+In federated scenarios, naming divergence becomes more challenging and may require explicit vocabulary mapping or advanced resolution strategies (see Open Questions).
 
 #### Delta Atomicity and Modeling
 
@@ -950,6 +1027,12 @@ These are unresolved challenges that need to be addressed during implementation:
 - **Schema conflicts**: When two instances define incompatible schemas, how do we merge them? Is schema conflict resolution fundamentally different from data conflict resolution?
 - **Breaking changes**: How do we handle schemas that make breaking changes? Can old deltas be queried with new schemas?
 - **Version coordination**: Do schemas need version numbers? How do we coordinate schema updates across federated instances?
+
+### Context Vocabulary and Semantic Convergence
+- **Mutation-based consistency**: Should the reference implementation include mutation helpers that enforce context vocabulary?
+- **Aliasing mechanism**: In federated scenarios, how do we map vocabularies between systems? Are aliases themselves deltas?
+- **Semantic similarity**: Can vector embeddings enable fuzzy context matching in specialized indexes? What are the implications for determinism and convergence?
+- **Case and normalization**: Are contexts case-sensitive? How do we handle whitespace, pluralization, and special characters?
 
 ### Data Retention & Privacy
 - **GDPR compliance**: How do we handle "right to be forgotten" in an append-only immutable system? Is negation sufficient, or do we need actual deletion?

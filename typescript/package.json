@@ -1,10 +1,15 @@
 {
   "name": "rhizomedb",
-  "version": "1.0.0",
-  "description": "A typescript library containing a reference implementation of the rhizomatic database.",
+  "version": "0.1.0",
+  "description": "A TypeScript reference implementation of the rhizomatic database.",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
   },
   "repository": {
     "type": "git",
@@ -14,12 +19,25 @@
     "database",
     "rhizome",
     "deltas",
-    "crdts"
+    "crdts",
+    "hypergraph",
+    "crdt"
   ],
   "author": "mykola bilokonsky",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/mbilokonsky/rhizomedb/issues"
   },
-  "homepage": "https://github.com/mbilokonsky/rhizomedb#readme"
+  "homepage": "https://github.com/mbilokonsky/rhizomedb#readme",
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "@types/uuid": "^9.0.0",
+    "jest": "^29.5.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "uuid": "^9.0.0"
+  }
 }

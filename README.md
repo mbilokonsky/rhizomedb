@@ -478,7 +478,54 @@ Now, let's identify the following `HyperSchema` objects, and let's use natural l
       * for each reamining pointer `p` on `d`, if `p.localContext` is 'director' then replace `p.target` with `NamedEntity(p.target)`
     * if `p.targetContext` is 'cast', embed this delta under `m.cast` AND
       * for each remaining pointer `p` on `d`, if `p.localContext` is 'actor' then replace `p.target` with `NamedEntity(p.target)`
-     
+
+#### HyperSchema Semantics
+
+The examples above use `targetContext` and `localContext` as convenient conventions, but let's be explicit about what HyperSchemas *actually* are at an abstract level.
+
+**A HyperSchema is fundamentally two operations:**
+
+1. **Selection Function**: `(domainObjectId, allDeltas) → relevantDeltas[]`
+   - Determines which deltas from the entire stream are relevant to this domain object
+   - In our examples: "deltas where a pointer has `target.id === domainObjectId AND targetContext === propertyName`"
+   - But could also select by: author, timestamp, system, signatures, or any arbitrary predicate
+   - This defines the **relevance boundary** for the HyperView
+
+2. **Transformation Rules**: `(delta, pointer) → transformedPointer`
+   - For each delta that passed selection, determine how to transform its pointers
+   - In our examples: "if `pointer.localContext === 'actor'`, apply `ActorSchema` to `pointer.target`"
+   - But could also transform based on: `targetContext`, timestamp, author, or complex logic
+   - Transformed pointers become nested HyperViews; untransformed pointers remain as `{ id }` or primitives
+
+**Important constraints:**
+
+- **DAG Requirement**: HyperSchemas must form a directed acyclic graph - no circular dependencies
+  - `Movie` references `NamedEntity` ✓
+  - `NamedEntity` references nothing ✓
+  - If `Movie` referenced `Actor` and `Actor` referenced `Movie` ✗ (cycle!)
+  - Termination happens naturally when you hit a schema that doesn't transform targets
+
+- **Graceful Degradation**: HyperSchemas handle messy data elegantly
+  - Delta doesn't match any selection rule? Ignored (not included in HyperView)
+  - Pointer doesn't match any transformation rule? Passed through as `{ id }` or primitive
+  - Missing properties? Simply absent from the HyperView
+  - This makes schemas resilient to incomplete or evolving data
+
+- **Conventions vs. Constraints**: The `targetContext`/`localContext` pattern is a useful convention, not a hard requirement
+  - Makes schemas readable and predictable
+  - But the system supports arbitrary selection and transformation logic
+  - You could filter by author trust levels, apply schemas based on temporal rules, etc.
+
+**Why this matters:**
+
+By abstracting HyperSchemas as selection + transformation, we keep the door open for advanced use cases:
+- **Temporal schemas**: "Show me how this looked at time T" (filter by timestamp)
+- **Trust-based schemas**: "Only include data from verified sources" (filter by author)
+- **Permission schemas**: "Filter based on who's querying" (context-aware selection)
+- **Computed schemas**: "Apply different transformations based on delta relationships"
+
+The examples we're showing use the simplest, most common pattern. But the abstraction is more powerful than the examples suggest.
+
 Do you see what we're doing? A `HyperObject` represents a domain object, but its properties always resolve an *array* of deltas. Those deltas have one `pointer` pointing "up" to the domain object, and one or more additional pointers pointing "down" to either other domain objects or to primitives. So if we do something like `Movie(the_matrix)` it will return a complex object that looks like this:
 
 <details>

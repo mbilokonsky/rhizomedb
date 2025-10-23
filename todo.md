@@ -44,19 +44,16 @@ This document tracks planned improvements and changes to the project.
   - Pattern can be applied to future large examples as needed
 
 ### HyperSchema Semantics
-- [ ] Add explicit section on HyperSchema mechanics
-  - **DAG Constraint**: HyperSchemas must form directed acyclic graph (no circular dependencies)
-  - **Filter Operation**: Selection function determines which deltas are relevant
-    - Example uses: targetContext matching
-    - But can filter by: author, timestamp, system, signatures, complex predicates
-  - **Transform Operation**: Transformation rules for nested targets
-    - Example uses: localContext matching → apply nested HyperSchema
-    - But can transform by: any delta/pointer properties, temporal rules, permissions
-  - **Graceful Degradation**: Missing properties → don't show up; malformed pointers → simplified to {id}
-  - **Abstract Definition**:
-    - Selection: `(domainObjectId, allDeltas) → relevantDeltas[]`
-    - Transformation: `(delta, pointer) → transformedPointer`
-  - Note: targetContext/localContext are CONVENTIONS, not constraints
+- [x] Add explicit section on HyperSchema mechanics
+  - ✅ Completed - added as subsection within Tripartite Schema Structure
+  - Added after natural language HyperSchema definitions (after line 480)
+  - Covers abstract operations: Selection Function and Transformation Rules
+  - Details important constraints:
+    - DAG Requirement: no circular dependencies
+    - Graceful Degradation: resilient to messy/incomplete data
+    - Conventions vs Constraints: targetContext/localContext are conventions
+  - Explains advanced use cases: temporal, trust-based, permission schemas
+  - Emphasizes flexibility beyond the simple examples shown
 
 ### HyperView Generalization
 - [ ] Expand HyperView concept to support multiple roots

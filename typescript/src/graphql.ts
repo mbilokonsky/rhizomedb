@@ -185,7 +185,7 @@ function hyperSchemaToGraphQLType(
 
     // Add fields for primitives (inferred from common patterns)
     // This is a simplification - in production you'd want explicit field definitions
-    const commonPrimitiveFields = ['name', 'title', 'content', 'text', 'description'];
+    const commonPrimitiveFields = ['name', 'title', 'content', 'text', 'description', 'character'];
     for (const fieldName of commonPrimitiveFields) {
       if (!fieldMap[fieldName]) {
         fieldMap[fieldName] = {
@@ -202,6 +202,31 @@ function hyperSchemaToGraphQLType(
             const pointer = delta.pointers.find(p =>
               p.localContext === fieldName &&
               !isDomainNodeReference(p.target)
+            );
+            return pointer?.target || null;
+          }
+        };
+      }
+    }
+
+    // Add numeric fields
+    const commonNumericFields = ['year', 'runtime', 'birthYear', 'budget'];
+    for (const fieldName of commonNumericFields) {
+      if (!fieldMap[fieldName]) {
+        fieldMap[fieldName] = {
+          type: GraphQLInt,
+          resolve: (source) => {
+            const property = source[fieldName];
+            if (!property || !Array.isArray(property)) return null;
+
+            const deltas = property as Delta[];
+            if (deltas.length === 0) return null;
+
+            // Extract numeric value from pointer
+            const delta = deltas[0];
+            const pointer = delta.pointers.find(p =>
+              p.localContext === fieldName &&
+              typeof p.target === 'number'
             );
             return pointer?.target || null;
           }

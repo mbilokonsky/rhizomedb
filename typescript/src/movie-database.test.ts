@@ -507,6 +507,8 @@ describe('Movie Database', () => {
           Movie(id: "movie_matrix") {
             id
             title
+            year
+            runtime
           }
         }
       `;
@@ -517,7 +519,9 @@ describe('Movie Database', () => {
       expect(result.data).toEqual({
         Movie: {
           id: 'movie_matrix',
-          title: 'The Matrix'
+          title: 'The Matrix',
+          year: 1999,
+          runtime: 136
         }
       });
     });
@@ -528,6 +532,7 @@ describe('Movie Database', () => {
           Person(id: "person_reeves_keanu") {
             id
             name
+            birthYear
           }
         }
       `;
@@ -538,7 +543,8 @@ describe('Movie Database', () => {
       expect(result.data).toEqual({
         Person: {
           id: 'person_reeves_keanu',
-          name: 'Keanu Reeves'
+          name: 'Keanu Reeves',
+          birthYear: 1964
         }
       });
     });
@@ -549,9 +555,12 @@ describe('Movie Database', () => {
           Movie(id: "movie_lotr_fellowship") {
             id
             title
+            year
+            runtime
             director {
               id
               name
+              birthYear
             }
           }
         }
@@ -564,9 +573,12 @@ describe('Movie Database', () => {
         Movie: {
           id: 'movie_lotr_fellowship',
           title: 'The Lord of the Rings: The Fellowship of the Ring',
+          year: 2001,
+          runtime: 178,
           director: {
             id: 'person_jackson_peter',
-            name: 'Peter Jackson'
+            name: 'Peter Jackson',
+            birthYear: 1961
           }
         }
       });
@@ -577,13 +589,17 @@ describe('Movie Database', () => {
         query {
           Role(id: "role_matrix_neo") {
             id
+            character
             actor {
               id
               name
+              birthYear
             }
             movie {
               id
               title
+              year
+              runtime
             }
           }
         }
@@ -594,13 +610,17 @@ describe('Movie Database', () => {
       expect(result.errors).toBeUndefined();
       expect(result.data?.Role).toMatchObject({
         id: 'role_matrix_neo',
+        character: 'Neo',
         actor: {
           id: 'person_reeves_keanu',
-          name: 'Keanu Reeves'
+          name: 'Keanu Reeves',
+          birthYear: 1964
         },
         movie: {
           id: 'movie_matrix',
-          title: 'The Matrix'
+          title: 'The Matrix',
+          year: 1999,
+          runtime: 136
         }
       });
     });
@@ -632,6 +652,8 @@ describe('Movie Database', () => {
           Movies(ids: ["movie_matrix", "movie_matrix_reloaded"]) {
             id
             title
+            year
+            runtime
           }
         }
       `;
@@ -642,11 +664,15 @@ describe('Movie Database', () => {
       expect(result.data?.Movies).toHaveLength(2);
       expect(result.data?.Movies).toContainEqual({
         id: 'movie_matrix',
-        title: 'The Matrix'
+        title: 'The Matrix',
+        year: 1999,
+        runtime: 136
       });
       expect(result.data?.Movies).toContainEqual({
         id: 'movie_matrix_reloaded',
-        title: 'The Matrix Reloaded'
+        title: 'The Matrix Reloaded',
+        year: 2003,
+        runtime: 138
       });
     });
 

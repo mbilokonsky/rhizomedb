@@ -11,11 +11,11 @@ Further, this is designed so that different instances of this database can confi
 ## Definitions, Properties and Goals
 This database is doing things pretty differently from what you might expect. For instance, it is both *fully relational* and *NoSQL*. It rejects traditional database constraints around consistency and coherence by supporting arbitrarily many concurrent values for any given property - even if they seem to contract! No more last-write-wins, instead we hold everything in superposition and resolve it into meaningful state at query time. Sometimes, if I squint, I start to understand this thing as a latent space - but let's stay focused here.
 
-The core engine is an *append-only* *stream* of *immutable* *zero-knoweldge* *fully relational* *deltas*. Let's unpack what that means:
+The core engine is an *append-only* *stream* of *immutable* *context-free* *fully relational* *deltas*. Let's unpack what that means:
   * *append-only* means that once written a delta may not be deleted. Every write is ~forever, and if you want to undo a delta you must submit a new negation delta that targets it.
   * *stream* means that within a given system deltas are ingested over time and written to a stream that consumers can subscribe to. Each time a new delta comes in, anyone in this system - or outside of it, with access! - can be notified and react.
   * *immutable* means that a delta has no mutable state - once it is created it may not be changed.
-  * *zero-knowledge* means that a "delta" in this sense is not aware of the state of the system. It is not a change from some fixed state `s1` into some new state `s2`, it is agnostic as to the context against which it is applied. _There is no state_.
+  * *context-free* means that a "delta" in this sense is not aware of the state of the system. It is not a change from some fixed state `s1` into some new state `s2`, it is agnostic as to the context against which it is applied. _There is no state_.
   * *fully-relational* means that even though we're not using SQL or tables we're still *conserving the fundamental guarantees of [Codd's relational algebra](https://en.wikipedia.org/wiki/Relational_algebra)*. I think.
   * *deltas* are the atomic units of this data store. A delta represents an assertion with a unique identifier `id` created at time `t` by author `a` on system `s` which contains pointers `p`. 
 
@@ -406,6 +406,100 @@ We've now got all information that the system has about "The Matrix" as projecte
 This object is *large* and *complex* and you can imagine how you could go many layers deep, alernating DomainObject => Delta[] => DomainObject[] => Delta[] and using the property names on the Domain Objects and the target/local context on the delta pointers to impose a meaningful structure. And just like GraphQL requires that your query terminate in primitives, so too can our HyperSchema require that each property of the outermost nested DomainObject be projected through a HyperSchema like `NamedEntity` that doesn't replace the `target` on any pointer with any kind of additional layer. Why is this useful?
 
 Because from this `HyperView` you can implement a `Schema` (back to graphQL, for instance) where each property's `resolver` can be implemented by traversing the corresponding property on the `HyperView` and extracting `target` data from the nested deltas. What if there are multiple competing deltas asserting different things for the value of some property? No problem! Sometimes, you'll want to resolve directly into an array of values. Sometimes you'll want to take the `max` or `min` value. Sometimes you'll want to privilege claims made by `author: a` over claims made by `author: b`, or vice versa. Sometimes you'll want to compute the average. Every `Schema` can make its own decisions about how to resolve a situation where it receives multiple deltas for a given property. This is a feature, not a bug!
+
+#### Conflict Resolution in Practice
+
+Let's see a concrete example. Imagine two different deltas making claims about Keanu's name:
+
+```typescript
+// First delta - correct spelling
+{
+  id: "delta3",
+  timestamp: 1000,
+  author: "imdb_official",
+  system,
+  pointers: [{
+    localContext: 'named',
+    target: { id: keanu },
+    targetContext: 'name'
+  },{
+    localContext: 'name',
+    target: 'Keanu Reeves'
+  }]
+}
+
+// Second delta - misspelling
+{
+  id: "delta7",
+  timestamp: 2000,
+  author: "random_user",
+  system,
+  pointers: [{
+    localContext: 'named',
+    target: { id: keanu },
+    targetContext: 'name'
+  },{
+    localContext: 'name',
+    target: 'Keanu Reaves'  // misspelled
+  }]
+}
+```
+
+When we apply the `NamedEntity` HyperSchema to Keanu, we get a HyperView that includes *both* deltas:
+
+```typescript
+{
+  id: keanu,
+  name: [
+    {
+      id: "delta3",
+      timestamp: 1000,
+      author: "imdb_official",
+      system,
+      pointers: [/* ... */]
+    },
+    {
+      id: "delta7",
+      timestamp: 2000,
+      author: "random_user",
+      system,
+      pointers: [/* ... */]
+    }
+  ]
+}
+```
+
+Now when we implement a View resolver, we have multiple strategies available:
+
+```typescript
+// Strategy 1: Take the most recent
+const name = hyperView.name
+  .sort((a, b) => b.timestamp - a.timestamp)[0]
+  .pointers.find(p => p.localContext === 'name').target
+// Result: "Keanu Reaves" (most recent, but wrong!)
+
+// Strategy 2: Trust specific authors
+const trustedAuthors = ["imdb_official", "wikipedia"]
+const name = hyperView.name
+  .find(delta => trustedAuthors.includes(delta.author))
+  .pointers.find(p => p.localContext === 'name').target
+// Result: "Keanu Reeves" (correct!)
+
+// Strategy 3: Return all possibilities and let the application decide
+const names = hyperView.name
+  .map(delta => delta.pointers.find(p => p.localContext === 'name').target)
+// Result: ["Keanu Reeves", "Keanu Reaves"] (surface the conflict)
+
+// Strategy 4: Use an LLM to resolve semantic conflicts
+const name = await llmResolver(hyperView.name, {
+  prompt: "Which of these names is the correct spelling?"
+})
+// Result: "Keanu Reeves" (AI-assisted resolution)
+```
+
+Different parts of your application can use different strategies for the same data. Your admin interface might show all conflicts (Strategy 3), while your public API uses trusted authors (Strategy 2). A data quality dashboard could flag conflicts for human review. A machine learning pipeline might use timestamps. **The HyperView preserves all the information, and View resolvers make context-appropriate decisions.**
+
+This is why we say "this is a feature, not a bug" - the system doesn't force a single resolution strategy on you. It preserves the full provenance and lets you choose how to handle conflicts based on your use case.
 
 ### Mutation
 How do you mutate state in this system? You create and append deltas to your store. Just as GraphQL exposes queries, it exposes mutations - your application can define mutations that generate new deltas based on the values passed in, and push these into the instance. You can wire up your GraphQL interface to do this for you, or you can just literally create javascript objects that conform to the `Delta` schema and push them in.

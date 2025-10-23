@@ -79,21 +79,14 @@ This document tracks planned improvements and changes to the project.
   - Status: This is still somewhat intuitive, needs more development
 
 ### Schemas as Data (Meta-Level)
-- [ ] Add new section: "Schemas as Data"
-  - **Core Principle**: Everything except the Delta schema itself is composed of deltas
-  - **Bootstrap**: DeltaSchema is hardcoded; all other schemas are deltas
-  - **Implications**:
-    - HyperSchemas are deltas
-    - Indexes are deltas (config for which HyperViews to materialize)
-    - Queries are deltas (composition of HyperView operations)
-    - Functions are deltas (per Reactor section)
-  - **Benefits**:
-    - Schema sync: Federating instances exchange schemas automatically
-    - Schema evolution: Adding fields = appending deltas
-    - Schema conflicts: Resolved same as data conflicts
-    - Schema discovery: "Show me all schemas referencing ActorSchema" is queryable
-    - Reactive schemas: Schema changes → materialized views invalidate/rebuild
-  - Show example of MovieSchema defined as deltas
+- [x] Add new section: "Schemas as Data"
+  - ✅ Completed - added as new top-level section after Delta Schema
+  - Added after line 182, before Tripartite Schema Structure
+  - Covers core principle: Everything except DeltaSchema is composed of deltas
+  - Explains bootstrap: DeltaSchema hardcoded, everything else is data
+  - Details implications: schema sync, evolution, conflicts, discovery, reactivity
+  - Includes collapsible example of MovieSchema defined as deltas
+  - Emphasizes philosophical importance of "schemas as data"
 
 ### Why HyperViews? (New Section)
 - [ ] Add section explaining why HyperViews solve tractability problem

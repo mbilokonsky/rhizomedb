@@ -181,6 +181,101 @@ And if you really wanted to get wild you could even start nesting this stuff arb
 
 Do you see how with two deltas we can support a bunch of different equally valid views? The "rhizome" is the deeply interconnected knot of concepts stored in the references between pointers of deltas with any given instance's stream. But how do we reliably get the specific shapes we want out of the rhizome? How does it know whether or not to include `keanu.projects` when Keanu is referenced as an actor within the cast of the matrix? You can see how our deltas can make *whatever associations they want*, so we can't know in advance what deltas will show up in our system. You can imagine writing a query tier that just grabs all the deltas associated with a given key and munges them together according to some rules you give it, but that won't really scale well as the system grows - and besides, structure is helpful! We don't want to have to define rigid schemas in advance, but we do like schemas! In fact, we like them so much that we've got three tiers of them!
 
+### Schemas as Data
+
+Before we dive into those schema tiers, there's a crucial philosophical principle that underpins this entire system: **everything except the Delta schema itself is composed of deltas**.
+
+The `Delta` interface you saw above is the only "baked-in" schema in the entire system. Everything else - HyperSchemas, View schemas, indexes, even queries and functions - are themselves just domain objects represented by deltas. This creates a beautiful bootstrap where:
+
+**The DeltaSchema is hardcoded** - it's the axiom, the fundamental building block that everything else is built on top of.
+
+**Everything else is data** - HyperSchemas that define how to query the database are themselves queryable. Indexes that speed up access are themselves stored as deltas. Functions that compute derived values are deltas that reference other deltas.
+
+This has profound implications:
+
+**Schema sync is automatic** - When two database instances federate and exchange deltas, they're not just syncing data - they're syncing the schemas that define how to interpret that data. If you create a new `MovieSchema` and share deltas with another instance, that instance automatically receives your schema definition.
+
+**Schema evolution is trivial** - Want to add a new field to the `Movie` HyperSchema? Just append new deltas that extend the schema definition. Old queries continue to work, new queries can use the new fields.
+
+**Schema conflicts resolve like data conflicts** - Two people define different `MovieSchema` definitions? The same conflict resolution strategies we use for data (trusted authors, timestamps, surfacing conflicts) apply to schemas too.
+
+**Schema discovery is queryable** - "Show me all HyperSchemas that reference the `Actor` schema" is just a query over deltas. The entire schema registry is introspectable.
+
+**Reactive schemas** - When a schema changes (new deltas extend it), any materialized HyperViews or indexes using that schema can detect the change and rebuild themselves.
+
+Here's what a HyperSchema might look like as deltas:
+
+<details>
+<summary>Example: MovieSchema defined as deltas (click to expand)</summary>
+
+```typescript
+// Delta defining the MovieSchema itself
+{
+  id: "delta_movie_schema_1",
+  timestamp: t1,
+  author: "system",
+  system,
+  pointers: [{
+    localContext: 'schemaType',
+    target: { id: 'MovieSchema' },
+    targetContext: 'definition'
+  }, {
+    localContext: 'schemaName',
+    target: 'Movie'
+  }]
+}
+
+// Delta adding a selection rule to MovieSchema
+{
+  id: "delta_movie_schema_2",
+  timestamp: t2,
+  author: "system",
+  system,
+  pointers: [{
+    localContext: 'schema',
+    target: { id: 'MovieSchema' },
+    targetContext: 'selectionRule'
+  }, {
+    localContext: 'rule',
+    target: { id: 'select_by_cast_rule' }
+  }, {
+    localContext: 'ruleType',
+    target: 'targetContext'
+  }, {
+    localContext: 'ruleValue',
+    target: 'cast'
+  }]
+}
+
+// Delta adding a transformation rule to MovieSchema
+{
+  id: "delta_movie_schema_3",
+  timestamp: t3,
+  author: "system",
+  system,
+  pointers: [{
+    localContext: 'schema',
+    target: { id: 'MovieSchema' },
+    targetContext: 'transformationRule'
+  }, {
+    localContext: 'rule',
+    target: { id: 'transform_actor_rule' }
+  }, {
+    localContext: 'matchContext',
+    target: 'actor'
+  }, {
+    localContext: 'applySchema',
+    target: { id: 'ActorSchema' }
+  }]
+}
+```
+
+</details>
+
+This "schemas as data" principle is what makes the system truly evolvable and federated. There's no central schema authority, no migration scripts, no version conflicts. Schemas flow through the system just like any other data, with the same provenance, the same conflict resolution, and the same eventual consistency guarantees.
+
+Now, with that foundation in place, let's look at those three schema tiers we mentioned.
+
 ### Tripartite Schema Structure
 Our system uses three layers of representation, for reasons that will become apparent. We have deltas, hyperviews, and views. The first and third ones are fairly straightforward.
 

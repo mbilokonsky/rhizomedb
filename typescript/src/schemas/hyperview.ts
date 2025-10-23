@@ -10,19 +10,36 @@ import {
   Pointer,
   DomainNodeReference,
   isPrimitiveHyperSchema
-} from './types';
-import { isDomainNodeReference } from './validation';
+} from '../core/types';
+import { isDomainNodeReference } from '../core/validation';
 
 /**
  * Schema registry for lazy resolution of schema references
  */
 export class SchemaRegistry {
   private schemas: Map<string, HyperSchema> = new Map();
+  private validateOnRegister: boolean;
+
+  constructor(options?: { validateOnRegister?: boolean }) {
+    this.validateOnRegister = options?.validateOnRegister ?? false;
+  }
 
   /**
    * Register a schema
+   *
+   * @param schema - The schema to register
+   * @param options - Registration options
+   * @throws CircularSchemaError if validation is enabled and schema creates a cycle
    */
-  register(schema: HyperSchema): void {
+  register(schema: HyperSchema, options?: { skipValidation?: boolean }): void {
+    const skipValidation = options?.skipValidation ?? !this.validateOnRegister;
+
+    if (!skipValidation) {
+      // Import here to avoid circular dependency
+      const { validateSchemaDAG } = require('./schema-validator');
+      validateSchemaDAG(schema, this);
+    }
+
     this.schemas.set(schema.id, schema);
   }
 
@@ -45,6 +62,13 @@ export class SchemaRegistry {
       return schema;
     }
     return schemaOrId;
+  }
+
+  /**
+   * Enable or disable validation on registration
+   */
+  setValidation(enabled: boolean): void {
+    this.validateOnRegister = enabled;
   }
 }
 

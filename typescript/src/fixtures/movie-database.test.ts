@@ -3,11 +3,11 @@
  * Demonstrates RhizomeDB with a rich, real-world dataset
  */
 
-import { RhizomeDB } from './instance';
-import { LevelDBStore } from './leveldb-store';
+import { RhizomeDB } from '../storage/instance';
+import { LevelDBStore } from '../storage/leveldb-store';
 import { movieSchemas, seedMovieDatabase, getSeedStats } from './movie-database.fixture';
-import { Delta, DeltaFilter } from './types';
-import { createGraphQLSchema } from './graphql';
+import { Delta, DeltaFilter } from '../core/types';
+import { createGraphQLSchema } from '../integrations/graphql';
 import { graphql } from 'graphql';
 import * as fs from 'fs';
 import * as path from 'path';

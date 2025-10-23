@@ -22,9 +22,10 @@ import {
   StreamConsumer,
   StreamProducer,
   IndexMaintainer
-} from './types';
-import { validateDelta, isDomainNodeReference } from './validation';
-import { constructHyperView, SchemaRegistry } from './hyperview';
+} from '../core/types';
+import { validateDelta, isDomainNodeReference } from '../core/validation';
+import { constructHyperView, SchemaRegistry } from '../schemas/hyperview';
+import { calculateSchemaHash, VersionedHyperSchema } from '../schemas/schema-versioning';
 
 /**
  * Subscription implementation (same as in-memory version)
@@ -135,7 +136,7 @@ export class LevelDBStore
   private db: Level<string, string>;
   private subscriptions: Map<string, LevelDBSubscription> = new Map();
   private materializedViews: Map<string, MaterializedHyperView> = new Map();
-  private schemaRegistry: SchemaRegistry = new SchemaRegistry();
+  private schemaRegistry: SchemaRegistry;
   private startTime: number = Date.now();
   private config: Required<RhizomeConfig>;
   private ready: Promise<void>;
@@ -154,8 +155,14 @@ export class LevelDBStore
       storage: config.storage,
       storageConfig: config.storageConfig,
       cacheSize: config.cacheSize || 1000,
-      enableIndexing: config.enableIndexing !== false
+      enableIndexing: config.enableIndexing !== false,
+      validateSchemas: config.validateSchemas || false
     };
+
+    // Initialize schema registry with validation setting
+    this.schemaRegistry = new SchemaRegistry({
+      validateOnRegister: this.config.validateSchemas
+    });
 
     // Initialize LevelDB
     this.db = new Level(config.dbPath, { valueEncoding: 'json' });
@@ -537,8 +544,14 @@ export class LevelDBStore
     const hyperView = constructHyperView(objectId, schema, allDeltas, this.schemaRegistry);
 
     // Convert to materialized view
+    const schemaHash = calculateSchemaHash(schema);
+    const versionedSchema = schema as VersionedHyperSchema;
+
     const materialized: MaterializedHyperView = {
       id: hyperView.id,
+      _schemaId: schema.id,
+      _schemaHash: schemaHash,
+      _schemaVersion: versionedSchema.version,
       _lastUpdated: Date.now(),
       _deltaCount: 0
     };

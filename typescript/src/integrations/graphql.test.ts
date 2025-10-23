@@ -3,10 +3,10 @@
  */
 
 import { graphql } from 'graphql';
-import { RhizomeDB } from './instance';
-import { createStandardSchema } from './hyperview';
-import { createGraphQLSchema, createSimpleViewSchema } from './graphql';
-import { HyperSchema, PrimitiveSchemas } from './types';
+import { RhizomeDB } from '../storage/instance';
+import { createStandardSchema } from '../schemas/hyperview';
+import { createGraphQLSchema } from './graphql';
+import { HyperSchema, PrimitiveSchemas } from '../core/types';
 
 // Helper to create Person schema with common primitive fields
 function createPersonSchema(additionalTransform: HyperSchema['transform'] = {}): HyperSchema {

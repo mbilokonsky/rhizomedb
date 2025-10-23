@@ -3,8 +3,8 @@
  */
 
 import { RhizomeDB } from './instance';
-import { createStandardSchema } from './hyperview';
-import { Delta, HyperSchema, Pointer } from './types';
+import { createStandardSchema } from '../schemas/hyperview';
+import { Delta, HyperSchema, Pointer } from '../core/types';
 
 describe('RhizomeDB', () => {
   let db: RhizomeDB;

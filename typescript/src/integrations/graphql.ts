@@ -18,9 +18,9 @@ import {
   GraphQLInputObjectType,
   GraphQLInputFieldConfigMap,
 } from 'graphql';
-import { RhizomeDB } from './instance';
-import { HyperSchema, HyperView, Delta, Pointer, ViewSchema, ResolutionStrategy, PrimitiveHyperSchema, isPrimitiveHyperSchema } from './types';
-import { isDomainNodeReference } from './validation';
+import { RhizomeDB } from '../storage/instance';
+import { HyperSchema, HyperView, Delta, Pointer, ViewSchema, ResolutionStrategy, PrimitiveHyperSchema, isPrimitiveHyperSchema } from '../core/types';
+import { isDomainNodeReference } from '../core/validation';
 
 /**
  * Configuration for GraphQL schema generation
@@ -563,7 +563,7 @@ function createSubscriptionType(
 /**
  * Helper to create a simple ViewSchema
  */
-export function createSimpleViewSchema(fields: string[]): ViewSchema {
+function createSimpleViewSchema(fields: string[]): ViewSchema {
   const mostRecent: ResolutionStrategy = (deltas) => {
     if (deltas.length === 0) return null;
     return deltas.sort((a, b) => b.timestamp - a.timestamp)[0];

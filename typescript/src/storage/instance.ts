@@ -4,6 +4,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
+import { LRUCache } from 'lru-cache';
 import {
   Delta,
   Pointer,
@@ -21,9 +22,12 @@ import {
   StreamConsumer,
   StreamProducer,
   IndexMaintainer
-} from './types';
-import { validateDelta, isDomainNodeReference } from './validation';
-import { constructHyperView, SchemaRegistry } from './hyperview';
+} from '../core/types';
+import { validateDelta, isDomainNodeReference } from '../core/validation';
+import { constructHyperView, SchemaRegistry } from '../schemas/hyperview';
+import { DeltaIndexes } from './delta-indexes';
+import { getNegatedDeltaIds } from '../queries/negation';
+import { calculateSchemaHash, VersionedHyperSchema } from '../schemas/schema-versioning';
 
 /**
  * In-memory subscription implementation
@@ -133,9 +137,11 @@ export class RhizomeDB
   public readonly systemId: string;
   private deltas: Delta[] = [];
   private deltaIndex: Map<string, Delta> = new Map();
+  private deltaIndexes: DeltaIndexes = new DeltaIndexes();
   private subscriptions: Map<string, MemorySubscription> = new Map();
-  private materializedViews: Map<string, MaterializedHyperView> = new Map();
-  private schemaRegistry: SchemaRegistry = new SchemaRegistry();
+  private materializedViews: LRUCache<string, MaterializedHyperView>;
+  private cacheStats = { hits: 0, misses: 0, evictions: 0 };
+  private schemaRegistry: SchemaRegistry;
   private startTime: number = Date.now();
   private config: Required<RhizomeConfig>;
 
@@ -146,8 +152,23 @@ export class RhizomeDB
       storage: config.storage,
       storageConfig: config.storageConfig,
       cacheSize: config.cacheSize || 1000,
-      enableIndexing: config.enableIndexing !== false
+      enableIndexing: config.enableIndexing !== false,
+      validateSchemas: config.validateSchemas || false
     };
+
+    // Initialize LRU cache for materialized views
+    this.materializedViews = new LRUCache<string, MaterializedHyperView>({
+      max: this.config.cacheSize,
+      // Track evictions
+      dispose: () => {
+        this.cacheStats.evictions++;
+      }
+    });
+
+    // Initialize schema registry with validation setting
+    this.schemaRegistry = new SchemaRegistry({
+      validateOnRegister: this.config.validateSchemas
+    });
   }
 
   // =========================================================================
@@ -197,6 +218,9 @@ export class RhizomeDB
     this.deltas.push(delta);
     this.deltaIndex.set(delta.id, delta);
 
+    // Add to secondary indexes
+    this.deltaIndexes.addDelta(delta);
+
     // Publish to subscribers
     await this.publishDelta(delta);
 
@@ -229,61 +253,34 @@ export class RhizomeDB
   // =========================================================================
 
   queryDeltas(filter: DeltaFilter): Delta[] {
-    let results = [...this.deltas];
+    let results: Delta[];
 
+    // Try to use indexes for efficient filtering
+    const candidateIds = this.deltaIndexes.queryDeltaIds(filter);
+
+    if (candidateIds) {
+      // Index query returned candidates - fetch only those deltas
+      results = Array.from(candidateIds)
+        .map(id => this.deltaIndex.get(id))
+        .filter((d): d is Delta => d !== undefined);
+    } else {
+      // No indexed fields in filter - scan all deltas
+      results = [...this.deltas];
+    }
+
+    // Apply remaining filters not handled by indexes
     if (filter.ids) {
       const idSet = new Set(filter.ids);
       results = results.filter(d => idSet.has(d.id));
-    }
-
-    if (filter.authors) {
-      const authorSet = new Set(filter.authors);
-      results = results.filter(d => authorSet.has(d.author));
-    }
-
-    if (filter.systems) {
-      const systemSet = new Set(filter.systems);
-      results = results.filter(d => systemSet.has(d.system));
-    }
-
-    if (filter.timestampRange) {
-      const { start, end } = filter.timestampRange;
-      if (start !== undefined) {
-        results = results.filter(d => d.timestamp >= start);
-      }
-      if (end !== undefined) {
-        results = results.filter(d => d.timestamp <= end);
-      }
-    }
-
-    if (filter.targetIds) {
-      const targetSet = new Set(filter.targetIds);
-      results = results.filter(d =>
-        d.pointers.some(p => isDomainNodeReference(p.target) && targetSet.has(p.target.id))
-      );
-    }
-
-    if (filter.targetContexts) {
-      const contextSet = new Set(filter.targetContexts);
-      results = results.filter(d =>
-        d.pointers.some(p => p.targetContext && contextSet.has(p.targetContext))
-      );
     }
 
     if (filter.predicate) {
       results = results.filter(filter.predicate);
     }
 
-    // Handle negations
+    // Handle negations (with double negation support)
     if (!filter.includeNegated) {
-      const negatedIds = new Set<string>();
-      for (const delta of this.deltas) {
-        for (const pointer of delta.pointers) {
-          if (pointer.localContext === 'negates' && isDomainNodeReference(pointer.target)) {
-            negatedIds.add(pointer.target.id);
-          }
-        }
-      }
+      const negatedIds = getNegatedDeltaIds(this.deltas);
       results = results.filter(d => !negatedIds.has(d.id));
     }
 
@@ -358,23 +355,23 @@ export class RhizomeDB
       }
     }
 
+    // Calculate schema hash for version tracking
+    const schemaHash = calculateSchemaHash(schema);
+    const versionedSchema = schema as VersionedHyperSchema;
+
     const materializedView: MaterializedHyperView = {
       ...hyperView,
+      _schemaId: schema.id,
+      _schemaHash: schemaHash,
+      _schemaVersion: versionedSchema.version,
       _lastUpdated: Date.now(),
       _deltaCount: deltaCount
     };
 
-    // Cache if enabled
+    // Cache if enabled (LRU automatically handles eviction)
     if (this.config.enableIndexing) {
-      this.materializedViews.set(objectId, materializedView);
-
-      // Evict oldest if cache is full
-      if (this.materializedViews.size > this.config.cacheSize) {
-        const firstKey = this.materializedViews.keys().next().value;
-        if (firstKey) {
-          this.materializedViews.delete(firstKey);
-        }
-      }
+      const cacheKey = `${objectId}:${schema.id}`;
+      this.materializedViews.set(cacheKey, materializedView);
     }
 
     return materializedView;
@@ -383,26 +380,51 @@ export class RhizomeDB
   updateHyperView(view: MaterializedHyperView, delta: Delta): void {
     // For simplicity, just rebuild the view
     // A more sophisticated implementation would incrementally update
-    const schema = this.schemaRegistry.get(view.id);
+    const schema = this.schemaRegistry.get(view._schemaId);
     if (schema) {
       const updated = this.materializeHyperView(view.id, schema);
       Object.assign(view, updated);
     }
   }
 
-  getHyperView(objectId: string): MaterializedHyperView | null {
-    return this.materializedViews.get(objectId) || null;
-  }
+  getHyperView(objectId: string, schemaId?: string): MaterializedHyperView | null {
+    if (schemaId) {
+      // Look for specific schema
+      const cacheKey = `${objectId}:${schemaId}`;
+      const view = this.materializedViews.get(cacheKey);
 
-  rebuildHyperView(objectId: string): MaterializedHyperView {
-    const existing = this.materializedViews.get(objectId);
-    if (!existing) {
-      throw new Error(`No materialized view found for object: ${objectId}`);
+      if (view) {
+        this.cacheStats.hits++;
+        return view;
+      }
+
+      this.cacheStats.misses++;
+      return null;
     }
 
-    const schema = this.schemaRegistry.get(existing.id);
+    // Look for any materialized view for this object
+    // Note: This is less efficient with LRU but rare operation
+    for (const view of this.materializedViews.values()) {
+      if (view.id === objectId) {
+        this.cacheStats.hits++;
+        return view;
+      }
+    }
+
+    this.cacheStats.misses++;
+    return null;
+  }
+
+  rebuildHyperView(objectId: string, schemaId?: string): MaterializedHyperView {
+    // Try to find existing view
+    const existing = this.getHyperView(objectId, schemaId);
+    if (!existing) {
+      throw new Error(`No materialized view found for object: ${objectId}${schemaId ? ` with schema: ${schemaId}` : ''}`);
+    }
+
+    const schema = this.schemaRegistry.get(existing._schemaId);
     if (!schema) {
-      throw new Error(`Schema not found for view: ${existing.id}`);
+      throw new Error(`Schema not found: ${existing._schemaId}`);
     }
 
     return this.materializeHyperView(objectId, schema);
@@ -420,6 +442,59 @@ export class RhizomeDB
   }
 
   /**
+   * Check if a materialized view is outdated and needs rebuilding
+   *
+   * A view is outdated if:
+   * 1. The schema has changed (different hash)
+   * 2. The schema version has increased
+   *
+   * @param view - The materialized view to check
+   * @returns true if the view should be rebuilt
+   */
+  isViewOutdated(view: MaterializedHyperView): boolean {
+    const schema = this.schemaRegistry.get(view._schemaId);
+    if (!schema) {
+      // Schema doesn't exist anymore - view is orphaned
+      return true;
+    }
+
+    const currentHash = calculateSchemaHash(schema);
+
+    // Check if hash has changed
+    if (view._schemaHash !== currentHash) {
+      return true;
+    }
+
+    // Check if explicit version has increased
+    const versionedSchema = schema as VersionedHyperSchema;
+    if (versionedSchema.version !== undefined && view._schemaVersion !== undefined) {
+      if (versionedSchema.version > view._schemaVersion) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Get a materialized view, rebuilding if outdated
+   *
+   * @param objectId - The object ID
+   * @param schema - The schema to use
+   * @returns The materialized view (fresh or from cache)
+   */
+  getOrRebuildHyperView(objectId: string, schema: HyperSchema): MaterializedHyperView {
+    const existing = this.getHyperView(objectId, schema.id);
+
+    if (existing && !this.isViewOutdated(existing)) {
+      return existing;
+    }
+
+    // View is outdated or doesn't exist - rebuild it
+    return this.materializeHyperView(objectId, schema);
+  }
+
+  /**
    * Get instance statistics
    */
   getStats(): InstanceStats {
@@ -430,7 +505,16 @@ export class RhizomeDB
       cachedViews: this.materializedViews.size,
       activeSubscriptions: this.subscriptions.size,
       uptime: Date.now() - this.startTime,
-      storageType: 'memory'
+      storageType: 'memory',
+      cacheStats: {
+        hits: this.cacheStats.hits,
+        misses: this.cacheStats.misses,
+        evictions: this.cacheStats.evictions,
+        hitRate: this.cacheStats.hits + this.cacheStats.misses > 0
+          ? this.cacheStats.hits / (this.cacheStats.hits + this.cacheStats.misses)
+          : 0
+      },
+      indexStats: this.deltaIndexes.getStats()
     };
   }
 
@@ -440,6 +524,7 @@ export class RhizomeDB
   clear(): void {
     this.deltas = [];
     this.deltaIndex.clear();
+    this.deltaIndexes.clear();
     this.materializedViews.clear();
     // Don't clear subscriptions or schema registry
   }

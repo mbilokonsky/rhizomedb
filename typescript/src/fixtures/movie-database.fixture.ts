@@ -7,9 +7,9 @@
  * **This is test/demo data only - not part of the core library.**
  */
 
-import { Delta, Pointer, HyperSchema, PrimitiveSchemas } from './types';
-import { RhizomeDB } from './instance';
-import { selectByTargetContext } from './hyperview';
+import { Delta, Pointer, HyperSchema, PrimitiveSchemas } from '../core/types';
+import { RhizomeDB } from '../storage/instance';
+import { selectByTargetContext } from '../schemas/hyperview';
 
 export const personSchema: HyperSchema = {
   id: 'person_schema',

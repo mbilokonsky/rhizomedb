@@ -4,17 +4,44 @@
  * @packageDocumentation
  */
 
-// Export all types
-export * from './types';
+// ============================================================================
+// Core - Foundational types and validation
+// ============================================================================
+export * from './core/types';
+export * from './core/validation';
 
-// Export validation utilities
-export * from './validation';
+// ============================================================================
+// Storage - Storage implementations and indexing
+// ============================================================================
+export { RhizomeDB } from './storage/instance';
+export { LevelDBStore } from './storage/leveldb-store';
+export * from './storage/delta-indexes';
 
-// Export HyperView construction
-export * from './hyperview';
+// ============================================================================
+// Schemas - Schema functionality
+// ============================================================================
+export * from './schemas/hyperview';
+export * from './schemas/schema-validator';
+export * from './schemas/schema-versioning';
 
-// Export instance implementation
-export { RhizomeDB } from './instance';
+// ============================================================================
+// Queries - Query and view resolution
+// ============================================================================
+export * from './queries/view-resolver';
+export * from './queries/time-travel';
+export * from './queries/negation';
 
-// Re-export for convenience
-export { RhizomeDB as default } from './instance';
+// ============================================================================
+// Streaming - Subscription and backpressure
+// ============================================================================
+export * from './streaming/subscription-backpressure';
+
+// ============================================================================
+// Integrations - External API integrations
+// ============================================================================
+export * from './integrations/graphql';
+
+// ============================================================================
+// Default export
+// ============================================================================
+export { RhizomeDB as default } from './storage/instance';

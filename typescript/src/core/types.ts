@@ -156,6 +156,15 @@ export interface MaterializedHyperView {
   /** The domain object ID */
   id: string;
 
+  /** The schema ID used to create this view */
+  _schemaId: string;
+
+  /** Content hash of the schema version used to create this view */
+  _schemaHash: string;
+
+  /** Explicit schema version number (if schema uses versioning) */
+  _schemaVersion?: number;
+
   /** When this view was last updated (timestamp) */
   _lastUpdated: number;
 
@@ -163,7 +172,7 @@ export interface MaterializedHyperView {
   _deltaCount: number;
 
   /** Properties, each containing deltas */
-  [property: string]: string | number | Delta[];
+  [property: string]: string | number | Delta[] | undefined;
 }
 
 // ============================================================================
@@ -355,11 +364,11 @@ export interface IndexMaintainer extends RhizomeInstance {
   /** Update a materialized HyperView with a new delta */
   updateHyperView(view: MaterializedHyperView, delta: Delta): void;
 
-  /** Get a materialized HyperView */
-  getHyperView(objectId: string): MaterializedHyperView | null;
+  /** Get a materialized HyperView (optionally filtered by schemaId) */
+  getHyperView(objectId: string, schemaId?: string): MaterializedHyperView | null;
 
   /** Invalidate and rebuild a HyperView */
-  rebuildHyperView(objectId: string): MaterializedHyperView;
+  rebuildHyperView(objectId: string, schemaId?: string): MaterializedHyperView;
 }
 
 /**
@@ -380,6 +389,49 @@ export interface RhizomeConfig {
 
   /** Enable indexing */
   enableIndexing?: boolean;
+
+  /** Validate schemas on registration to prevent cycles (default: false) */
+  validateSchemas?: boolean;
+}
+
+/**
+ * Cache statistics
+ */
+export interface CacheStats {
+  /** Number of cache hits */
+  hits: number;
+
+  /** Number of cache misses */
+  misses: number;
+
+  /** Number of cache evictions */
+  evictions: number;
+
+  /** Cache hit rate (0-1) */
+  hitRate: number;
+}
+
+/**
+ * Index statistics from delta-indexes module
+ */
+export interface IndexStats {
+  /** Number of deltas in target ID index */
+  targetIdIndexSize: number;
+
+  /** Number of deltas in target context index */
+  targetContextIndexSize: number;
+
+  /** Number of deltas in author index */
+  authorIndexSize: number;
+
+  /** Number of deltas in system index */
+  systemIndexSize: number;
+
+  /** Number of deltas in timestamp index */
+  timestampIndexSize: number;
+
+  /** Total memory estimate (bytes) */
+  estimatedMemory: number;
 }
 
 /**
@@ -406,6 +458,12 @@ export interface InstanceStats {
 
   /** Storage backend type */
   storageType?: string;
+
+  /** Cache performance statistics */
+  cacheStats?: CacheStats;
+
+  /** Index performance statistics */
+  indexStats?: IndexStats;
 }
 
 // ============================================================================

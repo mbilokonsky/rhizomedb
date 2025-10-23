@@ -1,12 +1,13 @@
 # rhizomedb
-Once more with feeling: a rhizomatic database using immutable delta-crdts as hyperedges in a deleuzean hypergraph that treats state as a side-effect assembled at query-time. "Once more with feeling" because I've been starting and rewriting this project many times over the years, but I've got a good feeling about *this* implementation. I think this is the one, where we can get this into a production-ready state. This repo is going to contain a spec and an initial reference implementation in typescript. Once completed, the reference implementation will be published as a library to NPM and anyone who wants to implement the spec in any other language of their choice can immediately interop with typescript code using the library. 
+
+A rhizomatic database using immutable delta-CRDTs as hyperedges in a hypergraph that treats state as a side-effect assembled at query-time. This repository contains the specification and a reference implementation in TypeScript.
+
+> **Note**: For aspirational long-term goals and speculative use cases, see [docs/long_term_vision.md](docs/long_term_vision.md). This README focuses on the core technical architecture. 
 
 ## A rhizowhat now?
 A _rhizome_ is a plant whose root structure expands horizontally, not vertically. The result is that a rhizomatic plant - like grass, or bamboo - may have many different "shoots" that appear to those of us above the ground to be individual different plants. Just under the surface, though, all of those many different blades of grass are just different _views_ of the same complex invisible structure. Philosophers Deleuze and Guattari borrowed this concept when developing their radical process-oriented philosophy - but you don't need to read _A Thousand Plateaus_ to understand the point that a rhizome is a single unified structure that to an observer appears as many distinct structures.
 
 This is what I'm calling a _rhizomatic database_ because on the surface you may interact with it as if it were any other database, a source of _domain objects_ with _state_ that you can read and write at will. But behind the scenes, the implementation diverges radically from traditional database design. There *is no state* at a fundamental level, or least not in the sense that we usually think of it. Instead, each instance of this database represents a single _hypergraph_ where _hyper edges_ create rich semantic relationships between nodes. Those nodes - the domain objects you're keeping track of in the database, and primitive values that populate terminal values - *only exist* once they've been referenced by at least one delta. State is literally created by referring to it, and has no independent existence outside of a given set of deltas that reference it.
-
-Further, this is designed so that different instances of this database can configure pub/sub streams and exchange deltas as they run. I'm really shooting for the moon here, but what I'd love to see is an eventual globally-federated knowledge graph where information is created, forked, computed, merged and broadcast freely. But we'll get to that part. For now, let's focus on what this thing *is*.
 
 ## Definitions, Properties and Goals
 This database is doing things pretty differently from what you might expect. For instance, it is both *fully relational* and *NoSQL*. It rejects traditional database constraints around consistency and coherence by supporting arbitrarily many concurrent values for any given property - even if they seem to contract! No more last-write-wins, instead we hold everything in superposition and resolve it into meaningful state at query time. Sometimes, if I squint, I start to understand this thing as a latent space - but let's stay focused here.
@@ -25,7 +26,6 @@ The core engine is an *append-only* *stream* of *immutable* *context-free* *full
   * exposes a novel tripartite ontology - you know how in most database there's "the database layer" and then there's "the application layer", and as a programmer you query the database layer for stateful objects you can use in your application? We complicate that a bit.
   * doesn't impose a single source of truth, meaning different users querying the same database may end up with different results to the same query
   * treats state as a side-effect, because the rhizome itself is always in a superposition of possible states - so _state_ state emerges only by resolving a query into a hyperview and then into a view
-  * is also a compute fabric, but we'll get to that
 
 If we've done our job correctly, downstream consumers of this database won't actually have to understand most of that -- they'll be able to access it using GraphQL or a similar interface. But it allows behind-the-scenes superpowers:
   * Full provenance on every delta, meaning that for every claim made you know where it came from and when.
@@ -39,9 +39,8 @@ This is... a lot. So we're going to start simple, and we're going to build this 
 2. The Tripartite Schema Structure
 3. Mutation
 4. Streaming
-5. The Reactor
 
-Believe it or not this is not an exhaustive list of what this system can do, but we have to start somewhere so I'm starting here. As we go this document will evolve to embed source code and tests rather than hand-written code-fences making bold claims. 
+As we go this document will evolve to embed source code and tests rather than hand-written code-fences making bold claims. 
 
 Ready? Ok, let's dig in.
 
@@ -891,18 +890,87 @@ The key principle is: **negation is just more deltas**. There's no special "dele
 ### Streaming
 The streaming model means that each delta can be treated as an event, and various subscribers can react to these events. A given instance probably has a default `persistDelta` handler which appends it to some underlying append-only durable stream. But you might also have an `indexDelta` handler which efficiently compares incoming deltas to the filters associated with any indexes, and replicates them there. You may also have a `pubsub` system connecting your instance of the database to a remote instance, to which you publish a subset of your deltas; or you may have a socket open to a client-side instance, where certain deltas get streamed as soon as they're created so that client state can be updated in realtime. Different instances of this technology can be optimized for different things - so you could spin up a different instance for each of the different examples I just mentioned, and have a canonical source of truth that you regenerate your index from, a dynamic and fast in-memory index instance, many client-side instances, horizontally scalable servers supporting different subsets of your clients, whatever. Streams are great because they make eventual consistency possible!
 
-### The Reactor
-As hinted at way up near the top of this document, this database also has the ability to drive a compute fabric. Consider: what if you define some domain objects that represent _functions_ - a function is just a signature with an implementation, right? So you can define a function, have its inputs defined using queries, subscribe to new deltas coming in that satisfy those queries, then trigger the function to execute against the query result. Functions always return new deltas, which in turn get written back out from the reactor into the input stream exposed by the database.
+## Practical Use Cases
 
-## Use Cases
-It's a computational dao! Use it however you want!
+The core architecture is well-suited for applications that benefit from:
 
-Consider: It's a global knowledge graph. Wrap this in an MCP so that every claude instance had its own local instance, but they can all share knowledge and draw from every new instance that comes online exposing any public data, or private data that's provisioned appropriately. Imagine an LLM arms race where instead of increasingly bloated weights and parameters because we're trying to front-load "knowledge" into a neural network that hallucinates as a feature we focused on generating the smallest possible models capable of meaningfully reading and writing from the global knowledge graph?
+**Audit-Heavy Domains**
+- Financial systems where every transaction needs full provenance
+- Healthcare records where changes must be tracked and potentially reverted
+- Legal document management with complete version history
 
-Consider: It's an ideal way for independent researchers to share their findings with each other, not just by publishing academic papers but by making entire datasets available. Imagine being able to pull down some lab's research, instantly having their ontology and findings available, and then adding your own and opening the rhizomatic equivalent of a pull request to share your findings back with the original researchers?
+**Collaborative Tools**
+- Multi-user editing where conflicts are expected and need contextual resolution
+- Research platforms where multiple teams contribute overlapping data
+- Wiki-style knowledge bases with competing claims that need to be surfaced
 
-Consider: A social media fabric where every post you make is to *your local data store first*, and then your publication engine routes it out to the various feeds your social networks are distributed across. No more walled gardens, imagine large social aggregators and custom client-side apps designed to give optimized views into public feeds without a company in the middle trying to take a cut.
+**Local-First Applications**
+- Offline-first mobile apps that sync when connected
+- Distributed systems where nodes may have different views of state
+- Edge computing scenarios where data lives close to users
 
-Consider: Personal quantified self stuff, everything from health to finance, but you can easily generate reports to share with doctors or accountants just by pulling down helpful HyperSchemas.
+**Time-Travel and Debugging**
+- Systems that need to reconstruct past states for analysis
+- Debugging tools that replay state evolution
+- Audit trails for compliance and security analysis
 
-Consider: A GraphQL engine where the schema assembles itself from deltas, and includes a mutation *for itself* so that as you interact with the schema you can tune it. Pushing new deltas up updates the hyperview, which in turn generates a new snapshot view, which you can then send your next query against.
+**Schema Evolution**
+- Long-lived systems where data models change over time
+- Multi-tenant platforms where different tenants need different schemas
+- Experimental systems where the schema itself is being discovered
+
+The reference implementation will focus on single-instance operation with clear sync primitives. Federation, global knowledge graphs, and compute fabrics are longer-term possibilities explored in [docs/long_term_vision.md](docs/long_term_vision.md).
+
+## Open Questions
+
+These are unresolved challenges that need to be addressed during implementation:
+
+### Performance & Scale
+- **Query complexity**: What is the time complexity for HyperView construction? How does it scale with stream size?
+- **Index maintenance**: As deltas accumulate, how do we maintain index performance? What's the memory footprint of materialized HyperViews?
+- **Compaction strategies**: Do we need snapshotting or compaction for long-running systems? How do we balance immutability with storage costs?
+- **Benchmark targets**: What are acceptable performance characteristics for v1? When does the system become impractical?
+
+### Query Language Design
+- **Developer ergonomics**: How do we expose HyperSchema composition to developers? Do they write schemas directly or use a higher-level DSL?
+- **Complex queries**: How do you express "all directors who released a movie starring Keanu in the 90s"? What's the query API?
+- **Query optimization**: Can we detect common patterns and optimize HyperView construction?
+
+### Consistency & Causality
+- **Consistency guarantees**: What are the actual guarantees? How do we reason about causality across instances?
+- **Conflict convergence**: How do we ensure that different resolution strategies don't lead to unbounded divergence?
+- **Partition tolerance**: What happens during network partitions? How do we handle split-brain scenarios?
+
+### Federation Protocol
+- **Sync semantics**: What's the protocol for syncing deltas between instances? How do we handle partial sync?
+- **Trust boundaries**: How do we model trust between instances? Who decides what gets shared?
+- **Spam & abuse**: In an open federated system, how do we prevent spam or malicious deltas?
+
+### Schema Evolution
+- **Schema conflicts**: When two instances define incompatible schemas, how do we merge them? Is schema conflict resolution fundamentally different from data conflict resolution?
+- **Breaking changes**: How do we handle schemas that make breaking changes? Can old deltas be queried with new schemas?
+- **Version coordination**: Do schemas need version numbers? How do we coordinate schema updates across federated instances?
+
+### Data Retention & Privacy
+- **GDPR compliance**: How do we handle "right to be forgotten" in an append-only immutable system? Is negation sufficient, or do we need actual deletion?
+- **Data lifecycle**: How long do deltas live? Do we need retention policies?
+- **Selective sharing**: How granular can we be about what deltas get shared with which instances?
+
+### Meta-Delta Complexity
+- **Deltas about deltas**: Negations target deltas. What about comments on deltas? Tags? Categories? How deep does the meta-graph go?
+- **Circular negations**: Can you negate a negation? What are the semantics?
+- **Self-referential deltas**: Are self-negating deltas (with conditional activation) useful or dangerous?
+
+### Operational Concerns
+- **Monitoring**: What metrics matter? How do we observe system health?
+- **Debugging**: How do you debug a system where state is assembled at query time?
+- **Migration**: How do you migrate existing data into this model? What's the onboarding story?
+- **Backup & recovery**: What does backup mean for a delta stream? How do you recover from corruption?
+
+### Comparison to Existing Systems
+- **Datomic**: How does this differ from Datomic's immutable facts and time-travel?
+- **CRDTs**: What's the relationship to traditional CRDTs? Are deltas themselves CRDTs?
+- **RDF/Triple stores**: How does this compare to semantic web technologies?
+- **Event sourcing**: What advantages does this have over traditional event sourcing frameworks?
+
+Some of these questions will be answered during implementation. Others may remain open for years. The goal is to be explicit about uncertainty rather than hand-waving it away.

@@ -31,6 +31,9 @@ export * from './delta-indexes';
 // Export Negation Utilities
 export * from './negation';
 
+// Export Schema Versioning
+export * from './schema-versioning';
+
 // Export instance implementation
 export { RhizomeDB } from './instance';
 

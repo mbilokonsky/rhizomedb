@@ -25,6 +25,7 @@ import {
 } from './types';
 import { validateDelta, isDomainNodeReference } from './validation';
 import { constructHyperView, SchemaRegistry } from './hyperview';
+import { calculateSchemaHash, VersionedHyperSchema } from './schema-versioning';
 
 /**
  * Subscription implementation (same as in-memory version)
@@ -543,9 +544,14 @@ export class LevelDBStore
     const hyperView = constructHyperView(objectId, schema, allDeltas, this.schemaRegistry);
 
     // Convert to materialized view
+    const schemaHash = calculateSchemaHash(schema);
+    const versionedSchema = schema as VersionedHyperSchema;
+
     const materialized: MaterializedHyperView = {
       id: hyperView.id,
       _schemaId: schema.id,
+      _schemaHash: schemaHash,
+      _schemaVersion: versionedSchema.version,
       _lastUpdated: Date.now(),
       _deltaCount: 0
     };

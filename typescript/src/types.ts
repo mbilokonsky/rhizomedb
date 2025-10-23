@@ -159,6 +159,12 @@ export interface MaterializedHyperView {
   /** The schema ID used to create this view */
   _schemaId: string;
 
+  /** Content hash of the schema version used to create this view */
+  _schemaHash: string;
+
+  /** Explicit schema version number (if schema uses versioning) */
+  _schemaVersion?: number;
+
   /** When this view was last updated (timestamp) */
   _lastUpdated: number;
 
@@ -166,7 +172,7 @@ export interface MaterializedHyperView {
   _deltaCount: number;
 
   /** Properties, each containing deltas */
-  [property: string]: string | number | Delta[];
+  [property: string]: string | number | Delta[] | undefined;
 }
 
 // ============================================================================

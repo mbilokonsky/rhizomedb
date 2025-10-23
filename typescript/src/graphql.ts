@@ -183,13 +183,48 @@ function hyperSchemaToGraphQLType(
       }
     }
 
-    // Add fields for primitives (inferred from common patterns)
-    // This is a simplification - in production you'd want explicit field definitions
-    const commonPrimitiveFields = ['name', 'title', 'content', 'text', 'description', 'character'];
-    for (const fieldName of commonPrimitiveFields) {
+    // Discover primitive fields by sampling actual data
+    // Query for deltas that might represent this entity type to find what properties exist
+    const sampleDeltas = db.queryDeltas({
+      predicate: (delta) => {
+        // Look for deltas that might be properties of entities matching this schema
+        // We're looking for deltas with primitive values (not DomainNodeReferences)
+        return delta.pointers.some(p =>
+          !isDomainNodeReference(p.target) &&
+          p.localContext &&
+          p.localContext !== 'id'
+        );
+      }
+    });
+
+    // Track discovered fields and infer their types from actual values
+    const discoveredFields = new Map<string, any>(); // fieldName -> sample value
+
+    for (const delta of sampleDeltas.slice(0, 100)) { // Sample first 100 to avoid scanning everything
+      for (const pointer of delta.pointers) {
+        if (!isDomainNodeReference(pointer.target) &&
+            pointer.localContext &&
+            pointer.localContext !== 'id' &&
+            !fieldMap[pointer.localContext]) {
+          // Track this field and a sample value to infer type
+          if (!discoveredFields.has(pointer.localContext)) {
+            discoveredFields.set(pointer.localContext, pointer.target);
+          }
+        }
+      }
+    }
+
+    // Create GraphQL fields for all discovered primitive fields
+    for (const [fieldName, sampleValue] of discoveredFields) {
       if (!fieldMap[fieldName]) {
+        // Infer GraphQL type from the sample value
+        const graphQLType = typeof sampleValue === 'number' ? GraphQLInt :
+                           typeof sampleValue === 'boolean' ? GraphQLBoolean :
+                           typeof sampleValue === 'string' ? GraphQLString :
+                           GraphQLString; // Default to string for unknown types
+
         fieldMap[fieldName] = {
-          type: GraphQLString,
+          type: graphQLType,
           resolve: (source) => {
             const property = source[fieldName];
             if (!property || !Array.isArray(property)) return null;
@@ -197,7 +232,7 @@ function hyperSchemaToGraphQLType(
             const deltas = property as Delta[];
             if (deltas.length === 0) return null;
 
-            // Extract primitive from pointer (skip DomainNodeReference targets)
+            // Extract value from pointer
             const delta = deltas[0];
             const pointer = delta.pointers.find(p =>
               p.localContext === fieldName &&
@@ -209,28 +244,30 @@ function hyperSchemaToGraphQLType(
       }
     }
 
-    // Add numeric fields
-    const commonNumericFields = ['year', 'runtime', 'birthYear', 'budget'];
-    for (const fieldName of commonNumericFields) {
-      if (!fieldMap[fieldName]) {
-        fieldMap[fieldName] = {
-          type: GraphQLInt,
-          resolve: (source) => {
-            const property = source[fieldName];
-            if (!property || !Array.isArray(property)) return null;
+    // If no fields were discovered (empty database), add common fallback fields
+    // so that the schema is valid even before data exists
+    if (discoveredFields.size === 0) {
+      const commonFields = ['name', 'title', 'content', 'text'];
+      for (const fieldName of commonFields) {
+        if (!fieldMap[fieldName]) {
+          fieldMap[fieldName] = {
+            type: GraphQLString,
+            resolve: (source) => {
+              const property = source[fieldName];
+              if (!property || !Array.isArray(property)) return null;
 
-            const deltas = property as Delta[];
-            if (deltas.length === 0) return null;
+              const deltas = property as Delta[];
+              if (deltas.length === 0) return null;
 
-            // Extract numeric value from pointer
-            const delta = deltas[0];
-            const pointer = delta.pointers.find(p =>
-              p.localContext === fieldName &&
-              typeof p.target === 'number'
-            );
-            return pointer?.target || null;
-          }
-        };
+              const delta = deltas[0];
+              const pointer = delta.pointers.find(p =>
+                p.localContext === fieldName &&
+                !isDomainNodeReference(p.target)
+              );
+              return pointer?.target || null;
+            }
+          };
+        }
       }
     }
 
@@ -288,23 +325,57 @@ function resolveView(hyperView: HyperView, schema: ViewSchema): any {
 
 /**
  * Create an InputObjectType for a HyperSchema
+ * Discovers fields by sampling actual data in the database
  */
 function createInputType(
   hyperSchema: HyperSchema,
-  allSchemas: Map<string, HyperSchema>
+  allSchemas: Map<string, HyperSchema>,
+  db: RhizomeDB
 ): GraphQLInputObjectType {
   const inputFields: GraphQLInputFieldConfigMap = {};
 
-  // Add common primitive fields
-  const primitiveFields = ['name', 'title', 'content', 'text', 'description', 'character'];
-  for (const fieldName of primitiveFields) {
-    inputFields[fieldName] = { type: GraphQLString };
+  // Discover fields by sampling actual data
+  const sampleDeltas = db.queryDeltas({
+    predicate: (delta) => {
+      return delta.pointers.some(p =>
+        !isDomainNodeReference(p.target) &&
+        p.localContext &&
+        p.localContext !== 'id'
+      );
+    }
+  });
+
+  // Track discovered fields and infer their types
+  const discoveredFields = new Map<string, any>();
+
+  for (const delta of sampleDeltas.slice(0, 100)) {
+    for (const pointer of delta.pointers) {
+      if (!isDomainNodeReference(pointer.target) &&
+          pointer.localContext &&
+          pointer.localContext !== 'id') {
+        if (!discoveredFields.has(pointer.localContext)) {
+          discoveredFields.set(pointer.localContext, pointer.target);
+        }
+      }
+    }
   }
 
-  // Add numeric fields
-  const numericFields = ['year', 'runtime', 'birthYear', 'budget'];
-  for (const fieldName of numericFields) {
-    inputFields[fieldName] = { type: GraphQLInt };
+  // Create input fields for all discovered primitive fields
+  for (const [fieldName, sampleValue] of discoveredFields) {
+    // Infer GraphQL input type from the sample value
+    const graphQLType = typeof sampleValue === 'number' ? GraphQLInt :
+                       typeof sampleValue === 'boolean' ? GraphQLBoolean :
+                       GraphQLString; // Default to string
+
+    inputFields[fieldName] = { type: graphQLType };
+  }
+
+  // GraphQL requires at least one field in InputObjectType
+  // If we didn't discover any fields (empty database), add common fallback fields
+  if (Object.keys(inputFields).length === 0) {
+    inputFields.name = { type: GraphQLString };
+    inputFields.title = { type: GraphQLString };
+    inputFields.content = { type: GraphQLString };
   }
 
   // Note: Relationships are not included in input types (they're created via separate deltas)
@@ -388,7 +459,7 @@ function createMutationType(
     if (!graphqlType) continue;
 
     // Create input type for this schema
-    const inputType = createInputType(hyperSchema, schemas);
+    const inputType = createInputType(hyperSchema, schemas, db);
 
     // Create mutation with new API
     fields[`create${hyperSchema.name}`] = {

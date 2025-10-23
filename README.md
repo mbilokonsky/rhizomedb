@@ -77,6 +77,9 @@ When we talk about "domain objects", we're talking about the things represented 
 
 In a rhizomatic database, on the other hand, *domain objects don't exist* except as the intersection of all deltas that reference a given ID. We don't have tables, and we don't handle schemas as fixed definitions of columns with rigid foreign key joins and constraints that have to all be set up in advance. Instead, if you wanted to represent keanu reeves, you might do that by creating a bunch of deltas:
 
+<details>
+<summary>Example: Deltas representing Keanu Reeves (click to expand)</summary>
+
 ```typescript
 const author: string = "uuid_representing_me"
 const system: string = "uuid_representing_this_database_instance"
@@ -121,6 +124,8 @@ const deltas = [
   }
 ]
 ```
+
+</details>
 
 So if I have those two deltas in my local database store, and I do a query to extract the domain object with the id `keanu`, what do I get back? Well, I get back those two deltas! You can see how, if you think about it for a moment, you *could* convert those deltas into a domain object that looks something like this:
 
@@ -213,6 +218,9 @@ If you've ever used GraphQL, though, you know that your actual *query* can draw 
 
 In our case, a *HyperSchema* defines a *HyperView*. A hyperview represents a domain object, but the properties of that object don't contain values directly - instead, each property resolves to an array of deltas that have targeted our domain object using that property's name as the `targetContext`. It also specifies the *HyperSchema* to apply to the `target` of the pointers on those nested deltas that are not targeting the parent. This is easier to show by example, but first we're going to need to add a few more deltas to flesh this out.
 
+<details>
+<summary>Additional deltas for names and directors (click to expand)</summary>
+
 ```typescript
 const lily: string = 'UUID of Lily Wachowski'
 const lana: string = 'UUID of Lana Wachowski'
@@ -283,6 +291,8 @@ const additional_deltas = [
 ]
 ```
 
+</details>
+
 There, we've added a 'name' to our `keanu` object, and we've introduced deltas that assign names to Lily and Lana Wachowski, as well as a delta that establishes them as the directors of The Matrix. 
 
 Now, let's identify the following `HyperSchema` objects, and let's use natural language to keep this a bit more accessible:
@@ -298,6 +308,9 @@ Now, let's identify the following `HyperSchema` objects, and let's use natural l
       * for each remaining pointer `p` on `d`, if `p.localContext` is 'actor' then replace `p.target` with `NamedEntity(p.target)`
      
 Do you see what we're doing? A `HyperObject` represents a domain object, but its properties always resolve an *array* of deltas. Those deltas have one `pointer` pointing "up" to the domain object, and one or more additional pointers pointing "down" to either other domain objects or to primitives. So if we do something like `Movie(the_matrix)` it will return a complex object that looks like this:
+
+<details>
+<summary>Full matrixHyperview example (click to expand)</summary>
 
 ```typescript
 const matrixHyperview = {
@@ -337,7 +350,7 @@ const matrixHyperview = {
       },
       {
         localContext: 'director',
-        target: { 
+        target: {
           id: lana,
           name: [
             {
@@ -400,6 +413,8 @@ const matrixHyperview = {
   ]
 }
 ```
+
+</details>
 
 We've now got all information that the system has about "The Matrix" as projected through the `Movie` HyperSchema. What this means is we have the property `movie.directed_by`, which resolves to two deltas, each of which targets a different director. Each of those targets is in turn projected through the `NamedEntity` HyperSchema, which selects only those deltas which make a claim about the respective directors' names. Then we have a `movie.cast` property, which includes all deltas (well, all one, in this case) asserting cast membership in the matrix. One `target` of one `pointer` on that delta is Keanu, and our logic dictates that the `NamedEntity` be applied to him as well. So we include all one deltas that assert his name.
 

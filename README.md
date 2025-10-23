@@ -764,6 +764,104 @@ Different parts of your application can use different strategies for the same da
 
 This is why we say "this is a feature, not a bug" - the system doesn't force a single resolution strategy on you. It preserves the full provenance and lets you choose how to handle conflicts based on your use case.
 
+#### Complete Round-Trip Example
+
+Let's synthesize everything we've covered by walking through a simple example showing all three layers: Deltas → HyperView → View.
+
+**Scenario**: We want to represent a person named "Alice" and retrieve their name.
+
+<details>
+<summary>Step 1: Deltas (click to expand)</summary>
+
+```typescript
+// The raw delta asserting Alice's name
+const delta_alice_name = {
+  id: "delta_001",
+  timestamp: 1000,
+  author: "user_bob",
+  system: "instance_primary",
+  pointers: [{
+    localContext: 'named',
+    target: { id: 'alice_uuid' },
+    targetContext: 'name'
+  }, {
+    localContext: 'name',
+    target: 'Alice Smith'
+  }]
+}
+```
+
+This delta lives in our stream. By itself, it's just an assertion connecting an entity ID to a name value.
+
+</details>
+
+**Step 2: HyperView** - Apply the `PersonSchema` to `alice_uuid`:
+
+The `PersonSchema` defines:
+- Selection: "Include deltas where a pointer targets this person via 'name' targetContext"
+- Transformation: "Don't transform the name pointer (it's already a primitive)"
+
+Applying this schema produces:
+
+```typescript
+const aliceHyperView = {
+  id: 'alice_uuid',
+  name: [
+    {
+      id: "delta_001",
+      timestamp: 1000,
+      author: "user_bob",
+      system: "instance_primary",
+      pointers: [{
+        localContext: 'named',
+        target: { id: 'alice_uuid' },
+        targetContext: 'name'
+      }, {
+        localContext: 'name',
+        target: 'Alice Smith'
+      }]
+    }
+  ]
+}
+```
+
+The HyperView has:
+- Filtered the stream to only relevant deltas (just `delta_001`)
+- Organized them by property (`name`)
+- Left primitives as-is (no further transformation needed)
+
+**Step 3: View** - Resolve the HyperView into a simple object:
+
+A View resolver implements conflict resolution and extracts values:
+
+```typescript
+function resolvePersonView(hyperView) {
+  return {
+    id: hyperView.id,
+    name: hyperView.name
+      .sort((a, b) => b.timestamp - a.timestamp)[0]  // Most recent
+      .pointers.find(p => p.localContext === 'name')
+      .target
+  }
+}
+
+const aliceView = resolvePersonView(aliceHyperView)
+// Result: { id: 'alice_uuid', name: 'Alice Smith' }
+```
+
+This final View is what gets returned to the application - a clean, simple object ready for use in a UI, API response, or further computation.
+
+**Summary of the three layers:**
+
+1. **Deltas**: Raw assertions in the stream - provenance-rich, immutable, context-free
+2. **HyperView**: Filtered and organized deltas - bounded, structured, still contains full provenance
+3. **View**: Resolved domain object - conflicts handled, primitives extracted, ready for consumption
+
+The power of this tripartite structure is that each layer serves a distinct purpose:
+- Deltas enable federation, time-travel, and full audit trails
+- HyperViews make querying tractable and enable efficient indexing
+- Views provide clean interfaces for applications
+
 ### Mutation
 How do you mutate state in this system? You create and append deltas to your store. Just as GraphQL exposes queries, it exposes mutations - your application can define mutations that generate new deltas based on the values passed in, and push these into the instance. You can wire up your GraphQL interface to do this for you, or you can just literally create javascript objects that conform to the `Delta` schema and push them in.
 

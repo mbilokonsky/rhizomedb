@@ -100,11 +100,15 @@ This document tracks planned improvements and changes to the project.
   - Motivates the concept before diving into technical details
 
 ### Complete Round-Trip Example
-- [ ] Add simple end-to-end example showing all three layers
-  - Pick minimal case (simpler than IMDB)
-  - Show: Deltas → HyperView → View
-  - All three layers for one simple query
-  - Demonstrate conflict resolution in the View layer
+- [x] Add simple end-to-end example showing all three layers
+  - ✅ Completed - added at end of Tripartite Schema section (before Mutation)
+  - Simple scenario: Person named "Alice"
+  - Shows all three layers clearly:
+    - Step 1: Delta (raw assertion)
+    - Step 2: HyperView (filtered and organized)
+    - Step 3: View (resolved with conflict resolution)
+  - Includes summary explaining purpose of each layer
+  - Much simpler than IMDB examples, easier to follow
 
 ### Delta Negation
 - [ ] Add section showing how to negate deltas

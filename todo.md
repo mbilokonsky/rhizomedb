@@ -4,6 +4,16 @@ This document tracks planned improvements and changes to the project.
 
 ## README Updates
 
+### Delta Atomicity Modeling Principle
+- [x] Add section explaining delta atomicity and modeling decisions
+  - ✅ Completed - added as subsection within Delta Schema section
+  - Added after Delta interface definition (line 74)
+  - Explains: Deltas are atomic - accept or negate entire delta
+  - Granularity determined at creation time, not negation time
+  - Examples: Independent facts (name, birthdate) vs Inseparable facts (purchase)
+  - Rule of thumb: If one piece can be wrong while others valid → separate deltas
+  - Implications: data quality, audit trails, conflict resolution
+
 ### Terminology Fixes
 - [x] Replace "zero-knowledge" with "context-free" throughout
   - ✅ Completed in commit fdcc026

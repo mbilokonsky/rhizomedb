@@ -71,6 +71,27 @@ interface Delta {
 }
 ```
 
+#### Delta Atomicity and Modeling
+
+A crucial principle: **deltas are atomic**. You must accept or negate an entire delta - you cannot partially accept some pointers and reject others. This means **the granularity of what can be independently retracted is determined when you create the delta**, not when you negate it.
+
+This makes delta design a meaningful modeling decision that encodes the semantic boundaries of your facts:
+
+**Independent facts** should be separate deltas:
+- A person's `name`, `birthdate`, and `nationality` are independent - any one could be wrong while the others are correct
+- Create three separate deltas so each can be independently negated
+
+**Inseparable facts** should be one delta:
+- A purchase's `seller`, `buyer`, `item`, `price`, and `timestamp` are semantically bound - changing any one of these would make it a *different purchase*
+- Create one delta with all these pointers, because the assertion is "this specific transaction occurred with these exact parameters"
+
+The rule of thumb: if you can't imagine one piece of information being wrong while the rest remains valid, they belong in the same delta.
+
+This atomicity has implications:
+- **Data quality**: Fine-grained deltas allow precise corrections
+- **Audit trails**: Coarse-grained deltas preserve the semantic unity of complex assertions
+- **Conflict resolution**: The delta structure determines what constitutes a "conflicting claim"
+
 To understand deltas you have to understand pointers. Let's say you're using this system to model some domain -- the IMDB database, maybe. Your *domain objects* are things like `Actor`, `Director`, or `Movie. In traditional relational databases you'll generally define tables to represent your domain objects, and you'd normalize them. So you might have a `People` table, with columns for `id` and `name` and `birthday` and the like, and then maybe a `Movies` column, which would include columns like `id` and `title` and `release_year`. Then you'd create tables like `Cast` with columns like `movie_id`, `person_id`, and `character_name`, where those first two columns reference specific rows in `Movies` and `People`. You might have a `Directors` table that referenced `movie_id` and `person_id` -- the same columns, but different semantics! So a row in the `Cast` table implies that the person references played the character named in the movie referenced, but a row in the `Directors` table implies that the person referenced directed the movie referenced, etc. This is a very brief and high-level summary of how traditional database work - you need to define all of these tables and relationships in advance, and then you can use that set of schemas to keep track of your data in a way that allows it to be efficiently written and queried.
 
 When we talk about "domain objects", we're talking about the things represented across those tables. So things like `keanu_reeves` or `the_matrix` or `keanu_reeves_as_neo_in_the_matrix` or whatever ways you want to slice up the data, "domain objects" are the things *inside of* the tables. A traditional database uses a bunch of complexity to ensure that you can easily manage your set of domain objects. Using a traditional database is all about reading and writing domain objects. Domain objects - as expressed in rows across tables - are the primary *thing* that a traditional database uses. A database stores *state*, and *state* is the specifically canonically true configuration of domain objects at a given point in time.

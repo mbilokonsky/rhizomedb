@@ -5,8 +5,7 @@
 
 import { RhizomeDB } from './instance';
 import { LevelDBStore } from './leveldb-store';
-import { movieSchemas } from './movie-schemas';
-import { seedMovieDatabase, getSeedStats } from './movie-seed-data';
+import { movieSchemas, seedMovieDatabase, getSeedStats } from './movie-database.fixture';
 import { Delta, DeltaFilter } from './types';
 import * as fs from 'fs';
 import * as path from 'path';

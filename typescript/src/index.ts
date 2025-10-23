@@ -16,6 +16,9 @@ export * from './hyperview';
 // Export View Resolution
 export * from './view-resolver';
 
+// Export Time-Travel Queries
+export * from './time-travel';
+
 // Export instance implementation
 export { RhizomeDB } from './instance';
 

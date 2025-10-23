@@ -424,10 +424,13 @@ export class RhizomeDB
    */
   getStats(): InstanceStats {
     return {
+      systemId: this.systemId,
       totalDeltas: this.deltas.length,
       materializedHyperViews: this.materializedViews.size,
+      cachedViews: this.materializedViews.size,
       activeSubscriptions: this.subscriptions.size,
-      uptime: Date.now() - this.startTime
+      uptime: Date.now() - this.startTime,
+      storageType: 'memory'
     };
   }
 

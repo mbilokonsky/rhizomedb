@@ -274,10 +274,10 @@ export interface RhizomeInstance {
   readonly systemId: string;
 
   /** Query deltas matching a filter */
-  queryDeltas(filter: DeltaFilter): Delta[] | AsyncIterable<Delta>;
+  queryDeltas(filter: DeltaFilter): Delta[] | AsyncIterable<Delta> | Promise<Delta[]>;
 
   /** Apply a HyperSchema to construct a HyperView */
-  applyHyperSchema(objectId: string, schema: HyperSchema): HyperView;
+  applyHyperSchema(objectId: string, schema: HyperSchema): HyperView | Promise<HyperView>;
 }
 
 /**
@@ -324,7 +324,7 @@ export interface StreamProducer extends RhizomeInstance {
   publishDelta(delta: Delta): Promise<void>;
 
   /** Get stream metadata */
-  getStreamInfo(): StreamInfo;
+  getStreamInfo(): StreamInfo | Promise<StreamInfo>;
 }
 
 /**
@@ -332,7 +332,7 @@ export interface StreamProducer extends RhizomeInstance {
  */
 export interface IndexMaintainer extends RhizomeInstance {
   /** Materialize a HyperView for fast access */
-  materializeHyperView(objectId: string, schema: HyperSchema): MaterializedHyperView;
+  materializeHyperView(objectId: string, schema: HyperSchema): MaterializedHyperView | Promise<MaterializedHyperView>;
 
   /** Update a materialized HyperView with a new delta */
   updateHyperView(view: MaterializedHyperView, delta: Delta): void;
@@ -352,7 +352,7 @@ export interface RhizomeConfig {
   systemId?: string;
 
   /** Storage backend type */
-  storage: 'memory' | 'custom';
+  storage: 'memory' | 'leveldb' | 'custom';
 
   /** Storage-specific configuration */
   storageConfig?: any;
@@ -368,15 +368,24 @@ export interface RhizomeConfig {
  * Instance statistics
  */
 export interface InstanceStats {
+  /** System ID of this instance */
+  systemId?: string;
+
   /** Total number of deltas */
   totalDeltas: number;
 
   /** Number of materialized HyperViews */
-  materializedHyperViews: number;
+  materializedHyperViews?: number;
+
+  /** Number of cached views */
+  cachedViews?: number;
 
   /** Number of active subscriptions */
   activeSubscriptions: number;
 
   /** Uptime in milliseconds */
   uptime: number;
+
+  /** Storage backend type */
+  storageType?: string;
 }

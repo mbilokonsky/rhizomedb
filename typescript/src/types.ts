@@ -75,11 +75,29 @@ export type SelectionFunction = (
 ) => boolean | string[];
 
 /**
- * Transformation rule for expanding pointers into nested HyperViews
+ * Primitive type schema for primitive values (string, number, boolean)
+ *
+ * PrimitiveHyperSchemas define validation and GraphQL type mapping for primitive values.
+ * They can be used in TransformationRules to specify how primitive pointer targets
+ * should be validated and typed.
+ */
+export interface PrimitiveHyperSchema {
+  /** Type identifier (e.g., 'string', 'integer.year') */
+  type: string;
+
+  /** GraphQL scalar type for this primitive */
+  graphQLType: any; // GraphQLScalarType from 'graphql' package
+
+  /** Validation function to check if a value matches this schema */
+  validate: (value: any) => boolean;
+}
+
+/**
+ * Transformation rule for expanding pointers into nested HyperViews or validating primitives
  */
 export interface TransformationRule {
-  /** The HyperSchema to apply to this pointer's target */
-  schema: HyperSchema | string;
+  /** The HyperSchema or PrimitiveHyperSchema to apply to this pointer's target */
+  schema: HyperSchema | PrimitiveHyperSchema | string;
 
   /** Optional filter for when to apply this transformation */
   when?: (pointer: Pointer, delta: Delta) => boolean;
@@ -389,3 +407,90 @@ export interface InstanceStats {
   /** Storage backend type */
   storageType?: string;
 }
+
+// ============================================================================
+// Primitive Type Schemas
+// ============================================================================
+
+/**
+ * Helper to check if a schema is a PrimitiveHyperSchema
+ */
+export function isPrimitiveHyperSchema(schema: any): schema is PrimitiveHyperSchema {
+  return schema && typeof schema === 'object' && 'type' in schema && 'validate' in schema && 'graphQLType' in schema;
+}
+
+// GraphQL type imports (note: actual GraphQL types injected at runtime to avoid circular deps)
+let GraphQLString: any;
+let GraphQLInt: any;
+let GraphQLBoolean: any;
+
+// Initialize GraphQL types from the graphql package
+try {
+  const graphql = require('graphql');
+  GraphQLString = graphql.GraphQLString;
+  GraphQLInt = graphql.GraphQLInt;
+  GraphQLBoolean = graphql.GraphQLBoolean;
+} catch (e) {
+  // GraphQL not available - schemas will have undefined graphQLType
+  console.warn('GraphQL package not available - PrimitiveSchemas will not have graphQLType');
+}
+
+/**
+ * String primitive schema with nested EmailAddress variant
+ */
+interface StringPrimitiveSchema extends PrimitiveHyperSchema {
+  EmailAddress: PrimitiveHyperSchema;
+}
+
+/**
+ * Integer primitive schema with nested Year variant
+ */
+interface IntegerPrimitiveSchema extends PrimitiveHyperSchema {
+  Year: PrimitiveHyperSchema;
+}
+
+/**
+ * Primitive type schemas for use in TransformationRules
+ *
+ * Usage:
+ *   - PrimitiveSchemas.String - any string
+ *   - PrimitiveSchemas.String.EmailAddress - validated email string
+ *   - PrimitiveSchemas.Integer - any integer number
+ *   - PrimitiveSchemas.Integer.Year - validated year (1800-2100)
+ *   - PrimitiveSchemas.Boolean - any boolean
+ */
+export const PrimitiveSchemas: {
+  String: StringPrimitiveSchema;
+  Integer: IntegerPrimitiveSchema;
+  Boolean: PrimitiveHyperSchema;
+} = {
+  String: {
+    type: 'string',
+    graphQLType: GraphQLString,
+    validate: (v: any) => typeof v === 'string',
+
+    EmailAddress: {
+      type: 'string.email',
+      graphQLType: GraphQLString,
+      validate: (v: any) => typeof v === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
+    }
+  } as StringPrimitiveSchema,
+
+  Integer: {
+    type: 'integer',
+    graphQLType: GraphQLInt,
+    validate: (v: any) => typeof v === 'number' && Number.isInteger(v),
+
+    Year: {
+      type: 'integer.year',
+      graphQLType: GraphQLInt,
+      validate: (v: any) => typeof v === 'number' && Number.isInteger(v) && v >= 1800 && v <= 2100
+    }
+  } as IntegerPrimitiveSchema,
+
+  Boolean: {
+    type: 'boolean',
+    graphQLType: GraphQLBoolean,
+    validate: (v: any) => typeof v === 'boolean'
+  }
+};

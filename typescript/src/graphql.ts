@@ -19,7 +19,7 @@ import {
   GraphQLInputFieldConfigMap,
 } from 'graphql';
 import { RhizomeDB } from './instance';
-import { HyperSchema, HyperView, Delta, Pointer, ViewSchema, ResolutionStrategy } from './types';
+import { HyperSchema, HyperView, Delta, Pointer, ViewSchema, ResolutionStrategy, PrimitiveHyperSchema, isPrimitiveHyperSchema } from './types';
 import { isDomainNodeReference } from './validation';
 
 /**
@@ -147,65 +147,74 @@ function hyperSchemaToGraphQLType(
 
     // Infer fields from transformation rules
     for (const [localContext, rule] of Object.entries(hyperSchema.transform)) {
-      const referencedSchemaId = typeof rule.schema === 'string' ? rule.schema : rule.schema.id;
-      const referencedSchema = allSchemas.get(referencedSchemaId);
-
-      if (referencedSchema) {
-        const nestedType = hyperSchemaToGraphQLType(
-          referencedSchema,
-          db,
-          allSchemas,
-          viewSchemas,
-          typeCache
-        );
+      // Check if this is a PrimitiveHyperSchema
+      if (typeof rule.schema !== 'string' && isPrimitiveHyperSchema(rule.schema)) {
+        const primitiveSchema = rule.schema as PrimitiveHyperSchema;
 
         fieldMap[localContext] = {
-          type: nestedType,
+          type: primitiveSchema.graphQLType,
           resolve: (source) => {
-            // Source should have this property from HyperView
             const property = source[localContext];
             if (!property || !Array.isArray(property)) return null;
 
             const deltas = property as Delta[];
             if (deltas.length === 0) return null;
 
-            // Extract nested object from first delta's pointer (must be DomainNodeReference)
+            // Extract primitive value from pointer
             const delta = deltas[0];
             const pointer = delta.pointers.find(p =>
               p.localContext === localContext &&
-              isDomainNodeReference(p.target)
-            );
-            if (!pointer) return null;
-
-            return pointer.target;
-          }
-        };
-      }
-    }
-
-    // Add fields for primitives (inferred from common patterns)
-    // This is a simplification - in production you'd want explicit field definitions
-    const commonPrimitiveFields = ['name', 'title', 'content', 'text', 'description'];
-    for (const fieldName of commonPrimitiveFields) {
-      if (!fieldMap[fieldName]) {
-        fieldMap[fieldName] = {
-          type: GraphQLString,
-          resolve: (source) => {
-            const property = source[fieldName];
-            if (!property || !Array.isArray(property)) return null;
-
-            const deltas = property as Delta[];
-            if (deltas.length === 0) return null;
-
-            // Extract primitive from pointer (skip DomainNodeReference targets)
-            const delta = deltas[0];
-            const pointer = delta.pointers.find(p =>
-              p.localContext === fieldName &&
               !isDomainNodeReference(p.target)
             );
-            return pointer?.target || null;
+
+            // Validate the value against the primitive schema
+            if (pointer && primitiveSchema.validate(pointer.target)) {
+              return pointer.target;
+            }
+
+            return null;
           }
         };
+      } else {
+        // This is a domain object reference
+        const referencedSchemaId = typeof rule.schema === 'string' ? rule.schema : rule.schema.id;
+        const referencedSchema = allSchemas.get(referencedSchemaId);
+
+        if (referencedSchema) {
+          const nestedType = hyperSchemaToGraphQLType(
+            referencedSchema,
+            db,
+            allSchemas,
+            viewSchemas,
+            typeCache
+          );
+
+          fieldMap[localContext] = {
+            // Domain references can have multiple values, so use GraphQLList
+            type: new GraphQLList(nestedType),
+            resolve: (source) => {
+              // Source should have this property from HyperView
+              const property = source[localContext];
+              if (!property || !Array.isArray(property)) return [];
+
+              const deltas = property as Delta[];
+              if (deltas.length === 0) return [];
+
+              // Extract all nested objects from deltas' pointers
+              const targets = deltas
+                .map(delta => {
+                  const pointer = delta.pointers.find(p =>
+                    p.localContext === localContext &&
+                    isDomainNodeReference(p.target)
+                  );
+                  return pointer?.target;
+                })
+                .filter(target => target !== undefined && target !== null);
+
+              return targets;
+            }
+          };
+        }
       }
     }
 
@@ -263,23 +272,57 @@ function resolveView(hyperView: HyperView, schema: ViewSchema): any {
 
 /**
  * Create an InputObjectType for a HyperSchema
+ * Discovers fields by sampling actual data in the database
  */
 function createInputType(
   hyperSchema: HyperSchema,
-  allSchemas: Map<string, HyperSchema>
+  allSchemas: Map<string, HyperSchema>,
+  db: RhizomeDB
 ): GraphQLInputObjectType {
   const inputFields: GraphQLInputFieldConfigMap = {};
 
-  // Add common primitive fields
-  const primitiveFields = ['name', 'title', 'content', 'text', 'description', 'character'];
-  for (const fieldName of primitiveFields) {
-    inputFields[fieldName] = { type: GraphQLString };
+  // Discover fields by sampling actual data
+  const sampleDeltas = db.queryDeltas({
+    predicate: (delta) => {
+      return delta.pointers.some(p =>
+        !isDomainNodeReference(p.target) &&
+        p.localContext &&
+        p.localContext !== 'id'
+      );
+    }
+  });
+
+  // Track discovered fields and infer their types
+  const discoveredFields = new Map<string, any>();
+
+  for (const delta of sampleDeltas.slice(0, 100)) {
+    for (const pointer of delta.pointers) {
+      if (!isDomainNodeReference(pointer.target) &&
+          pointer.localContext &&
+          pointer.localContext !== 'id') {
+        if (!discoveredFields.has(pointer.localContext)) {
+          discoveredFields.set(pointer.localContext, pointer.target);
+        }
+      }
+    }
   }
 
-  // Add numeric fields
-  const numericFields = ['year', 'runtime', 'birthYear', 'budget'];
-  for (const fieldName of numericFields) {
-    inputFields[fieldName] = { type: GraphQLInt };
+  // Create input fields for all discovered primitive fields
+  for (const [fieldName, sampleValue] of discoveredFields) {
+    // Infer GraphQL input type from the sample value
+    const graphQLType = typeof sampleValue === 'number' ? GraphQLInt :
+                       typeof sampleValue === 'boolean' ? GraphQLBoolean :
+                       GraphQLString; // Default to string
+
+    inputFields[fieldName] = { type: graphQLType };
+  }
+
+  // GraphQL requires at least one field in InputObjectType
+  // If we didn't discover any fields (empty database), add common fallback fields
+  if (Object.keys(inputFields).length === 0) {
+    inputFields.name = { type: GraphQLString };
+    inputFields.title = { type: GraphQLString };
+    inputFields.content = { type: GraphQLString };
   }
 
   // Note: Relationships are not included in input types (they're created via separate deltas)
@@ -363,7 +406,7 @@ function createMutationType(
     if (!graphqlType) continue;
 
     // Create input type for this schema
-    const inputType = createInputType(hyperSchema, schemas);
+    const inputType = createInputType(hyperSchema, schemas, db);
 
     // Create mutation with new API
     fields[`create${hyperSchema.name}`] = {

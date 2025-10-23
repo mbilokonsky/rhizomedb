@@ -20,7 +20,7 @@ RhizomeDB is a **rhizomatic database** built on immutable delta-CRDTs represente
 ## 📊 Simple GraphQL Queries
 
 ### Query a Single Movie
-[Tested in typescript/src/movie-database.test.ts:503-522]
+[Tested in movie-database.test.ts](typescript/src/movie-database.test.ts#L504-L527)
 
 **Query:**
 ```graphql
@@ -28,6 +28,8 @@ query {
   Movie(id: "movie_matrix") {
     id
     title
+    year
+    runtime
   }
 }
 ```
@@ -38,7 +40,9 @@ query {
   "data": {
     "Movie": {
       "id": "movie_matrix",
-      "title": "The Matrix"
+      "title": "The Matrix",
+      "year": 1999,
+      "runtime": 136
     }
   }
 }
@@ -47,7 +51,7 @@ query {
 ---
 
 ### Query a Person
-[Tested in typescript/src/movie-database.test.ts:524-543]
+[Tested in movie-database.test.ts](typescript/src/movie-database.test.ts#L529-L550)
 
 **Query:**
 ```graphql
@@ -55,6 +59,7 @@ query {
   Person(id: "person_reeves_keanu") {
     id
     name
+    birthYear
   }
 }
 ```
@@ -65,7 +70,8 @@ query {
   "data": {
     "Person": {
       "id": "person_reeves_keanu",
-      "name": "Keanu Reeves"
+      "name": "Keanu Reeves",
+      "birthYear": 1964
     }
   }
 }
@@ -76,7 +82,7 @@ query {
 ## 🎬 Complex Nested Queries
 
 ### Movie with Nested Director
-[Tested in typescript/src/movie-database.test.ts:545-572]
+[Tested in movie-database.test.ts](typescript/src/movie-database.test.ts#L552-L585)
 
 **Query:**
 ```graphql
@@ -84,9 +90,12 @@ query {
   Movie(id: "movie_lotr_fellowship") {
     id
     title
+    year
+    runtime
     director {
       id
       name
+      birthYear
     }
   }
 }
@@ -99,32 +108,41 @@ query {
     "Movie": {
       "id": "movie_lotr_fellowship",
       "title": "The Lord of the Rings: The Fellowship of the Ring",
-      "director": {
+      "year": 2001,
+      "runtime": 178,
+      "director": [{
         "id": "person_jackson_peter",
-        "name": "Peter Jackson"
-      }
+        "name": "Peter Jackson",
+        "birthYear": 1961
+      }]
     }
   }
 }
 ```
 
+> **Note:** Domain object references (like `director`) return arrays to support multi-valued relationships. Single-valued fields return an array with one element.
+
 ---
 
 ### Role with Nested Actor and Movie
-[Tested in typescript/src/movie-database.test.ts:574-605]
+[Tested in movie-database.test.ts](typescript/src/movie-database.test.ts#L587-L626)
 
 **Query:**
 ```graphql
 query {
   Role(id: "role_matrix_neo") {
     id
+    character
     actor {
       id
       name
+      birthYear
     }
     movie {
       id
       title
+      year
+      runtime
     }
   }
 }
@@ -136,14 +154,18 @@ query {
   "data": {
     "Role": {
       "id": "role_matrix_neo",
-      "actor": {
+      "character": "Neo",
+      "actor": [{
         "id": "person_reeves_keanu",
-        "name": "Keanu Reeves"
-      },
-      "movie": {
+        "name": "Keanu Reeves",
+        "birthYear": 1964
+      }],
+      "movie": [{
         "id": "movie_matrix",
-        "title": "The Matrix"
-      }
+        "title": "The Matrix",
+        "year": 1999,
+        "runtime": 136
+      }]
     }
   }
 }
@@ -154,7 +176,7 @@ query {
 ## 📚 Querying Collections
 
 ### Query a Trilogy
-[Tested in typescript/src/movie-database.test.ts:607-626]
+[Tested in movie-database.test.ts](typescript/src/movie-database.test.ts#L628-L647)
 
 **Query:**
 ```graphql
@@ -181,7 +203,7 @@ query {
 ---
 
 ### Query Multiple Movies at Once
-[Tested in typescript/src/movie-database.test.ts:628-650]
+[Tested in movie-database.test.ts](typescript/src/movie-database.test.ts#L649-L677)
 
 **Query:**
 ```graphql
@@ -189,6 +211,8 @@ query {
   Movies(ids: ["movie_matrix", "movie_matrix_reloaded"]) {
     id
     title
+    year
+    runtime
   }
 }
 ```
@@ -200,11 +224,15 @@ query {
     "Movies": [
       {
         "id": "movie_matrix",
-        "title": "The Matrix"
+        "title": "The Matrix",
+        "year": 1999,
+        "runtime": 136
       },
       {
         "id": "movie_matrix_reloaded",
-        "title": "The Matrix Reloaded"
+        "title": "The Matrix Reloaded",
+        "year": 2003,
+        "runtime": 138
       }
     ]
   }
@@ -216,7 +244,7 @@ query {
 ## ✍️ Mutations: Creating Data
 
 ### Create a New Person
-[Tested in typescript/src/movie-database.test.ts:653-684]
+[Tested in movie-database.test.ts](typescript/src/movie-database.test.ts#L679-L710)
 
 **Mutation:**
 ```graphql
@@ -224,10 +252,11 @@ mutation {
   createPerson(
     id: "person_nolan_christopher"
     author: "admin"
-    input: { name: "Christopher Nolan" }
+    input: { name: "Christopher Nolan", birthYear: 1970 }
   ) {
     id
     name
+    birthYear
   }
 }
 ```
@@ -238,7 +267,8 @@ mutation {
   "data": {
     "createPerson": {
       "id": "person_nolan_christopher",
-      "name": "Christopher Nolan"
+      "name": "Christopher Nolan",
+      "birthYear": 1970
     }
   }
 }
@@ -247,7 +277,7 @@ mutation {
 ---
 
 ### Create a New Movie
-[Tested in typescript/src/movie-database.test.ts:686-709]
+[Tested in movie-database.test.ts](typescript/src/movie-database.test.ts#L712-L739)
 
 **Mutation:**
 ```graphql
@@ -259,6 +289,8 @@ mutation {
   ) {
     id
     title
+    year
+    runtime
   }
 }
 ```
@@ -269,7 +301,9 @@ mutation {
   "data": {
     "createMovie": {
       "id": "movie_inception",
-      "title": "Inception"
+      "title": "Inception",
+      "year": 2010,
+      "runtime": 148
     }
   }
 }
@@ -278,7 +312,7 @@ mutation {
 ---
 
 ### Update a Movie (with Automatic Delta Negation)
-[Tested in typescript/src/movie-database.test.ts:711-760]
+[Tested in movie-database.test.ts](typescript/src/movie-database.test.ts#L741-L790)
 
 **Mutation:**
 ```graphql
@@ -319,7 +353,7 @@ This preserves full history while ensuring clean, conflict-free updates!
 ## 🔄 Delta Negation: Correcting Mistakes
 
 ### Negate a Delta
-[Tested in typescript/src/movie-database.test.ts:762-791]
+[Tested in movie-database.test.ts](typescript/src/movie-database.test.ts#L792-L821)
 
 In RhizomeDB, we don't delete data—we **negate** incorrect deltas.
 
@@ -351,7 +385,7 @@ mutation {
 ## 🎯 Advanced Delta Queries
 
 ### Find All Movies from a Specific Year
-[Tested in typescript/src/movie-database.test.ts:117-137]
+[Tested in movie-database.test.ts](typescript/src/movie-database.test.ts#L117-L137)
 
 Using the delta query API:
 
@@ -369,7 +403,7 @@ const movies1999 = db.queryDeltas({
 ---
 
 ### Find All Movies by a Director
-[Tested in typescript/src/movie-database.test.ts:149-167]
+[Tested in movie-database.test.ts](typescript/src/movie-database.test.ts#L149-L167)
 
 ```typescript
 const jacksonMovies = db.queryDeltas({
@@ -386,7 +420,7 @@ const movieIds = jacksonMovies
 ---
 
 ### Find Longest Running Movies
-[Tested in typescript/src/movie-database.test.ts:380-404]
+[Tested in movie-database.test.ts](typescript/src/movie-database.test.ts#L380-L404)
 
 ```typescript
 const runtimeDeltas = db.queryDeltas({
@@ -401,7 +435,7 @@ const movieRuntimes = runtimeDeltas.map(extractRuntime).sort((a, b) => b - a);
 ---
 
 ### Demonstrate Delta Negation for Corrections
-[Tested in typescript/src/movie-database.test.ts:431-466]
+[Tested in movie-database.test.ts](typescript/src/movie-database.test.ts#L431-L466)
 
 ```typescript
 // Add incorrect data
@@ -429,7 +463,7 @@ await db.persistDelta(correctDelta);
 
 ## 📦 Database Statistics
 
-[Tested in typescript/src/movie-database.test.ts:49-55, 218-224]
+[Tested in movie-database.test.ts](typescript/src/movie-database.test.ts#L49-L55) and [movie-database.test.ts](typescript/src/movie-database.test.ts#L218-L224)
 
 The movie database contains:
 - **62+ movies** spanning 1977-2019
@@ -444,12 +478,29 @@ The movie database contains:
 
 ### HyperSchemas Define Structure
 
+RhizomeDB uses **HyperSchemas** to define how data is structured and validated. Schemas specify both **domain object** relationships and **primitive field** types:
+
 ```typescript
 const movieSchema: HyperSchema = {
   id: 'movie_schema',
   name: 'Movie',
   select: selectByTargetContext,
   transform: {
+    // Primitive fields with type validation
+    title: {
+      schema: PrimitiveSchemas.String,
+      when: (p) => PrimitiveSchemas.String.validate(p.target)
+    },
+    year: {
+      schema: PrimitiveSchemas.Integer.Year,
+      when: (p) => PrimitiveSchemas.Integer.Year.validate(p.target)
+    },
+    runtime: {
+      schema: PrimitiveSchemas.Integer,
+      when: (p) => PrimitiveSchemas.Integer.validate(p.target)
+    },
+
+    // Domain object relationships
     director: {
       schema: 'person_schema',
       when: (p) => typeof p.target === 'object' && 'id' in p.target
@@ -457,6 +508,26 @@ const movieSchema: HyperSchema = {
   }
 };
 ```
+
+### PrimitiveHyperSchemas
+
+RhizomeDB includes **type-safe primitive schemas** with chained validation:
+
+```typescript
+// Base primitive types
+PrimitiveSchemas.String      // Any string
+PrimitiveSchemas.Integer     // Any integer
+PrimitiveSchemas.Boolean     // Any boolean
+
+// Constrained variants
+PrimitiveSchemas.String.EmailAddress  // Validated email string
+PrimitiveSchemas.Integer.Year         // Year between 1800-2100
+```
+
+Each primitive schema provides:
+- **GraphQL type mapping** - Automatic GraphQL type inference
+- **Runtime validation** - Values that don't match are filtered out
+- **Type narrowing** - Build from base types (string → email, integer → year)
 
 ### GraphQL Schema Auto-Generated
 
@@ -484,7 +555,7 @@ Every assertion is an immutable delta with:
 ## 🎉 Recent Additions
 
 ### Improved Mutation API
-[Implemented in typescript/src/graphql.ts:267-447]
+[Implemented in graphql.ts](typescript/src/graphql.ts#L267-L471)
 
 RhizomeDB now features a clean, native GraphQL mutation API:
 
@@ -509,6 +580,46 @@ RhizomeDB now features a clean, native GraphQL mutation API:
    - Creates new delta with new value
 
 3. **Type-Safe Mutations** - GraphQL validates your input at query time
+
+### PrimitiveHyperSchemas
+[Implemented in types.ts](typescript/src/types.ts#L411-L496)
+
+RhizomeDB now includes a comprehensive type system for primitive values:
+
+**✨ What's New:**
+
+1. **Metadata-Driven Field Discovery** - Fields are defined in schemas, not inferred from data
+   ```typescript
+   // Primitives are explicitly defined in transform rules
+   transform: {
+     year: {
+       schema: PrimitiveSchemas.Integer.Year,
+       when: (p) => PrimitiveSchemas.Integer.Year.validate(p.target)
+     }
+   }
+   ```
+
+2. **Chained Type Narrowing** - Build specific types from base primitives
+   ```typescript
+   PrimitiveSchemas.String            // Base: any string
+   PrimitiveSchemas.String.EmailAddress  // Narrowed: validated emails
+   PrimitiveSchemas.Integer           // Base: any integer
+   PrimitiveSchemas.Integer.Year      // Narrowed: 1800-2100
+   ```
+
+3. **Automatic GraphQL Integration** - Primitive schemas automatically generate GraphQL types
+
+4. **Multi-Valued Relationships** - Domain references return arrays to support one-to-many relationships
+   ```graphql
+   # Trilogy with multiple movies
+   Trilogy(id: "trilogy_matrix") {
+     name
+     movie {  # Returns array of 3 movies
+       title
+       year
+     }
+   }
+   ```
 
 ---
 

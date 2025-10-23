@@ -49,19 +49,25 @@ At the root of this project is the concept of a "Delta". A delta is several thin
 
 ```typescript
 interface Delta {
-  // a UUID representing this specific delta
-  id: string 
+  // A unique identifier for this specific delta
+  // Currently: UUID (subject to revision - may use content-addressing or other schemes)
+  id: string
 
-  // a timestamp identifying the moment at which this delta was first created
-  timestamp: number  
+  // A timestamp identifying the moment at which this delta was first created
+  timestamp: number
 
-  // the UUID of the person or process that created this delta
+  // The UUID of the person or process that created this delta
+  // NOTE: Currently spoofable - verification mechanism needed before production use
   author: string
 
-  // the UUID of the specific instance rhizomedb in which this delta was created
+  // The UUID of the specific instance rhizomedb in which this delta was created
+  // NOTE: Currently spoofable - verification mechanism needed before production use
   system: string
 
-  // this is the magic, these pointers reference different domain nodes or primitives with specific context.
+  // This is the magic: pointers reference different domain nodes or primitives with specific context
+  // Primitive types: string | number | boolean
+  // (No null or undefined - absence is represented by lack of deltas)
+  // (No array primitives - use multiple pointers instead)
   pointers: {
     localContext: string
     target: DomainNodeReference | Primitive
@@ -69,6 +75,83 @@ interface Delta {
   }[]
 }
 ```
+
+#### Pointer Context Fields: localContext and targetContext
+
+Here's a complete example delta asserting a containment relationship:
+
+```typescript
+{
+  id: "delta_001",
+  timestamp: 1000,
+  author: "user_alice",
+  system: "instance_primary",
+  pointers: [
+    {
+      localContext: 'parent',
+      target: { id: 'some_container' },
+      targetContext: 'children'
+    },
+    {
+      localContext: 'child',
+      target: { id: 'some_contained_thing' },
+      targetContext: 'parent'
+    }
+  ]
+}
+```
+
+Each pointer has three fields that together define the semantics of the relationship:
+
+**`localContext`**: From this delta's perspective, what is this pointer targeting?
+- The first pointer is targeting a **parent**
+- The second pointer is targeting a **child**
+- Together, this delta is asserting a parent/child relationship between `some_container` and `some_contained_thing`
+
+**`targetContext`**: Where should this delta be organized when querying the target object?
+- When we query `some_container`, this delta should appear under its **children** property
+- When we query `some_contained_thing`, this delta should appear under its **parent** property
+- This creates navigable bidirectional relationships
+
+**`target`**: The thing being referenced (either a domain object `{ id }` or a primitive value)
+
+**Primitives and targetContext:**
+
+When targeting primitive values, `targetContext` is often omitted:
+
+```typescript
+{
+  id: "delta_002",
+  timestamp: 1001,
+  author: "user_alice",
+  system: "instance_primary",
+  pointers: [
+    {
+      localContext: 'sized',
+      target: { id: 'item_1' },
+      targetContext: 'size'
+    },
+    {
+      localContext: 'size',
+      target: 3  // primitive number
+      // no targetContext - it would be something like 'thingsThatAreThisSize', which is rarely useful
+    }
+  ]
+}
+```
+
+**Semantics and interpretation:**
+
+These context fields define **what the delta means**. They are the core semantics of the assertion being made. While a given HyperSchema may choose to interpret or organize these semantics differently when constructing a HyperView, the delta's meaning is established by its contexts and targets.
+
+**Naming divergence:**
+
+Different users or systems may use different terminology for the same concept ('parent'/'container', 'child'/'contents'). Within a single system, this can be largely mitigated by:
+- **Defined mutations**: Route all writes through mutation functions that enforce consistent vocabulary
+- **Tooling and linters**: Detect and flag inconsistent context naming
+- **Schema definitions**: Document the expected context values for your domain
+
+In federated scenarios, naming divergence becomes more challenging and may require explicit vocabulary mapping or advanced resolution strategies (see Open Questions).
 
 #### Delta Atomicity and Modeling
 
@@ -199,11 +282,26 @@ And if you really wanted to get wild you could even start nesting this stuff arb
 }
 ```
 
-**Note on circular references**: You might be worried about infinite recursion here - `brzrkr.createdBy` points back to `keanu`, who appears as an ancestor in this object. But this is actually a *circular reference*, not a *circular expansion*. The `{ id: keanu }` here is just an ID reference, not a fully expanded object with `keanu.projects.brzrkr.createdBy.projects...` forever.
+**Note on circular references and termination**: You might be worried about infinite recursion here - `brzrkr.createdBy` points back to `keanu`, who appears as an ancestor in this object. But this is actually a *circular reference*, not a *circular expansion*. The `{ id: keanu }` here is just an ID reference, not a fully expanded object with `keanu.projects.brzrkr.createdBy.projects...` forever.
 
-This is controlled by the HyperSchema. When we define HyperSchemas, they form a directed acyclic graph (DAG) - no schema can reference itself through a chain of transformations. Some schemas (like `NamedEntity`) don't transform any targets at all - they're terminal nodes in the graph. When a pointer's target doesn't get transformed by a schema, it remains as a simple ID reference `{ id: ... }` rather than expanding further.
+**How HyperSchemas prevent infinite recursion:**
 
-So while the *data* can have circular references (Keanu created brzrkr, brzrkr was created by Keanu), the *schema* cannot have circular dependencies. The schema defines how deep to expand, and where to stop. This prevents infinite recursion while preserving the ability to reference the same objects from multiple places.
+HyperSchemas control expansion depth through their **transformation rules**. For each pointer in a selected delta:
+- **If a transformation rule matches** → apply the specified HyperSchema and expand the target into a nested HyperView
+- **If no transformation rule matches** → leave the target as a simple reference `{ id: ... }`
+
+This means expansion stops naturally when you hit pointers that the schema doesn't explicitly transform. For example:
+- The `Movie` HyperSchema might say: "transform actor pointers using `NamedEntity` schema"
+- The `NamedEntity` HyperSchema might say: "don't transform any pointers" (terminal schema)
+- When we encounter an actor, we expand it via `NamedEntity`, which includes their name
+- But `NamedEntity` doesn't transform the `brzrkr.createdBy` pointer, so it stays as `{ id: keanu }`
+- Recursion naturally terminates
+
+**DAG requirement**: HyperSchemas must form a directed acyclic graph - no schema can invoke itself through a chain of transformations. But the *data* can absolutely have circular references. The distinction:
+- **Data circles are fine**: Keanu created brzrkr, brzrkr was created by Keanu
+- **Schema circles are forbidden**: `Movie` → `Actor` → `NamedEntity` (stops) ✓, but `Movie` → `Actor` → `Movie` ✗
+
+The schema defines how deep to expand and where to stop. This prevents infinite recursion while preserving the ability to reference the same objects from multiple places.
 
 Do you see how with two deltas we can support a bunch of different equally valid views? The "rhizome" is the deeply interconnected knot of concepts stored in the references between pointers of deltas with any given instance's stream. But how do we reliably get the specific shapes we want out of the rhizome? How does it know whether or not to include `keanu.projects` when Keanu is referenced as an actor within the cast of the matrix? You can see how our deltas can make *whatever associations they want*, so we can't know in advance what deltas will show up in our system. You can imagine writing a query tier that just grabs all the deltas associated with a given key and munges them together according to some rules you give it, but that won't really scale well as the system grows - and besides, structure is helpful! We don't want to have to define rigid schemas in advance, but we do like schemas! In fact, we like them so much that we've got three tiers of them!
 
@@ -476,7 +574,10 @@ The examples above use `targetContext` and `localContext` as convenient conventi
 **Why this matters:**
 
 By abstracting HyperSchemas as selection + transformation, we keep the door open for advanced use cases:
-- **Temporal schemas**: "Show me how this looked at time T" (filter by timestamp)
+- **Temporal schemas / Time-travel**: "Show me how this looked at time T" (filter deltas by `timestamp <= T` in the selection function)
+  - This is how time-travel queries work: simply add timestamp filtering to HyperView construction
+  - Query the system as of any past moment by filtering which deltas are considered
+  - Negations are also time-sensitive: a delta negated at T2 would appear in queries at T1 but not at T3
 - **Trust-based schemas**: "Only include data from verified sources" (filter by author)
 - **Permission schemas**: "Filter based on who's querying" (context-aware selection)
 - **Computed schemas**: "Apply different transformations based on delta relationships"
@@ -931,6 +1032,14 @@ These are unresolved challenges that need to be addressed during implementation:
 - **Compaction strategies**: Do we need snapshotting or compaction for long-running systems? How do we balance immutability with storage costs?
 - **Benchmark targets**: What are acceptable performance characteristics for v1? When does the system become impractical?
 
+### Delta Identity and Provenance
+- **ID generation strategy**: Should we use UUIDs, content-addressed hashes, or another scheme? What are the collision and determinism trade-offs?
+- **Author/system verification**: Currently these fields are spoofable - how do we verify authorship and system identity?
+  - Cryptographic signatures? Public key infrastructure?
+  - What's the verification model in federated scenarios?
+  - This must be resolved before production use
+- **Timestamp authority**: Who sets timestamps? Can they be trusted? What about clock skew across systems?
+
 ### Query Language Design
 - **Developer ergonomics**: How do we expose HyperSchema composition to developers? Do they write schemas directly or use a higher-level DSL?
 - **Complex queries**: How do you express "all directors who released a movie starring Keanu in the 90s"? What's the query API?
@@ -950,6 +1059,12 @@ These are unresolved challenges that need to be addressed during implementation:
 - **Schema conflicts**: When two instances define incompatible schemas, how do we merge them? Is schema conflict resolution fundamentally different from data conflict resolution?
 - **Breaking changes**: How do we handle schemas that make breaking changes? Can old deltas be queried with new schemas?
 - **Version coordination**: Do schemas need version numbers? How do we coordinate schema updates across federated instances?
+
+### Context Vocabulary and Semantic Convergence
+- **Mutation-based consistency**: Should the reference implementation include mutation helpers that enforce context vocabulary?
+- **Aliasing mechanism**: In federated scenarios, how do we map vocabularies between systems? Are aliases themselves deltas?
+- **Semantic similarity**: Can vector embeddings enable fuzzy context matching in specialized indexes? What are the implications for determinism and convergence?
+- **Case and normalization**: Are contexts case-sensitive? How do we handle whitespace, pluralization, and special characters?
 
 ### Data Retention & Privacy
 - **GDPR compliance**: How do we handle "right to be forgotten" in an append-only immutable system? Is negation sufficient, or do we need actual deletion?

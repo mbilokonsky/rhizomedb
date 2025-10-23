@@ -5,9 +5,10 @@ This document tracks planned improvements and changes to the project.
 ## README Updates
 
 ### Terminology Fixes
-- [ ] Replace "zero-knowledge" with "context-free" throughout
-  - Line 18: "zero-knowledge means that a 'delta' in this sense is not aware of the state of the system"
-  - Should be: "context-free" or "stateless"
+- [x] Replace "zero-knowledge" with "context-free" throughout
+  - ✅ Completed in commit fdcc026
+  - Changed line 14 and line 18 to use "context-free"
+  - Also fixed typo "zero-knoweldge" → "context-free"
 
 ### Relational Algebra
 - [ ] Add note about relational algebra as research goal
@@ -20,21 +21,27 @@ This document tracks planned improvements and changes to the project.
     - Status: Aspirational, needs formal proof
 
 ### Conflict Resolution
-- [ ] Add conflict resolution example showing multiple deltas for same property
-  - Example: Two deltas claiming different names for Keanu
-  - Show HyperView containing both deltas
-  - Show multiple resolution strategies:
-    - Take most recent (max timestamp)
-    - Take from trusted author
-    - Return array of all possibilities
-    - LLM resolver for semantic conflicts
-  - Emphasize: This is a feature, not a bug
+- [x] Add conflict resolution example showing multiple deltas for same property
+  - ✅ Completed in commit fdcc026
+  - Added "Conflict Resolution in Practice" section after line 408
+  - Showed two competing deltas (correct vs. misspelled "Keanu Reeves")
+  - Demonstrated HyperView preserving both values
+  - Illustrated 4 resolution strategies with code:
+    - Strategy 1: Most recent (timestamp-based)
+    - Strategy 2: Trusted authors (authority-based)
+    - Strategy 3: Return all (surface conflicts)
+    - Strategy 4: LLM resolver (AI-assisted)
+  - Emphasized context-appropriate resolution
 
 ### Code Block Organization
-- [ ] Make large code blocks collapsible
-  - Natural language summary should be prominent
-  - Full JSON examples in collapsible sections or appendix
-  - Consider applying this pattern throughout
+- [x] Make large code blocks collapsible
+  - ✅ Completed in commit a5a8d08
+  - Wrapped 3 largest code examples in `<details>/<summary>` tags:
+    - First deltas example (~43 lines) - "Deltas representing Keanu Reeves"
+    - Additional deltas (~68 lines) - "Names and directors deltas"
+    - matrixHyperview (~100 lines) - "Full matrixHyperview example"
+  - Kept visible: Delta interface, domain object results, circular reference example, conflict resolution
+  - Pattern can be applied to future large examples as needed
 
 ### HyperSchema Semantics
 - [ ] Add explicit section on HyperSchema mechanics

@@ -461,8 +461,9 @@ export const additionalPeople: PersonData[] = [
 /**
  * Seed the database with all movie data
  */
-export async function seedMovieDatabase(db: RhizomeDB): Promise<void> {
+export async function seedMovieDatabase(db: RhizomeDB, options?: { includeExpanded?: boolean }): Promise<void> {
   const allDeltas: Delta[] = [];
+  const includeExpanded = options?.includeExpanded ?? true;
 
   // Matrix franchise
   console.log('Seeding Matrix trilogy...');
@@ -524,6 +525,77 @@ export async function seedMovieDatabase(db: RhizomeDB): Promise<void> {
     ['movie_lotr_fellowship', 'movie_lotr_two_towers', 'movie_lotr_return']
   ));
 
+  // Expanded dataset (additional films from actors in core dataset)
+  if (includeExpanded) {
+    const {
+      expandedPeople,
+      expandedMovies,
+      expandedRoles,
+      additionalExpandedPeople,
+      supportingActors
+    } = await import('./movie-seed-data-expanded');
+
+    console.log('Seeding expanded filmography...');
+
+    // Add all new people
+    for (const person of [...expandedPeople, ...additionalExpandedPeople, ...supportingActors]) {
+      allDeltas.push(...createPersonDeltas(db, person));
+    }
+
+    // Add all expanded movies
+    for (const movie of expandedMovies) {
+      allDeltas.push(...createMovieDeltas(db, movie));
+    }
+
+    // Add all expanded roles
+    for (const role of expandedRoles) {
+      allDeltas.push(...createRoleDeltas(db, role));
+    }
+
+    // Add franchise collections
+    allDeltas.push(...createTrilogyDeltas(
+      db,
+      'trilogy_john_wick',
+      'John Wick Series',
+      ['movie_john_wick', 'movie_john_wick_2', 'movie_john_wick_3']
+    ));
+
+    allDeltas.push(...createTrilogyDeltas(
+      db,
+      'trilogy_indiana_jones',
+      'Indiana Jones Trilogy',
+      ['movie_raiders', 'movie_temple_doom', 'movie_last_crusade']
+    ));
+
+    allDeltas.push(...createTrilogyDeltas(
+      db,
+      'trilogy_xmen_original',
+      'X-Men Original Trilogy',
+      ['movie_xmen', 'movie_xmen_2', 'movie_xmen_last_stand']
+    ));
+
+    allDeltas.push(...createTrilogyDeltas(
+      db,
+      'trilogy_pirates',
+      'Pirates of the Caribbean Original Trilogy',
+      ['movie_pirates_curse', 'movie_pirates_chest', 'movie_pirates_world_end']
+    ));
+
+    allDeltas.push(...createTrilogyDeltas(
+      db,
+      'trilogy_hobbit',
+      'The Hobbit Trilogy',
+      ['movie_hobbit_journey', 'movie_hobbit_smaug', 'movie_hobbit_battle']
+    ));
+
+    allDeltas.push(...createTrilogyDeltas(
+      db,
+      'trilogy_avengers',
+      'Avengers Series',
+      ['movie_avengers', 'movie_avengers_ultron']
+    ));
+  }
+
   // Persist all deltas
   console.log(`Persisting ${allDeltas.length} deltas...`);
   await db.persistDeltas(allDeltas);
@@ -533,16 +605,36 @@ export async function seedMovieDatabase(db: RhizomeDB): Promise<void> {
 /**
  * Get statistics about seeded data
  */
-export function getSeedStats(): {
+export async function getSeedStats(includeExpanded: boolean = true): Promise<{
   totalMovies: number;
   totalPeople: number;
   totalRoles: number;
   totalTrilogies: number;
-} {
+}> {
+  let totalMovies = matrixMovies.length + starWarsMovies.length + lotrMovies.length;
+  let totalPeople = matrixPeople.length + starWarsPeople.length + lotrPeople.length + additionalPeople.length;
+  let totalRoles = matrixRoles.length + starWarsRoles.length + lotrRoles.length;
+  let totalTrilogies = 4; // Matrix, SW Original, SW Prequel, LOTR
+
+  if (includeExpanded) {
+    const {
+      expandedMovies,
+      expandedPeople,
+      expandedRoles,
+      additionalExpandedPeople,
+      supportingActors
+    } = await import('./movie-seed-data-expanded');
+
+    totalMovies += expandedMovies.length;
+    totalPeople += expandedPeople.length + additionalExpandedPeople.length + supportingActors.length;
+    totalRoles += expandedRoles.length;
+    totalTrilogies += 6; // John Wick, Indiana Jones, X-Men, Pirates, Hobbit, Avengers
+  }
+
   return {
-    totalMovies: matrixMovies.length + starWarsMovies.length + lotrMovies.length,
-    totalPeople: matrixPeople.length + starWarsPeople.length + lotrPeople.length + additionalPeople.length,
-    totalRoles: matrixRoles.length + starWarsRoles.length + lotrRoles.length,
-    totalTrilogies: 4 // Matrix, SW Original, SW Prequel, LOTR
+    totalMovies,
+    totalPeople,
+    totalRoles,
+    totalTrilogies
   };
 }

@@ -47,12 +47,12 @@ describe('Movie Database', () => {
       await seedMovieDatabase(db);
     });
 
-    it('should have seeded the correct number of entities', () => {
-      const stats = getSeedStats();
-      expect(stats.totalMovies).toBe(12); // 3 Matrix + 6 Star Wars + 3 LOTR
-      expect(stats.totalPeople).toBeGreaterThan(30);
-      expect(stats.totalRoles).toBeGreaterThan(80);
-      expect(stats.totalTrilogies).toBe(4);
+    it('should have seeded the correct number of entities', async () => {
+      const stats = await getSeedStats();
+      expect(stats.totalMovies).toBeGreaterThan(50); // 12 core + 50+ expanded
+      expect(stats.totalPeople).toBeGreaterThan(100);
+      expect(stats.totalRoles).toBeGreaterThan(200);
+      expect(stats.totalTrilogies).toBe(10); // 4 core + 6 expanded
     });
 
     it('should query The Matrix movie', () => {
@@ -160,10 +160,11 @@ describe('Movie Database', () => {
           .map(t => (t as any).id)
       );
 
-      expect(movieIds.size).toBe(3);
+      // 3 LOTR + 3 Hobbit + 1 King Kong = 7 total
+      expect(movieIds.size).toBe(7);
       expect(movieIds.has('movie_lotr_fellowship')).toBe(true);
-      expect(movieIds.has('movie_lotr_two_towers')).toBe(true);
-      expect(movieIds.has('movie_lotr_return')).toBe(true);
+      expect(movieIds.has('movie_hobbit_journey')).toBe(true);
+      expect(movieIds.has('movie_king_kong_2005')).toBe(true);
     });
 
     it('should query a trilogy', () => {
@@ -219,7 +220,7 @@ describe('Movie Database', () => {
       const stats = db.getStats();
 
       expect(stats.systemId).toBe('movie-db');
-      expect(stats.totalDeltas).toBeGreaterThan(470); // 475 deltas from seed data + new movie added in test
+      expect(stats.totalDeltas).toBeGreaterThan(1370); // 1379 deltas from expanded seed data + new movie added in test
       expect(stats.storageType).toBe('memory');
     });
   });

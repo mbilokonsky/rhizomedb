@@ -539,6 +539,7 @@ export class LevelDBStore
     // Convert to materialized view
     const materialized: MaterializedHyperView = {
       id: hyperView.id,
+      _schemaId: schema.id,
       _lastUpdated: Date.now(),
       _deltaCount: 0
     };

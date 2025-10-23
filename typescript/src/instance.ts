@@ -360,13 +360,16 @@ export class RhizomeDB
 
     const materializedView: MaterializedHyperView = {
       ...hyperView,
+      _schemaId: schema.id,
       _lastUpdated: Date.now(),
       _deltaCount: deltaCount
     };
 
     // Cache if enabled
     if (this.config.enableIndexing) {
-      this.materializedViews.set(objectId, materializedView);
+      // Use composite key: objectId + schemaId
+      const cacheKey = `${objectId}:${schema.id}`;
+      this.materializedViews.set(cacheKey, materializedView);
 
       // Evict oldest if cache is full
       if (this.materializedViews.size > this.config.cacheSize) {
@@ -383,26 +386,40 @@ export class RhizomeDB
   updateHyperView(view: MaterializedHyperView, delta: Delta): void {
     // For simplicity, just rebuild the view
     // A more sophisticated implementation would incrementally update
-    const schema = this.schemaRegistry.get(view.id);
+    const schema = this.schemaRegistry.get(view._schemaId);
     if (schema) {
       const updated = this.materializeHyperView(view.id, schema);
       Object.assign(view, updated);
     }
   }
 
-  getHyperView(objectId: string): MaterializedHyperView | null {
-    return this.materializedViews.get(objectId) || null;
-  }
-
-  rebuildHyperView(objectId: string): MaterializedHyperView {
-    const existing = this.materializedViews.get(objectId);
-    if (!existing) {
-      throw new Error(`No materialized view found for object: ${objectId}`);
+  getHyperView(objectId: string, schemaId?: string): MaterializedHyperView | null {
+    if (schemaId) {
+      // Look for specific schema
+      const cacheKey = `${objectId}:${schemaId}`;
+      return this.materializedViews.get(cacheKey) || null;
     }
 
-    const schema = this.schemaRegistry.get(existing.id);
+    // Look for any materialized view for this object
+    for (const [key, view] of this.materializedViews.entries()) {
+      if (view.id === objectId) {
+        return view;
+      }
+    }
+
+    return null;
+  }
+
+  rebuildHyperView(objectId: string, schemaId?: string): MaterializedHyperView {
+    // Try to find existing view
+    const existing = this.getHyperView(objectId, schemaId);
+    if (!existing) {
+      throw new Error(`No materialized view found for object: ${objectId}${schemaId ? ` with schema: ${schemaId}` : ''}`);
+    }
+
+    const schema = this.schemaRegistry.get(existing._schemaId);
     if (!schema) {
-      throw new Error(`Schema not found for view: ${existing.id}`);
+      throw new Error(`Schema not found: ${existing._schemaId}`);
     }
 
     return this.materializeHyperView(objectId, schema);

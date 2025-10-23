@@ -156,6 +156,9 @@ export interface MaterializedHyperView {
   /** The domain object ID */
   id: string;
 
+  /** The schema ID used to create this view */
+  _schemaId: string;
+
   /** When this view was last updated (timestamp) */
   _lastUpdated: number;
 
@@ -355,11 +358,11 @@ export interface IndexMaintainer extends RhizomeInstance {
   /** Update a materialized HyperView with a new delta */
   updateHyperView(view: MaterializedHyperView, delta: Delta): void;
 
-  /** Get a materialized HyperView */
-  getHyperView(objectId: string): MaterializedHyperView | null;
+  /** Get a materialized HyperView (optionally filtered by schemaId) */
+  getHyperView(objectId: string, schemaId?: string): MaterializedHyperView | null;
 
   /** Invalidate and rebuild a HyperView */
-  rebuildHyperView(objectId: string): MaterializedHyperView;
+  rebuildHyperView(objectId: string, schemaId?: string): MaterializedHyperView;
 }
 
 /**

@@ -19,7 +19,7 @@ import {
   GraphQLInputFieldConfigMap,
 } from 'graphql';
 import { RhizomeDB } from './instance';
-import { HyperSchema, HyperView, Delta, Pointer, ViewSchema, ResolutionStrategy } from './types';
+import { HyperSchema, HyperView, Delta, Pointer, ViewSchema, ResolutionStrategy, PrimitiveHyperSchema, isPrimitiveHyperSchema } from './types';
 import { isDomainNodeReference } from './validation';
 
 /**
@@ -147,124 +147,71 @@ function hyperSchemaToGraphQLType(
 
     // Infer fields from transformation rules
     for (const [localContext, rule] of Object.entries(hyperSchema.transform)) {
-      const referencedSchemaId = typeof rule.schema === 'string' ? rule.schema : rule.schema.id;
-      const referencedSchema = allSchemas.get(referencedSchemaId);
-
-      if (referencedSchema) {
-        const nestedType = hyperSchemaToGraphQLType(
-          referencedSchema,
-          db,
-          allSchemas,
-          viewSchemas,
-          typeCache
-        );
+      // Check if this is a PrimitiveHyperSchema
+      if (typeof rule.schema !== 'string' && isPrimitiveHyperSchema(rule.schema)) {
+        const primitiveSchema = rule.schema as PrimitiveHyperSchema;
 
         fieldMap[localContext] = {
-          type: nestedType,
+          type: primitiveSchema.graphQLType,
           resolve: (source) => {
-            // Source should have this property from HyperView
             const property = source[localContext];
             if (!property || !Array.isArray(property)) return null;
 
             const deltas = property as Delta[];
             if (deltas.length === 0) return null;
 
-            // Extract nested object from first delta's pointer (must be DomainNodeReference)
+            // Extract primitive value from pointer
             const delta = deltas[0];
             const pointer = delta.pointers.find(p =>
               p.localContext === localContext &&
-              isDomainNodeReference(p.target)
-            );
-            if (!pointer) return null;
-
-            return pointer.target;
-          }
-        };
-      }
-    }
-
-    // Discover primitive fields by sampling actual data
-    // Query for deltas that might represent this entity type to find what properties exist
-    const sampleDeltas = db.queryDeltas({
-      predicate: (delta) => {
-        // Look for deltas that might be properties of entities matching this schema
-        // We're looking for deltas with primitive values (not DomainNodeReferences)
-        return delta.pointers.some(p =>
-          !isDomainNodeReference(p.target) &&
-          p.localContext &&
-          p.localContext !== 'id'
-        );
-      }
-    });
-
-    // Track discovered fields and infer their types from actual values
-    const discoveredFields = new Map<string, any>(); // fieldName -> sample value
-
-    for (const delta of sampleDeltas.slice(0, 100)) { // Sample first 100 to avoid scanning everything
-      for (const pointer of delta.pointers) {
-        if (!isDomainNodeReference(pointer.target) &&
-            pointer.localContext &&
-            pointer.localContext !== 'id' &&
-            !fieldMap[pointer.localContext]) {
-          // Track this field and a sample value to infer type
-          if (!discoveredFields.has(pointer.localContext)) {
-            discoveredFields.set(pointer.localContext, pointer.target);
-          }
-        }
-      }
-    }
-
-    // Create GraphQL fields for all discovered primitive fields
-    for (const [fieldName, sampleValue] of discoveredFields) {
-      if (!fieldMap[fieldName]) {
-        // Infer GraphQL type from the sample value
-        const graphQLType = typeof sampleValue === 'number' ? GraphQLInt :
-                           typeof sampleValue === 'boolean' ? GraphQLBoolean :
-                           typeof sampleValue === 'string' ? GraphQLString :
-                           GraphQLString; // Default to string for unknown types
-
-        fieldMap[fieldName] = {
-          type: graphQLType,
-          resolve: (source) => {
-            const property = source[fieldName];
-            if (!property || !Array.isArray(property)) return null;
-
-            const deltas = property as Delta[];
-            if (deltas.length === 0) return null;
-
-            // Extract value from pointer
-            const delta = deltas[0];
-            const pointer = delta.pointers.find(p =>
-              p.localContext === fieldName &&
               !isDomainNodeReference(p.target)
             );
-            return pointer?.target || null;
+
+            // Validate the value against the primitive schema
+            if (pointer && primitiveSchema.validate(pointer.target)) {
+              return pointer.target;
+            }
+
+            return null;
           }
         };
-      }
-    }
+      } else {
+        // This is a domain object reference
+        const referencedSchemaId = typeof rule.schema === 'string' ? rule.schema : rule.schema.id;
+        const referencedSchema = allSchemas.get(referencedSchemaId);
 
-    // If no fields were discovered (empty database), add common fallback fields
-    // so that the schema is valid even before data exists
-    if (discoveredFields.size === 0) {
-      const commonFields = ['name', 'title', 'content', 'text'];
-      for (const fieldName of commonFields) {
-        if (!fieldMap[fieldName]) {
-          fieldMap[fieldName] = {
-            type: GraphQLString,
+        if (referencedSchema) {
+          const nestedType = hyperSchemaToGraphQLType(
+            referencedSchema,
+            db,
+            allSchemas,
+            viewSchemas,
+            typeCache
+          );
+
+          fieldMap[localContext] = {
+            // Domain references can have multiple values, so use GraphQLList
+            type: new GraphQLList(nestedType),
             resolve: (source) => {
-              const property = source[fieldName];
-              if (!property || !Array.isArray(property)) return null;
+              // Source should have this property from HyperView
+              const property = source[localContext];
+              if (!property || !Array.isArray(property)) return [];
 
               const deltas = property as Delta[];
-              if (deltas.length === 0) return null;
+              if (deltas.length === 0) return [];
 
-              const delta = deltas[0];
-              const pointer = delta.pointers.find(p =>
-                p.localContext === fieldName &&
-                !isDomainNodeReference(p.target)
-              );
-              return pointer?.target || null;
+              // Extract all nested objects from deltas' pointers
+              const targets = deltas
+                .map(delta => {
+                  const pointer = delta.pointers.find(p =>
+                    p.localContext === localContext &&
+                    isDomainNodeReference(p.target)
+                  );
+                  return pointer?.target;
+                })
+                .filter(target => target !== undefined && target !== null);
+
+              return targets;
             }
           };
         }

@@ -8,7 +8,8 @@ import {
   HyperSchema,
   HyperView,
   Pointer,
-  DomainNodeReference
+  DomainNodeReference,
+  isPrimitiveHyperSchema
 } from './types';
 import { isDomainNodeReference } from './validation';
 
@@ -135,6 +136,11 @@ export function constructHyperView(
 
         // Don't transform primitives
         if (!isDomainNodeReference(pointer.target)) {
+          return pointer;
+        }
+
+        // Don't transform if the schema is a PrimitiveHyperSchema (primitives don't nest)
+        if (typeof rule.schema !== 'string' && isPrimitiveHyperSchema(rule.schema)) {
           return pointer;
         }
 

@@ -7,7 +7,7 @@
  * **This is test/demo data only - not part of the core library.**
  */
 
-import { Delta, Pointer, HyperSchema } from './types';
+import { Delta, Pointer, HyperSchema, PrimitiveSchemas } from './types';
 import { RhizomeDB } from './instance';
 import { selectByTargetContext } from './hyperview';
 
@@ -15,7 +15,16 @@ export const personSchema: HyperSchema = {
   id: 'person_schema',
   name: 'Person',
   select: selectByTargetContext,
-  transform: {}
+  transform: {
+    name: {
+      schema: PrimitiveSchemas.String,
+      when: (p) => PrimitiveSchemas.String.validate(p.target)
+    },
+    birthYear: {
+      schema: PrimitiveSchemas.Integer.Year,
+      when: (p) => PrimitiveSchemas.Integer.Year.validate(p.target)
+    }
+  }
 };
 
 /**
@@ -26,6 +35,18 @@ export const movieSchema: HyperSchema = {
   name: 'Movie',
   select: selectByTargetContext,
   transform: {
+    title: {
+      schema: PrimitiveSchemas.String,
+      when: (p) => PrimitiveSchemas.String.validate(p.target)
+    },
+    year: {
+      schema: PrimitiveSchemas.Integer.Year,
+      when: (p) => PrimitiveSchemas.Integer.Year.validate(p.target)
+    },
+    runtime: {
+      schema: PrimitiveSchemas.Integer,
+      when: (p) => PrimitiveSchemas.Integer.validate(p.target)
+    },
     director: {
       schema: 'person_schema',
       when: (p) => typeof p.target === 'object' && 'id' in p.target
@@ -49,6 +70,10 @@ export const roleSchema: HyperSchema = {
   name: 'Role',
   select: selectByTargetContext,
   transform: {
+    character: {
+      schema: PrimitiveSchemas.String,
+      when: (p) => PrimitiveSchemas.String.validate(p.target)
+    },
     actor: {
       schema: 'person_schema',
       when: (p) => typeof p.target === 'object' && 'id' in p.target
@@ -68,6 +93,10 @@ export const trilogySchema: HyperSchema = {
   name: 'Trilogy',
   select: selectByTargetContext,
   transform: {
+    name: {
+      schema: PrimitiveSchemas.String,
+      when: (p) => PrimitiveSchemas.String.validate(p.target)
+    },
     movie: {
       schema: 'movie_schema',
       when: (p) => typeof p.target === 'object' && 'id' in p.target

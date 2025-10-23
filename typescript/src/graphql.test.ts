@@ -6,7 +6,33 @@ import { graphql } from 'graphql';
 import { RhizomeDB } from './instance';
 import { createStandardSchema } from './hyperview';
 import { createGraphQLSchema, createSimpleViewSchema } from './graphql';
-import { HyperSchema } from './types';
+import { HyperSchema, PrimitiveSchemas } from './types';
+
+// Helper to create Person schema with common primitive fields
+function createPersonSchema(additionalTransform: HyperSchema['transform'] = {}): HyperSchema {
+  return createStandardSchema('person', 'Person', {
+    name: {
+      schema: PrimitiveSchemas.String,
+      when: (p) => PrimitiveSchemas.String.validate(p.target)
+    },
+    ...additionalTransform
+  });
+}
+
+// Helper to create Post/Blog schema with common primitive fields
+function createPostSchema(id: string, name: string, additionalTransform: HyperSchema['transform'] = {}): HyperSchema {
+  return createStandardSchema(id, name, {
+    title: {
+      schema: PrimitiveSchemas.String,
+      when: (p) => PrimitiveSchemas.String.validate(p.target)
+    },
+    content: {
+      schema: PrimitiveSchemas.String,
+      when: (p) => PrimitiveSchemas.String.validate(p.target)
+    },
+    ...additionalTransform
+  });
+}
 
 describe('GraphQL Integration', () => {
   let db: RhizomeDB;
@@ -20,7 +46,7 @@ describe('GraphQL Integration', () => {
   describe('Schema Generation', () => {
     it('should generate GraphQL schema from HyperSchemas', async () => {
       // Create a simple schema
-      const personSchema = createStandardSchema('person', 'Person');
+      const personSchema = createPersonSchema();
       schemas.set('person', personSchema);
       db.registerSchema(personSchema);
 
@@ -37,8 +63,8 @@ describe('GraphQL Integration', () => {
 
   describe('Queries', () => {
     it('should query a simple object', async () => {
-      // Setup schema
-      const personSchema = createStandardSchema('person', 'Person');
+      // Setup schema with primitive field
+      const personSchema = createPersonSchema();
       schemas.set('person', personSchema);
       db.registerSchema(personSchema);
 
@@ -86,8 +112,8 @@ describe('GraphQL Integration', () => {
 
     it('should query nested objects', async () => {
       // Setup schemas
-      const personSchema = createStandardSchema('person', 'Person');
-      const postSchema = createStandardSchema('post', 'Post', {
+      const personSchema = createPersonSchema();
+      const postSchema = createPostSchema('post', 'Post', {
         author: {
           schema: personSchema,
           when: (p) => typeof p.target === 'object' && 'id' in p.target
@@ -145,16 +171,16 @@ describe('GraphQL Integration', () => {
         Post: {
           id: postId,
           title: 'My Post',
-          author: {
+          author: [{
             id: authorId,
             name: 'Alice'
-          }
+          }]
         }
       });
     });
 
     it('should query multiple objects', async () => {
-      const personSchema = createStandardSchema('person', 'Person');
+      const personSchema = createPersonSchema();
       schemas.set('person', personSchema);
       db.registerSchema(personSchema);
 
@@ -194,7 +220,7 @@ describe('GraphQL Integration', () => {
 
   describe('Mutations', () => {
     it('should create deltas via mutation', async () => {
-      const personSchema = createStandardSchema('person', 'Person');
+      const personSchema = createPersonSchema();
       schemas.set('person', personSchema);
       db.registerSchema(personSchema);
 
@@ -221,7 +247,7 @@ describe('GraphQL Integration', () => {
     });
 
     it('should create typed objects via mutation', async () => {
-      const personSchema = createStandardSchema('person', 'Person');
+      const personSchema = createPersonSchema();
       schemas.set('person', personSchema);
       db.registerSchema(personSchema);
 
@@ -256,7 +282,7 @@ describe('GraphQL Integration', () => {
     });
 
     it('should negate deltas via mutation', async () => {
-      const personSchema = createStandardSchema('person', 'Person');
+      const personSchema = createPersonSchema();
       schemas.set('person', personSchema);
       db.registerSchema(personSchema);
 
@@ -292,7 +318,7 @@ describe('GraphQL Integration', () => {
   describe('Full Stack Integration', () => {
     it('should demonstrate complete workflow: create, query, update', async () => {
       // Setup schema
-      const blogSchema = createStandardSchema('blog', 'Blog');
+      const blogSchema = createPostSchema('blog', 'Blog');
       schemas.set('blog', blogSchema);
       db.registerSchema(blogSchema);
 
@@ -352,7 +378,7 @@ describe('GraphQL Integration', () => {
 
   describe('Time-travel via GraphQL', () => {
     it('should support querying at specific timestamps', async () => {
-      const personSchema = createStandardSchema('person', 'Person');
+      const personSchema = createPersonSchema();
       schemas.set('person', personSchema);
       db.registerSchema(personSchema);
 

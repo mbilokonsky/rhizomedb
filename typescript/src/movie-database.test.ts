@@ -575,11 +575,11 @@ describe('Movie Database', () => {
           title: 'The Lord of the Rings: The Fellowship of the Ring',
           year: 2001,
           runtime: 178,
-          director: {
+          director: [{
             id: 'person_jackson_peter',
             name: 'Peter Jackson',
             birthYear: 1961
-          }
+          }]
         }
       });
     });
@@ -611,17 +611,17 @@ describe('Movie Database', () => {
       expect(result.data?.Role).toMatchObject({
         id: 'role_matrix_neo',
         character: 'Neo',
-        actor: {
+        actor: [{
           id: 'person_reeves_keanu',
           name: 'Keanu Reeves',
           birthYear: 1964
-        },
-        movie: {
+        }],
+        movie: [{
           id: 'movie_matrix',
           title: 'The Matrix',
           year: 1999,
           runtime: 136
-        }
+        }]
       });
     });
 
@@ -631,6 +631,17 @@ describe('Movie Database', () => {
           Trilogy(id: "trilogy_matrix") {
             id
             name
+            movie {
+              id
+              title
+              year
+              runtime
+              director {
+                id
+                name
+                birthYear
+              }
+            }
           }
         }
       `;
@@ -638,11 +649,32 @@ describe('Movie Database', () => {
       const result = await graphql({ schema: gqlSchema, source: query });
 
       expect(result.errors).toBeUndefined();
-      expect(result.data).toEqual({
-        Trilogy: {
-          id: 'trilogy_matrix',
-          name: 'The Matrix Trilogy'
-        }
+      expect(result.data?.Trilogy).toMatchObject({
+        id: 'trilogy_matrix',
+        name: 'The Matrix Trilogy'
+      });
+
+      // Should have movie data (returns array since domain references are lists)
+      const movies = (result.data?.Trilogy as any)?.movie;
+      expect(movies).toBeDefined();
+      expect(Array.isArray(movies)).toBe(true);
+      expect(movies?.length).toBe(3); // Matrix trilogy has 3 movies
+
+      // Verify we can drill into movie details
+      const matrixMovie = movies?.find((m: any) => m.id === 'movie_matrix');
+      expect(matrixMovie).toMatchObject({
+        id: 'movie_matrix',
+        title: 'The Matrix',
+        year: 1999,
+        runtime: 136
+      });
+
+      // Verify we can drill into director (returns array since domain references are lists)
+      expect(Array.isArray(matrixMovie?.director)).toBe(true);
+      expect(matrixMovie?.director?.length).toBeGreaterThan(0);
+      expect(matrixMovie?.director?.[0]).toMatchObject({
+        name: 'Lana Wachowski',
+        birthYear: 1965
       });
     });
 

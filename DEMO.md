@@ -110,15 +110,17 @@ query {
       "title": "The Lord of the Rings: The Fellowship of the Ring",
       "year": 2001,
       "runtime": 178,
-      "director": {
+      "director": [{
         "id": "person_jackson_peter",
         "name": "Peter Jackson",
         "birthYear": 1961
-      }
+      }]
     }
   }
 }
 ```
+
+> **Note:** Domain object references (like `director`) return arrays to support multi-valued relationships. Single-valued fields return an array with one element.
 
 ---
 
@@ -153,17 +155,17 @@ query {
     "Role": {
       "id": "role_matrix_neo",
       "character": "Neo",
-      "actor": {
+      "actor": [{
         "id": "person_reeves_keanu",
         "name": "Keanu Reeves",
         "birthYear": 1964
-      },
-      "movie": {
+      }],
+      "movie": [{
         "id": "movie_matrix",
         "title": "The Matrix",
         "year": 1999,
         "runtime": 136
-      }
+      }]
     }
   }
 }
@@ -476,12 +478,29 @@ The movie database contains:
 
 ### HyperSchemas Define Structure
 
+RhizomeDB uses **HyperSchemas** to define how data is structured and validated. Schemas specify both **domain object** relationships and **primitive field** types:
+
 ```typescript
 const movieSchema: HyperSchema = {
   id: 'movie_schema',
   name: 'Movie',
   select: selectByTargetContext,
   transform: {
+    // Primitive fields with type validation
+    title: {
+      schema: PrimitiveSchemas.String,
+      when: (p) => PrimitiveSchemas.String.validate(p.target)
+    },
+    year: {
+      schema: PrimitiveSchemas.Integer.Year,
+      when: (p) => PrimitiveSchemas.Integer.Year.validate(p.target)
+    },
+    runtime: {
+      schema: PrimitiveSchemas.Integer,
+      when: (p) => PrimitiveSchemas.Integer.validate(p.target)
+    },
+
+    // Domain object relationships
     director: {
       schema: 'person_schema',
       when: (p) => typeof p.target === 'object' && 'id' in p.target
@@ -489,6 +508,26 @@ const movieSchema: HyperSchema = {
   }
 };
 ```
+
+### PrimitiveHyperSchemas
+
+RhizomeDB includes **type-safe primitive schemas** with chained validation:
+
+```typescript
+// Base primitive types
+PrimitiveSchemas.String      // Any string
+PrimitiveSchemas.Integer     // Any integer
+PrimitiveSchemas.Boolean     // Any boolean
+
+// Constrained variants
+PrimitiveSchemas.String.EmailAddress  // Validated email string
+PrimitiveSchemas.Integer.Year         // Year between 1800-2100
+```
+
+Each primitive schema provides:
+- **GraphQL type mapping** - Automatic GraphQL type inference
+- **Runtime validation** - Values that don't match are filtered out
+- **Type narrowing** - Build from base types (string → email, integer → year)
 
 ### GraphQL Schema Auto-Generated
 
@@ -541,6 +580,46 @@ RhizomeDB now features a clean, native GraphQL mutation API:
    - Creates new delta with new value
 
 3. **Type-Safe Mutations** - GraphQL validates your input at query time
+
+### PrimitiveHyperSchemas
+[Implemented in types.ts](typescript/src/types.ts#L411-L496)
+
+RhizomeDB now includes a comprehensive type system for primitive values:
+
+**✨ What's New:**
+
+1. **Metadata-Driven Field Discovery** - Fields are defined in schemas, not inferred from data
+   ```typescript
+   // Primitives are explicitly defined in transform rules
+   transform: {
+     year: {
+       schema: PrimitiveSchemas.Integer.Year,
+       when: (p) => PrimitiveSchemas.Integer.Year.validate(p.target)
+     }
+   }
+   ```
+
+2. **Chained Type Narrowing** - Build specific types from base primitives
+   ```typescript
+   PrimitiveSchemas.String            // Base: any string
+   PrimitiveSchemas.String.EmailAddress  // Narrowed: validated emails
+   PrimitiveSchemas.Integer           // Base: any integer
+   PrimitiveSchemas.Integer.Year      // Narrowed: 1800-2100
+   ```
+
+3. **Automatic GraphQL Integration** - Primitive schemas automatically generate GraphQL types
+
+4. **Multi-Valued Relationships** - Domain references return arrays to support one-to-many relationships
+   ```graphql
+   # Trilogy with multiple movies
+   Trilogy(id: "trilogy_matrix") {
+     name
+     movie {  # Returns array of 3 movies
+       title
+       year
+     }
+   }
+   ```
 
 ---
 

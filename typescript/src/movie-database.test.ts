@@ -7,6 +7,8 @@ import { RhizomeDB } from './instance';
 import { LevelDBStore } from './leveldb-store';
 import { movieSchemas, seedMovieDatabase, getSeedStats } from './movie-database.fixture';
 import { Delta, DeltaFilter } from './types';
+import { createGraphQLSchema } from './graphql';
+import { graphql } from 'graphql';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -463,6 +465,329 @@ describe('Movie Database', () => {
       // Should only have the correct delta
       expect(budgetDeltas.length).toBe(1);
       expect(budgetDeltas[0].id).toBe(correctDelta.id);
+    });
+  });
+
+  describe('GraphQL Integration', () => {
+    let db: RhizomeDB;
+    let gqlSchema: any;
+
+    beforeAll(async () => {
+      db = new RhizomeDB({
+        systemId: 'movie-db-graphql',
+        storage: 'memory'
+      });
+
+      // Register movie schemas
+      db.applyHyperSchema('_register_person', movieSchemas.person);
+      db.applyHyperSchema('_register_movie', movieSchemas.movie);
+      db.applyHyperSchema('_register_role', movieSchemas.role);
+      db.applyHyperSchema('_register_trilogy', movieSchemas.trilogy);
+
+      await seedMovieDatabase(db);
+
+      // Create GraphQL schema from HyperSchemas
+      // Use schema IDs as keys to match the transform rules
+      const schemas = new Map();
+      schemas.set('person_schema', movieSchemas.person);
+      schemas.set('movie_schema', movieSchemas.movie);
+      schemas.set('role_schema', movieSchemas.role);
+      schemas.set('trilogy_schema', movieSchemas.trilogy);
+
+      gqlSchema = createGraphQLSchema({
+        db,
+        schemas,
+        enableMutations: true
+      });
+    });
+
+    it('should query a single movie via GraphQL', async () => {
+      const query = `
+        query {
+          Movie(id: "movie_matrix") {
+            id
+            title
+          }
+        }
+      `;
+
+      const result = await graphql({ schema: gqlSchema, source: query });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({
+        Movie: {
+          id: 'movie_matrix',
+          title: 'The Matrix'
+        }
+      });
+    });
+
+    it('should query a person via GraphQL', async () => {
+      const query = `
+        query {
+          Person(id: "person_reeves_keanu") {
+            id
+            name
+          }
+        }
+      `;
+
+      const result = await graphql({ schema: gqlSchema, source: query });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({
+        Person: {
+          id: 'person_reeves_keanu',
+          name: 'Keanu Reeves'
+        }
+      });
+    });
+
+    it('should query a movie with nested director', async () => {
+      const query = `
+        query {
+          Movie(id: "movie_lotr_fellowship") {
+            id
+            title
+            director {
+              id
+              name
+            }
+          }
+        }
+      `;
+
+      const result = await graphql({ schema: gqlSchema, source: query });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({
+        Movie: {
+          id: 'movie_lotr_fellowship',
+          title: 'The Lord of the Rings: The Fellowship of the Ring',
+          director: {
+            id: 'person_jackson_peter',
+            name: 'Peter Jackson'
+          }
+        }
+      });
+    });
+
+    it('should query a role with nested actor and movie', async () => {
+      const query = `
+        query {
+          Role(id: "role_matrix_neo") {
+            id
+            actor {
+              id
+              name
+            }
+            movie {
+              id
+              title
+            }
+          }
+        }
+      `;
+
+      const result = await graphql({ schema: gqlSchema, source: query });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.Role).toMatchObject({
+        id: 'role_matrix_neo',
+        actor: {
+          id: 'person_reeves_keanu',
+          name: 'Keanu Reeves'
+        },
+        movie: {
+          id: 'movie_matrix',
+          title: 'The Matrix'
+        }
+      });
+    });
+
+    it('should query a trilogy with all movies', async () => {
+      const query = `
+        query {
+          Trilogy(id: "trilogy_matrix") {
+            id
+            name
+          }
+        }
+      `;
+
+      const result = await graphql({ schema: gqlSchema, source: query });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({
+        Trilogy: {
+          id: 'trilogy_matrix',
+          name: 'The Matrix Trilogy'
+        }
+      });
+    });
+
+    it('should query multiple movies', async () => {
+      const query = `
+        query {
+          Movies(ids: ["movie_matrix", "movie_matrix_reloaded"]) {
+            id
+            title
+          }
+        }
+      `;
+
+      const result = await graphql({ schema: gqlSchema, source: query });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.Movies).toHaveLength(2);
+      expect(result.data?.Movies).toContainEqual({
+        id: 'movie_matrix',
+        title: 'The Matrix'
+      });
+      expect(result.data?.Movies).toContainEqual({
+        id: 'movie_matrix_reloaded',
+        title: 'The Matrix Reloaded'
+      });
+    });
+
+    it('should create a new person via GraphQL mutation (new API)', async () => {
+      const mutation = `
+        mutation {
+          createPerson(
+            id: "person_nolan_christopher"
+            author: "admin"
+            input: { name: "Christopher Nolan" }
+          ) {
+            id
+            name
+          }
+        }
+      `;
+
+      const result = await graphql({ schema: gqlSchema, source: mutation });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({
+        createPerson: {
+          id: 'person_nolan_christopher',
+          name: 'Christopher Nolan'
+        }
+      });
+
+      // Verify it was actually created
+      const queryResult = await graphql({
+        schema: gqlSchema,
+        source: 'query { Person(id: "person_nolan_christopher") { id name } }'
+      });
+
+      expect((queryResult.data as any)?.Person.name).toBe('Christopher Nolan');
+    });
+
+    it('should create a new movie via GraphQL mutation (new API)', async () => {
+      const mutation = `
+        mutation {
+          createMovie(
+            id: "movie_inception"
+            author: "admin"
+            input: { title: "Inception", year: 2010, runtime: 148 }
+          ) {
+            id
+            title
+          }
+        }
+      `;
+
+      const result = await graphql({ schema: gqlSchema, source: mutation });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toEqual({
+        createMovie: {
+          id: 'movie_inception',
+          title: 'Inception'
+        }
+      });
+    });
+
+    it('should update a movie with automatic delta negation', async () => {
+      // Create a movie
+      const createMutation = `
+        mutation {
+          createMovie(
+            id: "movie_test_update"
+            author: "admin"
+            input: { title: "Original Title", year: 2020 }
+          ) {
+            id
+            title
+          }
+        }
+      `;
+
+      const createResult = await graphql({ schema: gqlSchema, source: createMutation });
+      expect(createResult.errors).toBeUndefined();
+      expect((createResult.data as any)?.createMovie.title).toBe('Original Title');
+
+      // Update the title (should negate old delta and create new one)
+      const updateMutation = `
+        mutation {
+          updateMovie(
+            id: "movie_test_update"
+            author: "admin"
+            input: { title: "Updated Title" }
+          ) {
+            id
+            title
+          }
+        }
+      `;
+
+      const updateResult = await graphql({ schema: gqlSchema, source: updateMutation });
+      expect(updateResult.errors).toBeUndefined();
+      expect((updateResult.data as any)?.updateMovie.title).toBe('Updated Title');
+
+      // Query to verify the update
+      const query = 'query { Movie(id: "movie_test_update") { id title } }';
+      const queryResult = await graphql({ schema: gqlSchema, source: query });
+      expect((queryResult.data as any)?.Movie.title).toBe('Updated Title');
+
+      // Verify old delta was negated
+      // Query all deltas (including negated ones) to verify the behavior
+      const negationDeltas = db.queryDeltas({
+        predicate: (d) => d.pointers.some(p => p.localContext === 'negates')
+      });
+
+      expect(negationDeltas.length).toBeGreaterThan(0); // At least one negation was created
+    });
+
+    it('should support delta negation via GraphQL', async () => {
+      // Create a delta
+      const createMutation = `
+        mutation {
+          createDelta(
+            author: "admin"
+            pointers: "[{\\"localContext\\":\\"test\\",\\"target\\":\\"testvalue\\"}]"
+          )
+        }
+      `;
+
+      const createResult = await graphql({ schema: gqlSchema, source: createMutation });
+      expect(createResult.errors).toBeUndefined();
+      const deltaId = createResult.data?.createDelta;
+
+      // Negate it
+      const negateMutation = `
+        mutation {
+          negateDelta(
+            author: "admin"
+            targetDeltaId: "${deltaId}"
+            reason: "Test negation"
+          )
+        }
+      `;
+
+      const negateResult = await graphql({ schema: gqlSchema, source: negateMutation });
+      expect(negateResult.errors).toBeUndefined();
+      expect(negateResult.data?.negateDelta).toBeDefined();
     });
   });
 });

@@ -216,7 +216,7 @@ query {
 ## ✍️ Mutations: Creating Data
 
 ### Create a New Person
-[Tested in typescript/src/movie-database.test.ts:652-683]
+[Tested in typescript/src/movie-database.test.ts:653-684]
 
 **Mutation:**
 ```graphql
@@ -224,7 +224,7 @@ mutation {
   createPerson(
     id: "person_nolan_christopher"
     author: "admin"
-    data: "{\"name\":\"Christopher Nolan\"}"
+    input: { name: "Christopher Nolan" }
   ) {
     id
     name
@@ -244,12 +244,10 @@ mutation {
 }
 ```
 
-**Note:** The current mutation API requires escaped JSON strings. This is being redesigned to use proper GraphQL input types.
-
 ---
 
 ### Create a New Movie
-[Tested in typescript/src/movie-database.test.ts:685-708]
+[Tested in typescript/src/movie-database.test.ts:686-709]
 
 **Mutation:**
 ```graphql
@@ -257,7 +255,7 @@ mutation {
   createMovie(
     id: "movie_inception"
     author: "admin"
-    data: "{\"title\":\"Inception\"}"
+    input: { title: "Inception", year: 2010, runtime: 148 }
   ) {
     id
     title
@@ -279,10 +277,49 @@ mutation {
 
 ---
 
+### Update a Movie (with Automatic Delta Negation)
+[Tested in typescript/src/movie-database.test.ts:711-760]
+
+**Mutation:**
+```graphql
+mutation {
+  updateMovie(
+    id: "movie_inception"
+    author: "admin"
+    input: { title: "Inception (Director's Cut)" }
+  ) {
+    id
+    title
+  }
+}
+```
+
+**Result:**
+```json
+{
+  "data": {
+    "updateMovie": {
+      "id": "movie_inception",
+      "title": "Inception (Director's Cut)"
+    }
+  }
+}
+```
+
+**What happens behind the scenes:**
+1. RhizomeDB finds the existing delta for the `title` property
+2. Automatically creates a negation delta for the old value
+3. Creates a new delta with the updated value
+4. Returns the updated object
+
+This preserves full history while ensuring clean, conflict-free updates!
+
+---
+
 ## 🔄 Delta Negation: Correcting Mistakes
 
 ### Negate a Delta
-[Tested in typescript/src/movie-database.test.ts:710-739]
+[Tested in typescript/src/movie-database.test.ts:762-791]
 
 In RhizomeDB, we don't delete data—we **negate** incorrect deltas.
 
@@ -444,32 +481,36 @@ Every assertion is an immutable delta with:
 
 ---
 
-## 🚀 Next Steps
+## 🎉 Recent Additions
 
-### Improved Mutation API (Coming Soon)
+### Improved Mutation API
+[Implemented in typescript/src/graphql.ts:267-480]
 
-The current mutation API will be redesigned to use proper GraphQL input types:
+RhizomeDB now features a clean, native GraphQL mutation API:
 
-```graphql
-# Current (verbose, requires JSON escaping)
-mutation {
-  createPerson(
-    author: "admin"
-    data: "{\"name\":\"Chris Nolan\",\"birthYear\":1970}"
-  ) { id name }
-}
+**✨ What's New:**
 
-# Future (clean, native GraphQL)
-mutation {
-  createPerson(
-    author: "admin"
-    name: "Chris Nolan"
-    birthYear: 1970
-  ) { id name }
-}
-```
+1. **Native GraphQL Input Types** - No more escaped JSON strings!
+   ```graphql
+   # Before
+   createPerson(data: "{\"name\":\"Chris Nolan\"}")
 
-This will include automatic overwrite semantics: when updating a property, the system will automatically negate the old delta and create a new one.
+   # After
+   createPerson(input: { name: "Chris Nolan", birthYear: 1970 })
+   ```
+
+2. **Automatic Delta Negation on Updates** - Update mutations automatically handle overwrites:
+   ```graphql
+   updateMovie(id: "movie_inception", input: { title: "New Title" })
+   ```
+   Behind the scenes:
+   - Finds existing delta for `title`
+   - Creates negation delta (preserving history)
+   - Creates new delta with new value
+
+3. **Type-Safe Mutations** - GraphQL validates your input at query time
+
+4. **Backward Compatible** - Legacy API still available as `createPersonLegacy`, etc.
 
 ---
 

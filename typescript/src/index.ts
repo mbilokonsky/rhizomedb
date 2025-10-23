@@ -13,6 +13,9 @@ export * from './validation';
 // Export HyperView construction
 export * from './hyperview';
 
+// Export View Resolution
+export * from './view-resolver';
+
 // Export instance implementation
 export { RhizomeDB } from './instance';
 

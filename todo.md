@@ -112,11 +112,13 @@ This document tracks planned improvements and changes to the project.
   - Show how HyperViews handle negated deltas
 
 ### Circular References
-- [ ] Make circular reference handling more explicit
-  - Currently mentioned at line 168: "hmm, this is a circular reference. More about this below"
-  - Explain: HyperSchemas act like GraphQL queries - they specify depth
-  - When transformation stops (terminal schema), references remain as `{ id }` only
-  - No infinite recursion because DAG constraint prevents cycles
+- [x] Make circular reference handling more explicit
+  - ✅ Completed - added clarification note after line 180
+  - Addresses inline comment "More about this below"
+  - Distinguishes: circular *references* (in data) vs circular *expansion* (prevented)
+  - Explains DAG constraint: schemas cannot reference themselves
+  - Terminal schemas (like NamedEntity) don't transform targets → prevent recursion
+  - Data can have cycles, schemas cannot → bounded expansion
 
 ## Open Questions / Research Topics
 

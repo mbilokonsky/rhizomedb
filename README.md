@@ -179,6 +179,12 @@ And if you really wanted to get wild you could even start nesting this stuff arb
 }
 ```
 
+**Note on circular references**: You might be worried about infinite recursion here - `brzrkr.createdBy` points back to `keanu`, who appears as an ancestor in this object. But this is actually a *circular reference*, not a *circular expansion*. The `{ id: keanu }` here is just an ID reference, not a fully expanded object with `keanu.projects.brzrkr.createdBy.projects...` forever.
+
+This is controlled by the HyperSchema. When we define HyperSchemas, they form a directed acyclic graph (DAG) - no schema can reference itself through a chain of transformations. Some schemas (like `NamedEntity`) don't transform any targets at all - they're terminal nodes in the graph. When a pointer's target doesn't get transformed by a schema, it remains as a simple ID reference `{ id: ... }` rather than expanding further.
+
+So while the *data* can have circular references (Keanu created brzrkr, brzrkr was created by Keanu), the *schema* cannot have circular dependencies. The schema defines how deep to expand, and where to stop. This prevents infinite recursion while preserving the ability to reference the same objects from multiple places.
+
 Do you see how with two deltas we can support a bunch of different equally valid views? The "rhizome" is the deeply interconnected knot of concepts stored in the references between pointers of deltas with any given instance's stream. But how do we reliably get the specific shapes we want out of the rhizome? How does it know whether or not to include `keanu.projects` when Keanu is referenced as an actor within the cast of the matrix? You can see how our deltas can make *whatever associations they want*, so we can't know in advance what deltas will show up in our system. You can imagine writing a query tier that just grabs all the deltas associated with a given key and munges them together according to some rules you give it, but that won't really scale well as the system grows - and besides, structure is helpful! We don't want to have to define rigid schemas in advance, but we do like schemas! In fact, we like them so much that we've got three tiers of them!
 
 ### Schemas as Data

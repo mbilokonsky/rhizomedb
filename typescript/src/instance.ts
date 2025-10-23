@@ -26,6 +26,7 @@ import {
 import { validateDelta, isDomainNodeReference } from './validation';
 import { constructHyperView, SchemaRegistry } from './hyperview';
 import { DeltaIndexes } from './delta-indexes';
+import { getNegatedDeltaIds } from './negation';
 
 /**
  * In-memory subscription implementation
@@ -276,16 +277,9 @@ export class RhizomeDB
       results = results.filter(filter.predicate);
     }
 
-    // Handle negations
+    // Handle negations (with double negation support)
     if (!filter.includeNegated) {
-      const negatedIds = new Set<string>();
-      for (const delta of this.deltas) {
-        for (const pointer of delta.pointers) {
-          if (pointer.localContext === 'negates' && isDomainNodeReference(pointer.target)) {
-            negatedIds.add(pointer.target.id);
-          }
-        }
-      }
+      const negatedIds = getNegatedDeltaIds(this.deltas);
       results = results.filter(d => !negatedIds.has(d.id));
     }
 

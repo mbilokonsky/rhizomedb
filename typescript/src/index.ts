@@ -28,6 +28,9 @@ export * from './subscription-backpressure';
 // Export Delta Indexing
 export * from './delta-indexes';
 
+// Export Negation Utilities
+export * from './negation';
+
 // Export instance implementation
 export { RhizomeDB } from './instance';
 

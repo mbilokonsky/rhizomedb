@@ -17,9 +17,10 @@ RhizomeDB is a **rhizomatic database** built on immutable delta-CRDTs represente
 
 ---
 
-## 📊 Simple Queries
+## 📊 Simple GraphQL Queries
 
 ### Query a Single Movie
+[Tested in typescript/src/movie-database.test.ts:503-522]
 
 **Query:**
 ```graphql
@@ -27,12 +28,6 @@ query {
   Movie(id: "movie_matrix") {
     id
     title
-    year
-    runtime
-    director {
-      id
-      name
-    }
   }
 }
 ```
@@ -43,13 +38,7 @@ query {
   "data": {
     "Movie": {
       "id": "movie_matrix",
-      "title": "The Matrix",
-      "year": 1999,
-      "runtime": 136,
-      "director": {
-        "id": "person_wachowski_lana",
-        "name": "Lana Wachowski"
-      }
+      "title": "The Matrix"
     }
   }
 }
@@ -58,6 +47,7 @@ query {
 ---
 
 ### Query a Person
+[Tested in typescript/src/movie-database.test.ts:524-543]
 
 **Query:**
 ```graphql
@@ -65,7 +55,6 @@ query {
   Person(id: "person_reeves_keanu") {
     id
     name
-    birthYear
   }
 }
 ```
@@ -76,8 +65,7 @@ query {
   "data": {
     "Person": {
       "id": "person_reeves_keanu",
-      "name": "Keanu Reeves",
-      "birthYear": 1964
+      "name": "Keanu Reeves"
     }
   }
 }
@@ -87,7 +75,8 @@ query {
 
 ## 🎬 Complex Nested Queries
 
-### Movie with Full Cast Information
+### Movie with Nested Director
+[Tested in typescript/src/movie-database.test.ts:545-572]
 
 **Query:**
 ```graphql
@@ -95,12 +84,9 @@ query {
   Movie(id: "movie_lotr_fellowship") {
     id
     title
-    year
-    runtime
     director {
       id
       name
-      birthYear
     }
   }
 }
@@ -113,12 +99,9 @@ query {
     "Movie": {
       "id": "movie_lotr_fellowship",
       "title": "The Lord of the Rings: The Fellowship of the Ring",
-      "year": 2001,
-      "runtime": 178,
       "director": {
         "id": "person_jackson_peter",
-        "name": "Peter Jackson",
-        "birthYear": 1961
+        "name": "Peter Jackson"
       }
     }
   }
@@ -127,81 +110,21 @@ query {
 
 ---
 
-### Trilogy with All Movies
+### Role with Nested Actor and Movie
+[Tested in typescript/src/movie-database.test.ts:574-605]
 
 **Query:**
 ```graphql
 query {
-  Trilogy(id: "trilogy_john_wick") {
+  Role(id: "role_matrix_neo") {
     id
-    name
-    movie {
-      id
-      title
-      year
-      runtime
-    }
-  }
-}
-```
-
-**Result:**
-```json
-{
-  "data": {
-    "Trilogy": {
-      "id": "trilogy_john_wick",
-      "name": "John Wick Series",
-      "movie": [
-        {
-          "id": "movie_john_wick",
-          "title": "John Wick",
-          "year": 2014,
-          "runtime": 101
-        },
-        {
-          "id": "movie_john_wick_2",
-          "title": "John Wick: Chapter 2",
-          "year": 2017,
-          "runtime": 122
-        },
-        {
-          "id": "movie_john_wick_3",
-          "title": "John Wick: Chapter 3 - Parabellum",
-          "year": 2019,
-          "runtime": 130
-        }
-      ]
-    }
-  }
-}
-```
-
----
-
-## 🔍 Multi-Level Nested Queries
-
-### Actor's Roles Across Multiple Films
-
-**Query:**
-```graphql
-query {
-  Role(id: "role_avengers_fury") {
-    id
-    character
     actor {
       id
       name
-      birthYear
     }
     movie {
       id
       title
-      year
-      director {
-        id
-        name
-      }
     }
   }
 }
@@ -212,23 +135,78 @@ query {
 {
   "data": {
     "Role": {
-      "id": "role_avengers_fury",
-      "character": "Nick Fury",
+      "id": "role_matrix_neo",
       "actor": {
-        "id": "person_jackson_samuel",
-        "name": "Samuel L. Jackson",
-        "birthYear": 1948
+        "id": "person_reeves_keanu",
+        "name": "Keanu Reeves"
       },
       "movie": {
-        "id": "movie_avengers",
-        "title": "The Avengers",
-        "year": 2012,
-        "director": {
-          "id": "person_whedon_joss",
-          "name": "Joss Whedon"
-        }
+        "id": "movie_matrix",
+        "title": "The Matrix"
       }
     }
+  }
+}
+```
+
+---
+
+## 📚 Querying Collections
+
+### Query a Trilogy
+[Tested in typescript/src/movie-database.test.ts:607-626]
+
+**Query:**
+```graphql
+query {
+  Trilogy(id: "trilogy_matrix") {
+    id
+    name
+  }
+}
+```
+
+**Result:**
+```json
+{
+  "data": {
+    "Trilogy": {
+      "id": "trilogy_matrix",
+      "name": "The Matrix Trilogy"
+    }
+  }
+}
+```
+
+---
+
+### Query Multiple Movies at Once
+[Tested in typescript/src/movie-database.test.ts:628-650]
+
+**Query:**
+```graphql
+query {
+  Movies(ids: ["movie_matrix", "movie_matrix_reloaded"]) {
+    id
+    title
+  }
+}
+```
+
+**Result:**
+```json
+{
+  "data": {
+    "Movies": [
+      {
+        "id": "movie_matrix",
+        "title": "The Matrix"
+      },
+      {
+        "id": "movie_matrix_reloaded",
+        "title": "The Matrix Reloaded"
+      }
+    ]
   }
 }
 ```
@@ -238,6 +216,7 @@ query {
 ## ✍️ Mutations: Creating Data
 
 ### Create a New Person
+[Tested in typescript/src/movie-database.test.ts:653-684]
 
 **Mutation:**
 ```graphql
@@ -245,11 +224,10 @@ mutation {
   createPerson(
     id: "person_nolan_christopher"
     author: "admin"
-    data: "{\"name\":\"Christopher Nolan\",\"birthYear\":1970}"
+    input: { name: "Christopher Nolan" }
   ) {
     id
     name
-    birthYear
   }
 }
 ```
@@ -260,8 +238,7 @@ mutation {
   "data": {
     "createPerson": {
       "id": "person_nolan_christopher",
-      "name": "Christopher Nolan",
-      "birthYear": 1970
+      "name": "Christopher Nolan"
     }
   }
 }
@@ -270,6 +247,7 @@ mutation {
 ---
 
 ### Create a New Movie
+[Tested in typescript/src/movie-database.test.ts:686-709]
 
 **Mutation:**
 ```graphql
@@ -277,12 +255,10 @@ mutation {
   createMovie(
     id: "movie_inception"
     author: "admin"
-    data: "{\"title\":\"Inception\",\"year\":2010,\"runtime\":148}"
+    input: { title: "Inception", year: 2010, runtime: 148 }
   ) {
     id
     title
-    year
-    runtime
   }
 }
 ```
@@ -293,325 +269,256 @@ mutation {
   "data": {
     "createMovie": {
       "id": "movie_inception",
-      "title": "Inception",
-      "year": 2010,
-      "runtime": 148
+      "title": "Inception"
     }
   }
 }
 ```
+
+---
+
+### Update a Movie (with Automatic Delta Negation)
+[Tested in typescript/src/movie-database.test.ts:711-760]
+
+**Mutation:**
+```graphql
+mutation {
+  updateMovie(
+    id: "movie_inception"
+    author: "admin"
+    input: { title: "Inception (Director's Cut)" }
+  ) {
+    id
+    title
+  }
+}
+```
+
+**Result:**
+```json
+{
+  "data": {
+    "updateMovie": {
+      "id": "movie_inception",
+      "title": "Inception (Director's Cut)"
+    }
+  }
+}
+```
+
+**What happens behind the scenes:**
+1. RhizomeDB finds the existing delta for the `title` property
+2. Automatically creates a negation delta for the old value
+3. Creates a new delta with the updated value
+4. Returns the updated object
+
+This preserves full history while ensuring clean, conflict-free updates!
 
 ---
 
 ## 🔄 Delta Negation: Correcting Mistakes
 
-### Making a Correction
+### Negate a Delta
+[Tested in typescript/src/movie-database.test.ts:762-791]
 
-Let's say we entered the wrong runtime for a movie. In RhizomeDB, we don't delete—we **negate** the incorrect delta and add a new one.
+In RhizomeDB, we don't delete data—we **negate** incorrect deltas.
 
-**Step 1: Create incorrect data**
+**Step 1: Create a delta**
 ```graphql
 mutation {
   createDelta(
     author: "admin"
-    pointers: "[{\"localContext\":\"runtime\",\"target\":{\"id\":\"movie_matrix\"},\"targetContext\":\"runtime\"},{\"localContext\":\"runtime\",\"target\":120}]"
+    pointers: "[{\"localContext\":\"test\",\"target\":\"testvalue\"}]"
   )
 }
 ```
 
-**Step 2: Negate the incorrect delta**
+**Step 2: Negate it**
 ```graphql
 mutation {
   negateDelta(
     author: "admin"
     targetDeltaId: "delta-abc-123"
-    reason: "Incorrect runtime - should be 136 minutes"
+    reason: "Test negation"
   )
 }
 ```
 
-**Step 3: Add correct data**
-```graphql
-mutation {
-  createDelta(
-    author: "admin"
-    pointers: "[{\"localContext\":\"runtime\",\"target\":{\"id\":\"movie_matrix\"},\"targetContext\":\"runtime\"},{\"localContext\":\"runtime\",\"target\":136}]"
-  )
-}
-```
-
-**Result:** Queries now return the correct runtime (136), but the full history is preserved!
+**Result:** The delta is negated, preserving full history while correcting the error.
 
 ---
 
-## 🕐 Time-Travel Queries
+## 🎯 Advanced Delta Queries
 
-Query the database as it existed at any point in time:
+### Find All Movies from a Specific Year
+[Tested in typescript/src/movie-database.test.ts:117-137]
 
-**Query the database at a specific timestamp:**
-```graphql
-query {
-  Movie(id: "movie_matrix", timestamp: 1609459200000) {
-    id
-    title
-    runtime  # Returns the value as it was at this timestamp
+Using the delta query API:
+
+```typescript
+const movies1999 = db.queryDeltas({
+  predicate: (delta) => {
+    const yearPointer = delta.pointers.find(p => p.localContext === 'year');
+    return yearPointer?.target === 1999;
   }
-}
+});
 ```
 
-**Use case:** Audit trails, debugging, "what did the user see when they made this decision?"
+**Results:** Returns The Matrix, Star Wars Episode I, and other 1999 releases.
 
 ---
 
-## 🎯 Real-World Query Examples
-
-### Find All Movies Directed by Peter Jackson
-
-Using the underlying delta query API:
+### Find All Movies by a Director
+[Tested in typescript/src/movie-database.test.ts:149-167]
 
 ```typescript
 const jacksonMovies = db.queryDeltas({
-  targetIds: ['person_jackson_peter'],
-  predicate: (delta) =>
-    delta.pointers.some(p => p.localContext === 'director')
+  targetIds: ['person_jackson_peter']
 });
+
+const movieIds = jacksonMovies
+  .filter(d => d.pointers.some(p => p.localContext === 'director'))
+  .map(d => extractMovieId(d));
 ```
 
-**Results:** 7 films
-- The Lord of the Rings trilogy (2001-2003)
-- The Hobbit trilogy (2012-2014)
-- King Kong (2005)
+**Results:** 7 films (3 LOTR + 3 Hobbit + King Kong 2005)
 
 ---
 
-### Find All Movies from the 2000s
+### Find Longest Running Movies
+[Tested in typescript/src/movie-database.test.ts:380-404]
 
 ```typescript
-const movies2000s = db.queryDeltas({
-  predicate: (delta) => {
-    const yearPointer = delta.pointers.find(p => p.localContext === 'year');
-    return yearPointer?.target >= 2000 && yearPointer?.target < 2010;
-  }
+const runtimeDeltas = db.queryDeltas({
+  predicate: (delta) => delta.pointers.some(p => p.localContext === 'runtime')
 });
+
+const movieRuntimes = runtimeDeltas.map(extractRuntime).sort((a, b) => b - a);
 ```
 
-**Results:** 8+ films including Matrix sequels, LOTR trilogy, Star Wars prequels
+**Results:** LOTR: Return of the King (201 minutes) is the longest film in the dataset.
 
 ---
 
-### Find Actors Who Appeared in Multiple Franchises
+### Demonstrate Delta Negation for Corrections
+[Tested in typescript/src/movie-database.test.ts:431-466]
 
 ```typescript
-// Query for actors with roles in 3+ different movies
-const prolificActors = new Map();
+// Add incorrect data
+const wrongDelta = db.createDelta('user', [
+  { localContext: 'budget', target: { id: 'movie_matrix' }, targetContext: 'budget' },
+  { localContext: 'budget', target: 1000000 } // Wrong!
+]);
+await db.persistDelta(wrongDelta);
 
-for (const role of allRoles) {
-  const actorId = extractActorId(role);
-  const movieId = extractMovieId(role);
+// Negate it
+const negation = db.negateDelta('user', wrongDelta.id, 'Incorrect budget');
+await db.persistDelta(negation);
 
-  if (!prolificActors.has(actorId)) {
-    prolificActors.set(actorId, new Set());
-  }
-  prolificActors.get(actorId).add(movieId);
-}
-
-const multiFilmActors = Array.from(prolificActors.entries())
-  .filter(([_, movies]) => movies.size >= 3);
+// Add correct data
+const correctDelta = db.createDelta('user', [
+  { localContext: 'budget', target: { id: 'movie_matrix' }, targetContext: 'budget' },
+  { localContext: 'budget', target: 63000000 } // Correct!
+]);
+await db.persistDelta(correctDelta);
 ```
 
-**Example Results:**
-- **Keanu Reeves**: Matrix trilogy (3) + John Wick trilogy (3) + Speed + Point Break = 8 films
-- **Ian McKellen**: LOTR trilogy (3) + Hobbit trilogy (3) + X-Men trilogy (3) = 9 films
-- **Orlando Bloom**: LOTR trilogy (3) + Hobbit trilogy (3) + Pirates trilogy (3) = 9 films
+**Result:** Queries now return the correct budget, but the full history is preserved!
 
 ---
 
-## 📡 Real-Time Subscriptions
+## 📦 Database Statistics
 
-Subscribe to database changes in real-time:
+[Tested in typescript/src/movie-database.test.ts:49-55, 218-224]
 
-```graphql
-subscription {
-  deltaCreated(filter: "{\"authors\":[\"admin\"]}") {
-    id
-    timestamp
-    author
-    pointers {
-      localContext
-      target
-    }
-  }
-}
-```
-
-**Use case:** Live dashboards, collaborative editing, event sourcing
+The movie database contains:
+- **62+ movies** spanning 1977-2019
+- **150+ people** (actors, directors, writers, producers)
+- **280+ roles** connecting actors to movies
+- **10 trilogies** (Matrix, Star Wars, LOTR, Hobbit, etc.)
+- **1,379 immutable deltas** representing all assertions
 
 ---
 
-## 🏗️ Architecture Highlights
+## 🏗️ How It Works
 
-### Delta Structure
-
-Every piece of data is an immutable delta:
-
-```typescript
-{
-  id: "delta-abc-123",
-  timestamp: 1609459200000,
-  author: "admin",
-  system: "rhizomedb-instance-1",
-  pointers: [
-    {
-      localContext: "title",
-      target: { id: "movie_matrix" },
-      targetContext: "title"
-    },
-    {
-      localContext: "title",
-      target: "The Matrix"
-    }
-  ]
-}
-```
-
-**Every delta includes:**
-- Unique ID
-- Timestamp (for time-travel)
-- Author (for provenance)
-- System (for federation)
-- Pointers (the actual data/relationships)
-
----
-
-### HyperSchemas
-
-Schemas define how deltas are selected and transformed into views:
+### HyperSchemas Define Structure
 
 ```typescript
 const movieSchema: HyperSchema = {
   id: 'movie_schema',
   name: 'Movie',
-  select: selectByTargetContext,  // Selection function
-  transform: {                      // Transformation rules
+  select: selectByTargetContext,
+  transform: {
     director: {
-      schema: 'person_schema',      // Nested schema
-      when: (p) => isDomainNodeReference(p.target)
+      schema: 'person_schema',
+      when: (p) => typeof p.target === 'object' && 'id' in p.target
     }
   }
 };
 ```
 
-**Key insight:** Schemas are themselves stored as deltas! (Meta-circular representation)
+### GraphQL Schema Auto-Generated
 
----
-
-### Storage Options
-
-**In-Memory (Development/Testing):**
 ```typescript
-const db = new RhizomeDB({
-  systemId: 'my-app',
-  storage: 'memory'
+const gqlSchema = createGraphQLSchema({
+  db,
+  schemas: new Map([
+    ['movie_schema', movieSchema],
+    ['person_schema', personSchema]
+  ]),
+  enableMutations: true
 });
 ```
 
-**LevelDB (Production):**
-```typescript
-const db = new LevelDBStore({
-  systemId: 'my-app',
-  storage: 'leveldb',
-  dbPath: './data/rhizomedb'
-});
-```
+### Deltas Are Hyperedges
 
-Both implement the same interface—swap storage backends without code changes!
+Every assertion is an immutable delta with:
+- **Author** - Who made this assertion
+- **Timestamp** - When it was made
+- **Pointers** - Hyperedge connections to domain objects and values
+- **System ID** - Which system/database created it
 
 ---
 
-## 📊 Dataset Statistics
+## 🎉 Recent Additions
 
-Our movie database fixture includes:
+### Improved Mutation API
+[Implemented in typescript/src/graphql.ts:267-447]
 
-| Metric | Count |
-|--------|-------|
-| **Movies** | 62+ |
-| **People** | 150+ |
-| **Roles** | 280+ |
-| **Trilogies** | 10 |
-| **Total Deltas** | 1,379 |
-| **Time Span** | 1977-2019 |
+RhizomeDB now features a clean, native GraphQL mutation API:
 
-**Franchises included:**
-- The Matrix trilogy
-- Star Wars saga (6 films)
-- Lord of the Rings trilogy
-- The Hobbit trilogy
-- Indiana Jones trilogy
-- John Wick trilogy
-- X-Men trilogy
-- Pirates of the Caribbean trilogy
-- Avengers films
-- Plus standalone classics!
+**✨ What's New:**
 
----
+1. **Native GraphQL Input Types** - No more escaped JSON strings!
+   ```graphql
+   # Before
+   createPerson(data: "{\"name\":\"Chris Nolan\"}")
 
-## 🚀 Getting Started
+   # After
+   createPerson(input: { name: "Chris Nolan", birthYear: 1970 })
+   ```
 
-```bash
-# Install dependencies
-cd typescript
-npm install
+2. **Automatic Delta Negation on Updates** - Update mutations automatically handle overwrites:
+   ```graphql
+   updateMovie(id: "movie_inception", input: { title: "New Title" })
+   ```
+   Behind the scenes:
+   - Finds existing delta for `title`
+   - Creates negation delta (preserving history)
+   - Creates new delta with new value
 
-# Run tests (includes movie database examples)
-npm test
-
-# See the fixture
-cat src/movie-database.fixture.ts
-```
+3. **Type-Safe Mutations** - GraphQL validates your input at query time
 
 ---
 
-## 🎓 Key Concepts
+## 📖 Learn More
 
-### Immutability
-Every assertion creates a new delta. Nothing is ever modified or deleted.
-
-### Provenance
-Every delta knows who created it, when, and on which system.
-
-### Time-Travel
-Query the database at any historical timestamp.
-
-### Negation Over Deletion
-Mistakes are corrected by negating incorrect deltas, preserving full history.
-
-### Hypergraph Structure
-Deltas are hyperedges that can connect multiple objects simultaneously.
-
-### Schema Flexibility
-Add new schemas, modify transformation rules—all stored as queryable deltas.
+- **Test Suite**: See `typescript/src/movie-database.test.ts` for all examples
+- **Fixture Data**: See `typescript/src/movie-database.fixture.ts` for the complete dataset
+- **Core GraphQL**: See `typescript/src/graphql.test.ts` for GraphQL integration tests
+- **Specification**: See `SPECIFICATION.md` for the complete technical specification
 
 ---
 
-## 💡 Use Cases
-
-✅ **Audit Trails** - Full provenance and history built-in
-✅ **Collaborative Editing** - CRDTs ensure conflict-free merges
-✅ **Event Sourcing** - Deltas are events, HyperViews are projections
-✅ **Temporal Queries** - "Show me what the user saw at 3pm yesterday"
-✅ **Distributed Systems** - Native federation support
-✅ **Data Lineage** - Track data transformations across time
-
----
-
-## 🔗 Learn More
-
-- [Specification](../spec/spec.md) - Complete technical specification
-- [README](../README.md) - Project overview and concepts
-- [Tests](./src/movie-database.test.ts) - Comprehensive examples
-
----
-
-**Built with [RhizomeDB](https://github.com/mbilokonsky/rhizomedb)** 🌱
-
-*A rhizomatic database using immutable delta-CRDTs as hyperedges.*
+**Built with ❤️ using RhizomeDB - The Rhizomatic Database**

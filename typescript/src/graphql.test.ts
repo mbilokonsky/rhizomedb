@@ -236,7 +236,7 @@ describe('GraphQL Integration', () => {
           createPerson(
             id: "person_charlie"
             author: "system"
-            data: "{\\"name\\":\\"Charlie\\"}"
+            input: { name: "Charlie" }
           ) {
             id
             name
@@ -308,7 +308,7 @@ describe('GraphQL Integration', () => {
           createBlog(
             id: "blog_001"
             author: "alice"
-            data: "{\\"title\\":\\"GraphQL + RhizomeDB\\",\\"content\\":\\"Amazing!\\"}"
+            input: { title: "GraphQL + RhizomeDB", content: "Amazing!" }
           ) {
             id
             title

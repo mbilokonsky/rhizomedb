@@ -438,39 +438,6 @@ function createMutationType(
         return resolveObject(id, hyperSchema, db);
       }
     };
-
-    // Keep backward-compatible mutation with JSON string for existing tests
-    fields[`create${hyperSchema.name}Legacy`] = {
-      type: graphqlType,
-      args: {
-        id: { type: GraphQLString },
-        author: { type: new GraphQLNonNull(GraphQLString) },
-        data: { type: new GraphQLNonNull(GraphQLString) } // JSON data
-      },
-      resolve: async (_source, { id, author, data }) => {
-        const objectId = id || db.createDelta(author, []).id;
-        const parsedData = JSON.parse(data);
-
-        for (const [key, value] of Object.entries(parsedData)) {
-          const pointers: Pointer[] = [
-            {
-              localContext: key.replace(/^_/, ''),
-              target: { id: objectId },
-              targetContext: key
-            },
-            {
-              localContext: key,
-              target: value as any
-            }
-          ];
-
-          const delta = db.createDelta(author, pointers);
-          await db.persistDelta(delta);
-        }
-
-        return resolveObject(objectId, hyperSchema, db);
-      }
-    };
   }
 
   return new GraphQLObjectType({

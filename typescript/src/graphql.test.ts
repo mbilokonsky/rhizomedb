@@ -233,10 +233,10 @@ describe('GraphQL Integration', () => {
 
       const mutation = `
         mutation {
-          createPersonLegacy(
+          createPerson(
             id: "person_charlie"
             author: "system"
-            data: "{\\"name\\":\\"Charlie\\"}"
+            input: { name: "Charlie" }
           ) {
             id
             name
@@ -248,7 +248,7 @@ describe('GraphQL Integration', () => {
 
       expect(result.errors).toBeUndefined();
       expect(result.data).toEqual({
-        createPersonLegacy: {
+        createPerson: {
           id: 'person_charlie',
           name: 'Charlie'
         }
@@ -305,10 +305,10 @@ describe('GraphQL Integration', () => {
       // 1. Create a blog post
       const createMutation = `
         mutation {
-          createBlogLegacy(
+          createBlog(
             id: "blog_001"
             author: "alice"
-            data: "{\\"title\\":\\"GraphQL + RhizomeDB\\",\\"content\\":\\"Amazing!\\"}"
+            input: { title: "GraphQL + RhizomeDB", content: "Amazing!" }
           ) {
             id
             title
@@ -319,7 +319,7 @@ describe('GraphQL Integration', () => {
 
       const createResult = await graphql({ schema: gqlSchema, source: createMutation });
       expect(createResult.errors).toBeUndefined();
-      expect((createResult.data as any)?.createBlogLegacy.title).toBe('GraphQL + RhizomeDB');
+      expect((createResult.data as any)?.createBlog.title).toBe('GraphQL + RhizomeDB');
 
       // 2. Query it
       const query = `

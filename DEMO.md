@@ -484,7 +484,7 @@ Every assertion is an immutable delta with:
 ## 🎉 Recent Additions
 
 ### Improved Mutation API
-[Implemented in typescript/src/graphql.ts:267-480]
+[Implemented in typescript/src/graphql.ts:267-447]
 
 RhizomeDB now features a clean, native GraphQL mutation API:
 
@@ -509,8 +509,6 @@ RhizomeDB now features a clean, native GraphQL mutation API:
    - Creates new delta with new value
 
 3. **Type-Safe Mutations** - GraphQL validates your input at query time
-
-4. **Backward Compatible** - Legacy API still available as `createPersonLegacy`, etc.
 
 ---
 

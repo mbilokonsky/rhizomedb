@@ -383,6 +383,9 @@ export interface RhizomeConfig {
 
   /** Enable indexing */
   enableIndexing?: boolean;
+
+  /** Validate schemas on registration to prevent cycles (default: false) */
+  validateSchemas?: boolean;
 }
 
 /**

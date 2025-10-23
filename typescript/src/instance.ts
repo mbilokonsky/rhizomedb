@@ -135,7 +135,7 @@ export class RhizomeDB
   private deltaIndex: Map<string, Delta> = new Map();
   private subscriptions: Map<string, MemorySubscription> = new Map();
   private materializedViews: Map<string, MaterializedHyperView> = new Map();
-  private schemaRegistry: SchemaRegistry = new SchemaRegistry();
+  private schemaRegistry: SchemaRegistry;
   private startTime: number = Date.now();
   private config: Required<RhizomeConfig>;
 
@@ -146,8 +146,14 @@ export class RhizomeDB
       storage: config.storage,
       storageConfig: config.storageConfig,
       cacheSize: config.cacheSize || 1000,
-      enableIndexing: config.enableIndexing !== false
+      enableIndexing: config.enableIndexing !== false,
+      validateSchemas: config.validateSchemas || false
     };
+
+    // Initialize schema registry with validation setting
+    this.schemaRegistry = new SchemaRegistry({
+      validateOnRegister: this.config.validateSchemas
+    });
   }
 
   // =========================================================================

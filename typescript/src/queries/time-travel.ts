@@ -5,9 +5,9 @@
  * HyperViews using only deltas that existed at that timestamp.
  */
 
-import { RhizomeDB } from './instance';
-import { HyperSchema, HyperView, Delta, DeltaFilter } from './types';
-import { constructHyperView } from './hyperview';
+import { RhizomeDB } from '../storage/instance';
+import { HyperSchema, HyperView, Delta, DeltaFilter } from '../core/types';
+import { constructHyperView } from '../schemas/hyperview';
 
 /**
  * Time-travel query options

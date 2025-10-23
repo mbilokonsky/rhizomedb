@@ -2,8 +2,8 @@
  * Tests for View Resolution System
  */
 
-import { RhizomeDB } from './instance';
-import { createStandardSchema } from './hyperview';
+import { RhizomeDB } from '../storage/instance';
+import { createStandardSchema } from '../schemas/hyperview';
 import {
   ViewResolver,
   mostRecent,
@@ -17,7 +17,7 @@ import {
   extractPrimitive,
   createSimpleViewSchema
 } from './view-resolver';
-import { Delta, ViewSchema, PrimitiveSchemas, Pointer } from './types';
+import { Delta, ViewSchema, PrimitiveSchemas, Pointer } from '../core/types';
 
 describe('ViewResolver', () => {
   let db: RhizomeDB;

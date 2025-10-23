@@ -5,7 +5,7 @@
  * and don't have circular references that would cause infinite recursion.
  */
 
-import { HyperSchema, TransformationRules, isPrimitiveHyperSchema } from './types';
+import { HyperSchema, TransformationRules, isPrimitiveHyperSchema } from '../core/types';
 import { SchemaRegistry } from './hyperview';
 
 /**

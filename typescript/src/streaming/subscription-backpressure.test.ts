@@ -2,13 +2,13 @@
  * Tests for subscription backpressure handling
  */
 
-import { RhizomeDB } from './instance';
+import { RhizomeDB } from '../storage/instance';
 import {
   BackpressureSubscription,
   OverflowStrategy,
   createBackpressureSubscription
 } from './subscription-backpressure';
-import { Delta } from './types';
+import { Delta } from '../core/types';
 
 describe('Subscription Backpressure', () => {
   let db: RhizomeDB;

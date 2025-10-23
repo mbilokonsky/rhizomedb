@@ -14,7 +14,7 @@ import {
   CircularSchemaError,
   SchemaValidationError
 } from './schema-validator';
-import { HyperSchema, PrimitiveSchemas } from './types';
+import { HyperSchema, PrimitiveSchemas } from '../core/types';
 
 describe('Schema Validation', () => {
   describe('validateSchema', () => {

@@ -22,12 +22,12 @@ import {
   StreamConsumer,
   StreamProducer,
   IndexMaintainer
-} from './types';
-import { validateDelta, isDomainNodeReference } from './validation';
-import { constructHyperView, SchemaRegistry } from './hyperview';
+} from '../core/types';
+import { validateDelta, isDomainNodeReference } from '../core/validation';
+import { constructHyperView, SchemaRegistry } from '../schemas/hyperview';
 import { DeltaIndexes } from './delta-indexes';
-import { getNegatedDeltaIds } from './negation';
-import { calculateSchemaHash, VersionedHyperSchema } from './schema-versioning';
+import { getNegatedDeltaIds } from '../queries/negation';
+import { calculateSchemaHash, VersionedHyperSchema } from '../schemas/schema-versioning';
 
 /**
  * In-memory subscription implementation

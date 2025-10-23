@@ -5,7 +5,7 @@
  * when consumers process deltas slower than they're produced.
  */
 
-import { Delta, DeltaFilter, DeltaHandler, Subscription } from './types';
+import { Delta, DeltaFilter, DeltaHandler, Subscription } from '../core/types';
 
 /**
  * Overflow strategy when buffer is full

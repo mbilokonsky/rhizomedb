@@ -8,8 +8,8 @@
  * - Atomic negation: cannot negate individual pointers, only entire deltas
  */
 
-import { Delta } from './types';
-import { isDomainNodeReference } from './validation';
+import { Delta } from '../core/types';
+import { isDomainNodeReference } from '../core/validation';
 
 /**
  * Represents the negation state of a delta

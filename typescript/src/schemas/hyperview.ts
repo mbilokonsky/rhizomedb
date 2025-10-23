@@ -10,8 +10,8 @@ import {
   Pointer,
   DomainNodeReference,
   isPrimitiveHyperSchema
-} from './types';
-import { isDomainNodeReference } from './validation';
+} from '../core/types';
+import { isDomainNodeReference } from '../core/validation';
 
 /**
  * Schema registry for lazy resolution of schema references

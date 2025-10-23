@@ -2,9 +2,9 @@
  * Tests for delta negation including double negation support
  */
 
-import { RhizomeDB } from './instance';
+import { RhizomeDB } from '../storage/instance';
 import { calculateNegationStates, getNegatedDeltaIds, isNegated } from './negation';
-import { Delta } from './types';
+import { Delta } from '../core/types';
 
 describe('Delta Negation', () => {
   let db: RhizomeDB;

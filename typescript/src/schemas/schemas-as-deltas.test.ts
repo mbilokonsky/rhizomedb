@@ -2,10 +2,10 @@
  * Tests for representing HyperSchemas as deltas
  */
 
-import { RhizomeDB } from './instance';
-import { Delta, HyperSchema, HyperView, SelectionFunction, TransformationRules } from './types';
+import { RhizomeDB } from '../storage/instance';
+import { Delta, HyperSchema, HyperView, SelectionFunction, TransformationRules } from '../core/types';
 import { selectByTargetContext } from './hyperview';
-import { isDomainNodeReference } from './validation';
+import { isDomainNodeReference } from '../core/validation';
 
 describe('Schemas as Deltas', () => {
   let db: RhizomeDB;

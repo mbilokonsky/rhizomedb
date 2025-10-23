@@ -2,8 +2,8 @@
  * Tests for schema versioning
  */
 
-import { RhizomeDB } from './instance';
-import { HyperSchema } from './types';
+import { RhizomeDB } from '../storage/instance';
+import { HyperSchema } from '../core/types';
 import {
   calculateSchemaHash,
   hasSchemaChanged,

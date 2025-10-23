@@ -5,8 +5,8 @@
  * to dramatically speed up filtered queries.
  */
 
-import { Delta, DeltaFilter, IndexStats } from './types';
-import { isDomainNodeReference } from './validation';
+import { Delta, DeltaFilter, IndexStats } from '../core/types';
+import { isDomainNodeReference } from '../core/validation';
 
 /**
  * Secondary indexes for delta queries

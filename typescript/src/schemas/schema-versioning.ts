@@ -5,7 +5,7 @@
  * Supports both explicit version numbers and content-based hashing.
  */
 
-import { HyperSchema } from './types';
+import { HyperSchema } from '../core/types';
 import { createHash } from 'crypto';
 
 /**

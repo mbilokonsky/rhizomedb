@@ -14,8 +14,8 @@ import {
   PropertyResolution,
   ResolutionStrategy,
   Pointer
-} from './types';
-import { isDomainNodeReference } from './validation';
+} from '../core/types';
+import { isDomainNodeReference } from '../core/validation';
 
 // ============================================================================
 // Resolution Strategies

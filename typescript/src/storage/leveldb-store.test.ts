@@ -5,8 +5,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { LevelDBStore } from './leveldb-store';
-import { Delta, DeltaFilter, Pointer, HyperSchema } from './types';
-import { selectByTargetContext } from './hyperview';
+import { Delta, DeltaFilter, Pointer, HyperSchema } from '../core/types';
+import { selectByTargetContext } from '../schemas/hyperview';
 
 // Helper to create temporary database path
 function createTempDbPath(): string {

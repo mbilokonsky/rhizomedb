@@ -2,10 +2,10 @@
  * Tests for Time-Travel Query API
  */
 
-import { RhizomeDB } from './instance';
+import { RhizomeDB } from '../storage/instance';
 import { TimeTravelDB, enableTimeTravel } from './time-travel';
-import { createStandardSchema } from './hyperview';
-import { PrimitiveSchemas } from './types';
+import { createStandardSchema } from '../schemas/hyperview';
+import { PrimitiveSchemas } from '../core/types';
 
 describe('Time-Travel Queries', () => {
   let db: RhizomeDB;

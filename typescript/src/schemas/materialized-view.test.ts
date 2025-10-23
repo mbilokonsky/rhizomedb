@@ -2,9 +2,9 @@
  * Tests for MaterializedHyperView schema tracking fix
  */
 
-import { RhizomeDB } from './instance';
+import { RhizomeDB } from '../storage/instance';
 import { createStandardSchema } from './hyperview';
-import { PrimitiveSchemas } from './types';
+import { PrimitiveSchemas } from '../core/types';
 
 describe('MaterializedHyperView Schema Tracking', () => {
   let db: RhizomeDB;

@@ -22,10 +22,10 @@ import {
   StreamConsumer,
   StreamProducer,
   IndexMaintainer
-} from './types';
-import { validateDelta, isDomainNodeReference } from './validation';
-import { constructHyperView, SchemaRegistry } from './hyperview';
-import { calculateSchemaHash, VersionedHyperSchema } from './schema-versioning';
+} from '../core/types';
+import { validateDelta, isDomainNodeReference } from '../core/validation';
+import { constructHyperView, SchemaRegistry } from '../schemas/hyperview';
+import { calculateSchemaHash, VersionedHyperSchema } from '../schemas/schema-versioning';
 
 /**
  * Subscription implementation (same as in-memory version)

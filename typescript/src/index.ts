@@ -4,38 +4,44 @@
  * @packageDocumentation
  */
 
-// Export all types
-export * from './types';
+// ============================================================================
+// Core - Foundational types and validation
+// ============================================================================
+export * from './core/types';
+export * from './core/validation';
 
-// Export validation utilities
-export * from './validation';
+// ============================================================================
+// Storage - Storage implementations and indexing
+// ============================================================================
+export { RhizomeDB } from './storage/instance';
+export { LevelDBStore } from './storage/leveldb-store';
+export * from './storage/delta-indexes';
 
-// Export HyperView construction
-export * from './hyperview';
+// ============================================================================
+// Schemas - Schema functionality
+// ============================================================================
+export * from './schemas/hyperview';
+export * from './schemas/schema-validator';
+export * from './schemas/schema-versioning';
 
-// Export View Resolution
-export * from './view-resolver';
+// ============================================================================
+// Queries - Query and view resolution
+// ============================================================================
+export * from './queries/view-resolver';
+export * from './queries/time-travel';
+export * from './queries/negation';
 
-// Export Time-Travel Queries
-export * from './time-travel';
+// ============================================================================
+// Streaming - Subscription and backpressure
+// ============================================================================
+export * from './streaming/subscription-backpressure';
 
-// Export Schema Validation
-export * from './schema-validator';
+// ============================================================================
+// Integrations - External API integrations
+// ============================================================================
+export * from './integrations/graphql';
 
-// Export Subscription Backpressure
-export * from './subscription-backpressure';
-
-// Export Delta Indexing
-export * from './delta-indexes';
-
-// Export Negation Utilities
-export * from './negation';
-
-// Export Schema Versioning
-export * from './schema-versioning';
-
-// Export instance implementation
-export { RhizomeDB } from './instance';
-
-// Re-export for convenience
-export { RhizomeDB as default } from './instance';
+// ============================================================================
+// Default export
+// ============================================================================
+export { RhizomeDB as default } from './storage/instance';

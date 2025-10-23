@@ -4,7 +4,7 @@
 
 import { RhizomeDB } from './instance';
 import { DeltaIndexes } from './delta-indexes';
-import { Delta } from './types';
+import { Delta } from '../core/types';
 
 describe('DeltaIndexes', () => {
   let indexes: DeltaIndexes;

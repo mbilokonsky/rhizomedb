@@ -19,6 +19,12 @@ export * from './view-resolver';
 // Export Time-Travel Queries
 export * from './time-travel';
 
+// Export Schema Validation
+export * from './schema-validator';
+
+// Export Subscription Backpressure
+export * from './subscription-backpressure';
+
 // Export instance implementation
 export { RhizomeDB } from './instance';
 

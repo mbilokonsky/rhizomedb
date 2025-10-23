@@ -139,18 +139,15 @@ export class BackpressureSubscription implements Subscription {
       return;
     }
 
-    // If already processing and buffer is empty, process immediately
-    if (!this.processing && this.buffer.length === 0) {
-      await this.processDelta(delta);
-      return;
-    }
-
-    // Otherwise, add to buffer
+    // Always add to buffer first
     this.addToBuffer(delta);
 
     // Start processing if not already processing
     if (!this.processing) {
-      await this.processBuffer();
+      // Don't await - let it process in background
+      this.processBuffer().catch(err => {
+        console.error('Error processing buffer:', err);
+      });
     }
   }
 

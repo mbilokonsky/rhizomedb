@@ -57,15 +57,13 @@ describe('Subscription Backpressure', () => {
       const received: Delta[] = [];
       const dropped: Delta[] = [];
 
-      const neverResolveHandler = async (delta: Delta) => {
-        // Never resolve - simulate blocked handler
-        await new Promise(() => {});
-      };
-
+      // Pause subscription to prevent processing
       const subscription = createBackpressureSubscription(
         'test',
         {},
-        neverResolveHandler,
+        async (delta: Delta) => {
+          received.push(delta);
+        },
         {
           bufferSize: 3,
           overflowStrategy: OverflowStrategy.DROP_OLDEST,
@@ -75,6 +73,9 @@ describe('Subscription Backpressure', () => {
         },
         () => {}
       );
+
+      // Pause to prevent processing
+      subscription.pause();
 
       // Send more deltas than buffer can hold
       const deltas: Delta[] = [];
@@ -93,14 +94,12 @@ describe('Subscription Backpressure', () => {
     it('should drop newest deltas on overflow with DROP_NEWEST strategy', async () => {
       const dropped: Delta[] = [];
 
-      const neverResolveHandler = async (delta: Delta) => {
-        await new Promise(() => {});
-      };
-
       const subscription = createBackpressureSubscription(
         'test',
         {},
-        neverResolveHandler,
+        async (delta: Delta) => {
+          // Handler that won't be called because we're paused
+        },
         {
           bufferSize: 3,
           overflowStrategy: OverflowStrategy.DROP_NEWEST,
@@ -110,6 +109,9 @@ describe('Subscription Backpressure', () => {
         },
         () => {}
       );
+
+      // Pause to prevent processing
+      subscription.pause();
 
       for (let i = 0; i < 5; i++) {
         const delta = db.createDelta('user', [{ localContext: 'test', target: i }]);
@@ -123,20 +125,19 @@ describe('Subscription Backpressure', () => {
     });
 
     it('should throw error on overflow with ERROR strategy', async () => {
-      const neverResolveHandler = async (delta: Delta) => {
-        await new Promise(() => {});
-      };
-
       const subscription = createBackpressureSubscription(
         'test',
         {},
-        neverResolveHandler,
+        async (delta: Delta) => {},
         {
           bufferSize: 2,
           overflowStrategy: OverflowStrategy.ERROR
         },
         () => {}
       );
+
+      // Pause to prevent processing
+      subscription.pause();
 
       // Fill buffer
       await subscription.handleDelta(db.createDelta('user', [{ localContext: 'test', target: 1 }]));
@@ -151,14 +152,10 @@ describe('Subscription Backpressure', () => {
     it('should emit warnings when threshold is reached', async () => {
       const warnings: any[] = [];
 
-      const neverResolveHandler = async (delta: Delta) => {
-        await new Promise(() => {});
-      };
-
       const subscription = createBackpressureSubscription(
         'test',
         {},
-        neverResolveHandler,
+        async (delta: Delta) => {},
         {
           bufferSize: 10,
           overflowStrategy: OverflowStrategy.DROP_OLDEST,
@@ -169,6 +166,9 @@ describe('Subscription Backpressure', () => {
         },
         () => {}
       );
+
+      // Pause to prevent processing
+      subscription.pause();
 
       // Fill to 80%
       for (let i = 0; i < 8; i++) {

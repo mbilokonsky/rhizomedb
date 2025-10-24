@@ -5,7 +5,12 @@
  * and don't have circular references that would cause infinite recursion.
  */
 
-import { HyperSchema, TransformationRules, isPrimitiveHyperSchema } from '../core/types';
+import {
+  HyperSchema,
+  TransformationRule,
+  TransformationRules,
+  isPrimitiveHyperSchema
+} from '../core/types';
 import { SchemaRegistry } from './hyperview';
 
 /**
@@ -114,7 +119,9 @@ export function validateSchema(schema: HyperSchema): ValidationResult {
 
       // Check if when condition is valid
       if (rule.when && typeof rule.when !== 'function') {
-        errors.push(`Transform rule for '${contextName}' has invalid when condition (must be function)`);
+        errors.push(
+          `Transform rule for '${contextName}' has invalid when condition (must be function)`
+        );
       }
     }
   }
@@ -138,10 +145,7 @@ export function validateSchema(schema: HyperSchema): ValidationResult {
  * @param registry - Registry containing all schemas
  * @returns Array of schema IDs forming a cycle, or null if no cycle
  */
-export function detectCycle(
-  schema: HyperSchema,
-  registry: SchemaRegistry
-): string[] | null {
+export function detectCycle(schema: HyperSchema, registry: SchemaRegistry): string[] | null {
   const visited = new Set<string>();
   const recursionStack = new Set<string>();
 
@@ -210,10 +214,7 @@ export function detectCycle(
  * @throws CircularSchemaError if a cycle is detected
  * @throws SchemaValidationError if schema is structurally invalid
  */
-export function validateSchemaDAG(
-  schema: HyperSchema,
-  registry: SchemaRegistry
-): void {
+export function validateSchemaDAG(schema: HyperSchema, registry: SchemaRegistry): void {
   // First validate the schema structure
   const result = validateSchema(schema);
   if (!result.valid) {
@@ -239,10 +240,7 @@ export function validateSchemaDAG(
  * @param registry - The registry to add it to
  * @returns True if adding would create a cycle, false otherwise
  */
-export function wouldCreateCycle(
-  schema: HyperSchema,
-  registry: SchemaRegistry
-): boolean {
+export function wouldCreateCycle(schema: HyperSchema, registry: SchemaRegistry): boolean {
   // Temporarily add schema to registry to check for cycles
   const hadSchema = registry.get(schema.id) !== undefined;
 
@@ -275,10 +273,7 @@ export function wouldCreateCycle(
  * @param registry - Registry containing all schemas
  * @returns Set of schema IDs that depend on this schema
  */
-export function findDependents(
-  schemaId: string,
-  registry: SchemaRegistry
-): Set<string> {
+export function findDependents(schemaId: string, registry: SchemaRegistry): Set<string> {
   const dependents = new Set<string>();
 
   // Check every schema in the registry
@@ -286,7 +281,7 @@ export function findDependents(
     if (sid === schemaId) continue;
 
     // Check if this schema references the target schema
-    for (const rule of Object.values(schema.transform) as any[]) {
+    for (const rule of Object.values(schema.transform) as TransformationRule[]) {
       if (isPrimitiveHyperSchema(rule.schema)) {
         continue;
       }
@@ -364,10 +359,7 @@ export function calculateSchemaDepth(
  * @returns Schemas sorted in dependency order
  * @throws CircularSchemaError if schemas contain cycles
  */
-export function topologicalSort(
-  schemas: HyperSchema[],
-  registry: SchemaRegistry
-): HyperSchema[] {
+export function topologicalSort(schemas: HyperSchema[], registry: SchemaRegistry): HyperSchema[] {
   const sorted: HyperSchema[] = [];
   const visited = new Set<string>();
   const recursionStack = new Set<string>();
@@ -378,10 +370,9 @@ export function topologicalSort(
     }
 
     if (recursionStack.has(schema.id)) {
-      throw new CircularSchemaError(
-        `Circular dependency detected involving schema: ${schema.id}`,
-        [schema.id]
-      );
+      throw new CircularSchemaError(`Circular dependency detected involving schema: ${schema.id}`, [
+        schema.id
+      ]);
     }
 
     recursionStack.add(schema.id);

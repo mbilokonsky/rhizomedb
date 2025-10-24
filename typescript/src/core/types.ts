@@ -69,10 +69,7 @@ export interface Delta {
  * @param delta - The delta to check for relevance
  * @returns false (exclude), true (include in default property), or string[] (property names)
  */
-export type SelectionFunction = (
-  objectId: string,
-  delta: Delta
-) => boolean | string[];
+export type SelectionFunction = (objectId: string, delta: Delta) => boolean | string[];
 
 /**
  * Primitive type schema for primitive values (string, number, boolean)
@@ -186,7 +183,10 @@ export interface HyperView {
  */
 export interface MaterializedHyperView extends HyperView {
   /** Required metadata for materialized views */
-  _metadata: Required<Pick<HyperViewMetadata, 'lastUpdated' | 'deltaCount' | 'schemaId' | 'schemaHash'>> & HyperViewMetadata;
+  _metadata: Required<
+    Pick<HyperViewMetadata, 'lastUpdated' | 'deltaCount' | 'schemaId' | 'schemaHash'>
+  > &
+    HyperViewMetadata;
 }
 
 // ============================================================================
@@ -373,7 +373,10 @@ export interface StreamProducer extends RhizomeInstance {
  */
 export interface IndexMaintainer extends RhizomeInstance {
   /** Materialize a HyperView for fast access */
-  materializeHyperView(objectId: string, schema: HyperSchema): MaterializedHyperView | Promise<MaterializedHyperView>;
+  materializeHyperView(
+    objectId: string,
+    schema: HyperSchema
+  ): MaterializedHyperView | Promise<MaterializedHyperView>;
 
   /** Update a materialized HyperView with a new delta */
   updateHyperView(view: MaterializedHyperView, delta: Delta): void;
@@ -488,7 +491,13 @@ export interface InstanceStats {
  * Helper to check if a schema is a PrimitiveHyperSchema
  */
 export function isPrimitiveHyperSchema(schema: any): schema is PrimitiveHyperSchema {
-  return schema && typeof schema === 'object' && 'type' in schema && 'validate' in schema && 'graphQLType' in schema;
+  return (
+    schema &&
+    typeof schema === 'object' &&
+    'type' in schema &&
+    'validate' in schema &&
+    'graphQLType' in schema
+  );
 }
 
 // GraphQL type imports (note: actual GraphQL types injected at runtime to avoid circular deps)

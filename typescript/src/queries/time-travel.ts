@@ -81,7 +81,11 @@ export class TimeTravelDB {
     const negations = new Set<string>();
     for (const delta of existingDeltas) {
       for (const pointer of delta.pointers) {
-        if (pointer.localContext === 'negates' && typeof pointer.target === 'object' && 'id' in pointer.target) {
+        if (
+          pointer.localContext === 'negates' &&
+          typeof pointer.target === 'object' &&
+          'id' in pointer.target
+        ) {
           negations.add(pointer.target.id);
         }
       }
@@ -130,9 +134,7 @@ export class TimeTravelDB {
     endTime: number = Date.now(),
     maxSnapshots: number = 100
   ): Array<{ timestamp: number; hyperView: HyperView }> {
-    const timeline = this.getObjectTimeline(objectId).filter(
-      t => t >= startTime && t <= endTime
-    );
+    const timeline = this.getObjectTimeline(objectId).filter(t => t >= startTime && t <= endTime);
 
     // Sample timeline if too many snapshots
     let sampledTimeline = timeline;
@@ -154,7 +156,10 @@ export class TimeTravelDB {
    * @param property - The property to track
    * @returns Array of {timestamp, delta} pairs showing changes
    */
-  trackPropertyChanges(objectId: string, property: string): Array<{ timestamp: number; delta: Delta }> {
+  trackPropertyChanges(
+    objectId: string,
+    property: string
+  ): Array<{ timestamp: number; delta: Delta }> {
     const deltas = this.db.queryDeltas({
       targetIds: [objectId],
       targetContexts: [property]
@@ -253,7 +258,11 @@ export class TimeTravelDB {
       systems.add(delta.system);
 
       for (const pointer of delta.pointers) {
-        if (pointer.localContext === 'negates' && typeof pointer.target === 'object' && 'id' in pointer.target) {
+        if (
+          pointer.localContext === 'negates' &&
+          typeof pointer.target === 'object' &&
+          'id' in pointer.target
+        ) {
           negations.add(pointer.target.id);
         }
       }
@@ -276,7 +285,7 @@ export class TimeTravelDB {
     let count = 0;
     for (const key in hyperView) {
       if (key !== 'id' && Array.isArray(hyperView[key])) {
-        count += (hyperView[key] as Delta[]).length;
+        count += hyperView[key].length;
       }
     }
     return count;

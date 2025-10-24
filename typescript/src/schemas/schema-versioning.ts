@@ -41,9 +41,12 @@ export function calculateSchemaHash(schema: HyperSchema): string {
       .reduce((acc, key) => {
         const rule = schema.transform[key];
         acc[key] = {
-          schema: typeof rule.schema === 'string' ? rule.schema :
-                  typeof rule.schema === 'object' && 'id' in rule.schema ? rule.schema.id :
-                  JSON.stringify(rule.schema),
+          schema:
+            typeof rule.schema === 'string'
+              ? rule.schema
+              : typeof rule.schema === 'object' && 'id' in rule.schema
+                ? rule.schema.id
+                : JSON.stringify(rule.schema),
           when: rule.when ? rule.when.toString() : undefined
         };
         return acc;
@@ -135,9 +138,8 @@ export class SchemaVersionRegistry {
     const versions = this.versions.get(schema.id) || [];
 
     // Check if this exact version is already registered
-    const existing = versions.find(v =>
-      v.contentHash === versionInfo.contentHash &&
-      v.version === versionInfo.version
+    const existing = versions.find(
+      v => v.contentHash === versionInfo.contentHash && v.version === versionInfo.version
     );
 
     if (!existing) {

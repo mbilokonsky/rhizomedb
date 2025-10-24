@@ -90,10 +90,7 @@ export function findNegations(allDeltas: Delta[], queryTimestamp: number): Set<s
 
     // Look for negation pointers
     for (const pointer of delta.pointers) {
-      if (
-        pointer.localContext === 'negates' &&
-        isDomainNodeReference(pointer.target)
-      ) {
+      if (pointer.localContext === 'negates' && isDomainNodeReference(pointer.target)) {
         negations.add(pointer.target.id);
       }
     }

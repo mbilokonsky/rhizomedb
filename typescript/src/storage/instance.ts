@@ -241,7 +241,7 @@ export class RhizomeDB
   }
 
   async *scanDeltas(filter?: DeltaFilter, cursor?: string): AsyncIterable<Delta> {
-    const matchingDeltas = filter ? this.queryDeltas(filter) as Delta[] : this.deltas;
+    const matchingDeltas = filter ? this.queryDeltas(filter) : this.deltas;
 
     for (const delta of matchingDeltas) {
       yield delta;
@@ -351,7 +351,7 @@ export class RhizomeDB
     let deltaCount = 0;
     for (const key in hyperView) {
       if (key !== 'id' && key !== '_metadata' && Array.isArray(hyperView[key])) {
-        deltaCount += (hyperView[key] as Delta[]).length;
+        deltaCount += hyperView[key].length;
       }
     }
 
@@ -421,7 +421,9 @@ export class RhizomeDB
     // Try to find existing view
     const existing = this.getHyperView(objectId, schemaId);
     if (!existing) {
-      throw new Error(`No materialized view found for object: ${objectId}${schemaId ? ` with schema: ${schemaId}` : ''}`);
+      throw new Error(
+        `No materialized view found for object: ${objectId}${schemaId ? ` with schema: ${schemaId}` : ''}`
+      );
     }
 
     const schema = this.schemaRegistry.get(existing._metadata.schemaId);
@@ -512,9 +514,10 @@ export class RhizomeDB
         hits: this.cacheStats.hits,
         misses: this.cacheStats.misses,
         evictions: this.cacheStats.evictions,
-        hitRate: this.cacheStats.hits + this.cacheStats.misses > 0
-          ? this.cacheStats.hits / (this.cacheStats.hits + this.cacheStats.misses)
-          : 0
+        hitRate:
+          this.cacheStats.hits + this.cacheStats.misses > 0
+            ? this.cacheStats.hits / (this.cacheStats.hits + this.cacheStats.misses)
+            : 0
       },
       indexStats: this.deltaIndexes.getStats()
     };

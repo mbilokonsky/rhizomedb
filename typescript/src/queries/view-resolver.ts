@@ -227,9 +227,7 @@ export function extractReference(localContext: string): (delta: Delta) => any {
  */
 export function extractArray(localContext: string): (delta: Delta) => any[] {
   return (delta: Delta) => {
-    return delta.pointers
-      .filter(p => p.localContext === localContext)
-      .map(p => p.target);
+    return delta.pointers.filter(p => p.localContext === localContext).map(p => p.target);
   };
 }
 
@@ -376,8 +374,14 @@ export function createSimpleViewSchema(
  * Create a ViewSchema for an object with reference fields
  */
 export function createViewSchemaWithReferences(
-  primitiveFields: Record<string, { source: string; localContext: string; strategy: ResolutionStrategy }>,
-  referenceFields: Record<string, { source: string; localContext: string; strategy: ResolutionStrategy }>
+  primitiveFields: Record<
+    string,
+    { source: string; localContext: string; strategy: ResolutionStrategy }
+  >,
+  referenceFields: Record<
+    string,
+    { source: string; localContext: string; strategy: ResolutionStrategy }
+  >
 ): ViewSchema {
   const properties: ViewSchema['properties'] = {};
 

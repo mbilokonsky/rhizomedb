@@ -1,0 +1,6 @@
+dist/
+node_modules/
+coverage/
+*.json
+!.prettierrc.json
+!.eslintrc.json

@@ -1,0 +1,12 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+cd typescript
+
+echo "Running lint-staged on staged files..."
+npx lint-staged
+
+echo "Running full test suite..."
+npm test
+
+echo "All pre-commit checks passed!"

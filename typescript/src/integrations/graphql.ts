@@ -16,10 +16,19 @@ import {
   GraphQLFieldConfig,
   GraphQLFieldConfigMap,
   GraphQLInputObjectType,
-  GraphQLInputFieldConfigMap,
+  GraphQLInputFieldConfigMap
 } from 'graphql';
 import { RhizomeDB } from '../storage/instance';
-import { HyperSchema, HyperView, Delta, Pointer, ViewSchema, ResolutionStrategy, PrimitiveHyperSchema, isPrimitiveHyperSchema } from '../core/types';
+import {
+  HyperSchema,
+  HyperView,
+  Delta,
+  Pointer,
+  ViewSchema,
+  ResolutionStrategy,
+  PrimitiveHyperSchema,
+  isPrimitiveHyperSchema
+} from '../core/types';
 import { isDomainNodeReference } from '../core/validation';
 
 /**
@@ -55,19 +64,13 @@ export function createGraphQLSchema(config: GraphQLConfig): GraphQLSchema {
   const typeCache = new Map<string, GraphQLObjectType>();
 
   for (const [schemaId, hyperSchema] of schemas) {
-    const graphqlType = hyperSchemaToGraphQLType(
-      hyperSchema,
-      db,
-      schemas,
-      viewSchemas,
-      typeCache
-    );
+    const graphqlType = hyperSchemaToGraphQLType(hyperSchema, db, schemas, viewSchemas, typeCache);
     typeCache.set(schemaId, graphqlType);
   }
 
   // Build Query type
   const queryFields: GraphQLFieldConfigMap<any, any> = {
-    ...customResolvers,
+    ...customResolvers
   };
 
   // Add a query for each schema
@@ -141,7 +144,7 @@ function hyperSchemaToGraphQLType(
     const fieldMap: GraphQLFieldConfigMap<any, any> = {
       id: {
         type: new GraphQLNonNull(GraphQLString),
-        resolve: (source) => source.id
+        resolve: source => source.id
       }
     };
 
@@ -149,11 +152,11 @@ function hyperSchemaToGraphQLType(
     for (const [localContext, rule] of Object.entries(hyperSchema.transform)) {
       // Check if this is a PrimitiveHyperSchema
       if (typeof rule.schema !== 'string' && isPrimitiveHyperSchema(rule.schema)) {
-        const primitiveSchema = rule.schema as PrimitiveHyperSchema;
+        const primitiveSchema = rule.schema;
 
         fieldMap[localContext] = {
           type: primitiveSchema.graphQLType,
-          resolve: (source) => {
+          resolve: source => {
             const property = source[localContext];
             if (!property || !Array.isArray(property)) return null;
 
@@ -162,9 +165,8 @@ function hyperSchemaToGraphQLType(
 
             // Extract primitive value from pointer
             const delta = deltas[0];
-            const pointer = delta.pointers.find(p =>
-              p.localContext === localContext &&
-              !isDomainNodeReference(p.target)
+            const pointer = delta.pointers.find(
+              p => p.localContext === localContext && !isDomainNodeReference(p.target)
             );
 
             // Validate the value against the primitive schema
@@ -192,7 +194,7 @@ function hyperSchemaToGraphQLType(
           fieldMap[localContext] = {
             // Domain references can have multiple values, so use GraphQLList
             type: new GraphQLList(nestedType),
-            resolve: (source) => {
+            resolve: source => {
               // Source should have this property from HyperView
               const property = source[localContext];
               if (!property || !Array.isArray(property)) return [];
@@ -203,9 +205,8 @@ function hyperSchemaToGraphQLType(
               // Extract all nested objects from deltas' pointers
               const targets = deltas
                 .map(delta => {
-                  const pointer = delta.pointers.find(p =>
-                    p.localContext === localContext &&
-                    isDomainNodeReference(p.target)
+                  const pointer = delta.pointers.find(
+                    p => p.localContext === localContext && isDomainNodeReference(p.target)
                   );
                   return pointer?.target;
                 })
@@ -283,11 +284,9 @@ function createInputType(
 
   // Discover fields by sampling actual data
   const sampleDeltas = db.queryDeltas({
-    predicate: (delta) => {
-      return delta.pointers.some(p =>
-        !isDomainNodeReference(p.target) &&
-        p.localContext &&
-        p.localContext !== 'id'
+    predicate: delta => {
+      return delta.pointers.some(
+        p => !isDomainNodeReference(p.target) && p.localContext && p.localContext !== 'id'
       );
     }
   });
@@ -297,9 +296,11 @@ function createInputType(
 
   for (const delta of sampleDeltas.slice(0, 100)) {
     for (const pointer of delta.pointers) {
-      if (!isDomainNodeReference(pointer.target) &&
-          pointer.localContext &&
-          pointer.localContext !== 'id') {
+      if (
+        !isDomainNodeReference(pointer.target) &&
+        pointer.localContext &&
+        pointer.localContext !== 'id'
+      ) {
         if (!discoveredFields.has(pointer.localContext)) {
           discoveredFields.set(pointer.localContext, pointer.target);
         }
@@ -310,9 +311,12 @@ function createInputType(
   // Create input fields for all discovered primitive fields
   for (const [fieldName, sampleValue] of discoveredFields) {
     // Infer GraphQL input type from the sample value
-    const graphQLType = typeof sampleValue === 'number' ? GraphQLInt :
-                       typeof sampleValue === 'boolean' ? GraphQLBoolean :
-                       GraphQLString; // Default to string
+    const graphQLType =
+      typeof sampleValue === 'number'
+        ? GraphQLInt
+        : typeof sampleValue === 'boolean'
+          ? GraphQLBoolean
+          : GraphQLString; // Default to string
 
     inputFields[fieldName] = { type: graphQLType };
   }
@@ -346,18 +350,13 @@ async function negateExistingProperty(
   // Query for existing deltas with this property
   const existingDeltas = db.queryDeltas({
     targetIds: [objectId],
-    predicate: (delta) => delta.pointers.some(
-      p => p.localContext === propertyName && p.targetContext === propertyName
-    )
+    predicate: delta =>
+      delta.pointers.some(p => p.localContext === propertyName && p.targetContext === propertyName)
   });
 
   // Negate each existing delta
   for (const delta of existingDeltas) {
-    const negation = db.negateDelta(
-      author,
-      delta.id,
-      `Overwriting ${propertyName}`
-    );
+    const negation = db.negateDelta(author, delta.id, `Overwriting ${propertyName}`);
     await db.persistDelta(negation);
   }
 }
@@ -523,7 +522,7 @@ function createSubscriptionType(
           const deltaQueue: Delta[] = [];
           let resolveNext: ((delta: Delta) => void) | null = null;
 
-          const subscription = db.subscribe(parsedFilter, (delta) => {
+          const subscription = db.subscribe(parsedFilter, delta => {
             if (resolveNext) {
               resolveNext(delta);
               resolveNext = null;
@@ -539,7 +538,7 @@ function createSubscriptionType(
               if (deltaQueue.length > 0) {
                 delta = deltaQueue.shift()!;
               } else {
-                delta = await new Promise<Delta>((resolve) => {
+                delta = await new Promise<Delta>(resolve => {
                   resolveNext = resolve;
                 });
               }
@@ -564,7 +563,7 @@ function createSubscriptionType(
  * Helper to create a simple ViewSchema
  */
 function createSimpleViewSchema(fields: string[]): ViewSchema {
-  const mostRecent: ResolutionStrategy = (deltas) => {
+  const mostRecent: ResolutionStrategy = deltas => {
     if (deltas.length === 0) return null;
     return deltas.sort((a, b) => b.timestamp - a.timestamp)[0];
   };

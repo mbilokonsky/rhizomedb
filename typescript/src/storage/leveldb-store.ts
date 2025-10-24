@@ -547,24 +547,24 @@ export class LevelDBStore
     const schemaHash = calculateSchemaHash(schema);
     const versionedSchema = schema as VersionedHyperSchema;
 
-    const materialized: MaterializedHyperView = {
-      id: hyperView.id,
-      _schemaId: schema.id,
-      _schemaHash: schemaHash,
-      _schemaVersion: versionedSchema.version,
-      _lastUpdated: Date.now(),
-      _deltaCount: 0
-    };
-
-    // Count deltas and copy properties
+    let deltaCount = 0;
+    // Count deltas in the view
     for (const [key, value] of Object.entries(hyperView)) {
-      if (key !== 'id') {
-        materialized[key] = value;
-        if (Array.isArray(value)) {
-          materialized._deltaCount += value.length;
-        }
+      if (key !== 'id' && key !== '_metadata' && Array.isArray(value)) {
+        deltaCount += value.length;
       }
     }
+
+    const materialized: MaterializedHyperView = {
+      ...hyperView,
+      _metadata: {
+        schemaId: schema.id,
+        schemaHash: schemaHash,
+        schemaVersion: versionedSchema.version,
+        lastUpdated: Date.now(),
+        deltaCount: deltaCount
+      }
+    };
 
     // Cache if within size limit
     if (this.materializedViews.size < this.config.cacheSize) {
@@ -577,7 +577,7 @@ export class LevelDBStore
   updateHyperView(view: MaterializedHyperView, delta: Delta): void {
     // For simplicity, just rebuild the view
     // A more sophisticated implementation would incrementally update
-    const schema = this.schemaRegistry.get(view.id);
+    const schema = this.schemaRegistry.get(view._metadata.schemaId);
     if (schema) {
       // Note: This is intentionally fire-and-forget for the sync interface
       this.materializeHyperView(view.id, schema).then(updated => {

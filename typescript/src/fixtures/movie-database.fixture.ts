@@ -1,9 +1,9 @@
 /**
  * Movie Database Test Fixture
- * 
+ *
  * Consolidated test data for demonstrating RhizomeDB with a rich movie dataset.
  * Includes 62+ films, 150+ people, 280+ roles spanning 1977-2019.
- * 
+ *
  * **This is test/demo data only - not part of the core library.**
  */
 
@@ -18,11 +18,11 @@ export const personSchema: HyperSchema = {
   transform: {
     name: {
       schema: PrimitiveSchemas.String,
-      when: (p) => PrimitiveSchemas.String.validate(p.target)
+      when: p => PrimitiveSchemas.String.validate(p.target)
     },
     birthYear: {
       schema: PrimitiveSchemas.Integer.Year,
-      when: (p) => PrimitiveSchemas.Integer.Year.validate(p.target)
+      when: p => PrimitiveSchemas.Integer.Year.validate(p.target)
     }
   }
 };
@@ -37,27 +37,27 @@ export const movieSchema: HyperSchema = {
   transform: {
     title: {
       schema: PrimitiveSchemas.String,
-      when: (p) => PrimitiveSchemas.String.validate(p.target)
+      when: p => PrimitiveSchemas.String.validate(p.target)
     },
     year: {
       schema: PrimitiveSchemas.Integer.Year,
-      when: (p) => PrimitiveSchemas.Integer.Year.validate(p.target)
+      when: p => PrimitiveSchemas.Integer.Year.validate(p.target)
     },
     runtime: {
       schema: PrimitiveSchemas.Integer,
-      when: (p) => PrimitiveSchemas.Integer.validate(p.target)
+      when: p => PrimitiveSchemas.Integer.validate(p.target)
     },
     director: {
       schema: 'person_schema',
-      when: (p) => typeof p.target === 'object' && 'id' in p.target
+      when: p => typeof p.target === 'object' && 'id' in p.target
     },
     producer: {
       schema: 'person_schema',
-      when: (p) => typeof p.target === 'object' && 'id' in p.target
+      when: p => typeof p.target === 'object' && 'id' in p.target
     },
     writer: {
       schema: 'person_schema',
-      when: (p) => typeof p.target === 'object' && 'id' in p.target
+      when: p => typeof p.target === 'object' && 'id' in p.target
     }
   }
 };
@@ -72,15 +72,15 @@ export const roleSchema: HyperSchema = {
   transform: {
     character: {
       schema: PrimitiveSchemas.String,
-      when: (p) => PrimitiveSchemas.String.validate(p.target)
+      when: p => PrimitiveSchemas.String.validate(p.target)
     },
     actor: {
       schema: 'person_schema',
-      when: (p) => typeof p.target === 'object' && 'id' in p.target
+      when: p => typeof p.target === 'object' && 'id' in p.target
     },
     movie: {
       schema: 'movie_schema',
-      when: (p) => typeof p.target === 'object' && 'id' in p.target
+      when: p => typeof p.target === 'object' && 'id' in p.target
     }
   }
 };
@@ -95,11 +95,11 @@ export const trilogySchema: HyperSchema = {
   transform: {
     name: {
       schema: PrimitiveSchemas.String,
-      when: (p) => PrimitiveSchemas.String.validate(p.target)
+      when: p => PrimitiveSchemas.String.validate(p.target)
     },
     movie: {
       schema: 'movie_schema',
-      when: (p) => typeof p.target === 'object' && 'id' in p.target
+      when: p => typeof p.target === 'object' && 'id' in p.target
     }
   }
 };
@@ -148,17 +148,21 @@ function createPersonDeltas(db: RhizomeDB, person: PersonData): Delta[] {
   const deltas: Delta[] = [];
 
   // Name
-  deltas.push(db.createDelta('seed', [
-    { localContext: 'named', target: { id: person.id }, targetContext: 'name' },
-    { localContext: 'name', target: person.name }
-  ]));
+  deltas.push(
+    db.createDelta('seed', [
+      { localContext: 'named', target: { id: person.id }, targetContext: 'name' },
+      { localContext: 'name', target: person.name }
+    ])
+  );
 
   // Birth year (if available)
   if (person.birthYear) {
-    deltas.push(db.createDelta('seed', [
-      { localContext: 'born', target: { id: person.id }, targetContext: 'birthYear' },
-      { localContext: 'birthYear', target: person.birthYear }
-    ]));
+    deltas.push(
+      db.createDelta('seed', [
+        { localContext: 'born', target: { id: person.id }, targetContext: 'birthYear' },
+        { localContext: 'birthYear', target: person.birthYear }
+      ])
+    );
   }
 
   return deltas;
@@ -171,46 +175,58 @@ function createMovieDeltas(db: RhizomeDB, movie: MovieData): Delta[] {
   const deltas: Delta[] = [];
 
   // Title
-  deltas.push(db.createDelta('seed', [
-    { localContext: 'titled', target: { id: movie.id }, targetContext: 'title' },
-    { localContext: 'title', target: movie.title }
-  ]));
+  deltas.push(
+    db.createDelta('seed', [
+      { localContext: 'titled', target: { id: movie.id }, targetContext: 'title' },
+      { localContext: 'title', target: movie.title }
+    ])
+  );
 
   // Year
-  deltas.push(db.createDelta('seed', [
-    { localContext: 'released', target: { id: movie.id }, targetContext: 'year' },
-    { localContext: 'year', target: movie.year }
-  ]));
+  deltas.push(
+    db.createDelta('seed', [
+      { localContext: 'released', target: { id: movie.id }, targetContext: 'year' },
+      { localContext: 'year', target: movie.year }
+    ])
+  );
 
   // Runtime
-  deltas.push(db.createDelta('seed', [
-    { localContext: 'runs', target: { id: movie.id }, targetContext: 'runtime' },
-    { localContext: 'runtime', target: movie.runtime }
-  ]));
+  deltas.push(
+    db.createDelta('seed', [
+      { localContext: 'runs', target: { id: movie.id }, targetContext: 'runtime' },
+      { localContext: 'runtime', target: movie.runtime }
+    ])
+  );
 
   // Director
-  deltas.push(db.createDelta('seed', [
-    { localContext: 'directed_by', target: { id: movie.id }, targetContext: 'director' },
-    { localContext: 'director', target: { id: movie.director } }
-  ]));
+  deltas.push(
+    db.createDelta('seed', [
+      { localContext: 'directed_by', target: { id: movie.id }, targetContext: 'director' },
+      { localContext: 'director', target: { id: movie.director } }
+    ])
+  );
 
   // Producers
   if (movie.producers) {
     for (const producer of movie.producers) {
-      deltas.push(db.createDelta('seed', [
-        { localContext: 'produced_by', target: { id: movie.id }, targetContext: 'producer' },
-        { localContext: 'producer', target: { id: producer } }
-      ]));
+      deltas.push(
+        db.createDelta('seed', [
+          { localContext: 'produced_by', target: { id: movie.id }, targetContext: 'producer' },
+          { localContext: 'producer', target: { id: producer } }
+        ])
+      );
     }
   }
 
   // Writers
   if (movie.writers) {
     for (const writer of movie.writers) {
-      deltas.push(db.createDelta('seed', [
-        { localContext: 'written_by', target: { id: movie.id }, targetContext: 'writer' },
-        { localContext: 'writer', target: { id: writer } }
-      ]));
+      deltas.push(
+        db.createDelta('seed', [
+          { localContext: 'written_by', target: { id: movie.id }, targetContext: 'writer' },
+          { localContext: 'writer', target: { id: writer } }
+        ])
+      );
     }
   }
 
@@ -224,22 +240,28 @@ function createRoleDeltas(db: RhizomeDB, role: RoleData): Delta[] {
   const deltas: Delta[] = [];
 
   // Actor
-  deltas.push(db.createDelta('seed', [
-    { localContext: 'performed_by', target: { id: role.id }, targetContext: 'actor' },
-    { localContext: 'actor', target: { id: role.actor } }
-  ]));
+  deltas.push(
+    db.createDelta('seed', [
+      { localContext: 'performed_by', target: { id: role.id }, targetContext: 'actor' },
+      { localContext: 'actor', target: { id: role.actor } }
+    ])
+  );
 
   // Movie
-  deltas.push(db.createDelta('seed', [
-    { localContext: 'appears_in', target: { id: role.id }, targetContext: 'movie' },
-    { localContext: 'movie', target: { id: role.movie } }
-  ]));
+  deltas.push(
+    db.createDelta('seed', [
+      { localContext: 'appears_in', target: { id: role.id }, targetContext: 'movie' },
+      { localContext: 'movie', target: { id: role.movie } }
+    ])
+  );
 
   // Character name
-  deltas.push(db.createDelta('seed', [
-    { localContext: 'portrays', target: { id: role.id }, targetContext: 'character' },
-    { localContext: 'character', target: role.character }
-  ]));
+  deltas.push(
+    db.createDelta('seed', [
+      { localContext: 'portrays', target: { id: role.id }, targetContext: 'character' },
+      { localContext: 'character', target: role.character }
+    ])
+  );
 
   return deltas;
 }
@@ -247,21 +269,30 @@ function createRoleDeltas(db: RhizomeDB, role: RoleData): Delta[] {
 /**
  * Generate deltas for a trilogy
  */
-function createTrilogyDeltas(db: RhizomeDB, trilogyId: string, name: string, movieIds: string[]): Delta[] {
+function createTrilogyDeltas(
+  db: RhizomeDB,
+  trilogyId: string,
+  name: string,
+  movieIds: string[]
+): Delta[] {
   const deltas: Delta[] = [];
 
   // Name
-  deltas.push(db.createDelta('seed', [
-    { localContext: 'named', target: { id: trilogyId }, targetContext: 'name' },
-    { localContext: 'name', target: name }
-  ]));
+  deltas.push(
+    db.createDelta('seed', [
+      { localContext: 'named', target: { id: trilogyId }, targetContext: 'name' },
+      { localContext: 'name', target: name }
+    ])
+  );
 
   // Movies
   for (const movieId of movieIds) {
-    deltas.push(db.createDelta('seed', [
-      { localContext: 'contains', target: { id: trilogyId }, targetContext: 'movie' },
-      { localContext: 'movie', target: { id: movieId } }
-    ]));
+    deltas.push(
+      db.createDelta('seed', [
+        { localContext: 'contains', target: { id: trilogyId }, targetContext: 'movie' },
+        { localContext: 'movie', target: { id: movieId } }
+      ])
+    );
   }
 
   return deltas;
@@ -314,22 +345,92 @@ export const matrixMovies: MovieData[] = [
 
 export const matrixRoles: RoleData[] = [
   { id: 'role_matrix_neo', actor: 'person_reeves_keanu', movie: 'movie_matrix', character: 'Neo' },
-  { id: 'role_matrix_trinity', actor: 'person_moss_carrie_anne', movie: 'movie_matrix', character: 'Trinity' },
-  { id: 'role_matrix_morpheus', actor: 'person_fishburne_laurence', movie: 'movie_matrix', character: 'Morpheus' },
-  { id: 'role_matrix_smith', actor: 'person_weaving_hugo', movie: 'movie_matrix', character: 'Agent Smith' },
-  { id: 'role_matrix_cypher', actor: 'person_pantoliano_joe', movie: 'movie_matrix', character: 'Cypher' },
-  { id: 'role_matrix_oracle', actor: 'person_foster_gloria', movie: 'movie_matrix', character: 'The Oracle' },
+  {
+    id: 'role_matrix_trinity',
+    actor: 'person_moss_carrie_anne',
+    movie: 'movie_matrix',
+    character: 'Trinity'
+  },
+  {
+    id: 'role_matrix_morpheus',
+    actor: 'person_fishburne_laurence',
+    movie: 'movie_matrix',
+    character: 'Morpheus'
+  },
+  {
+    id: 'role_matrix_smith',
+    actor: 'person_weaving_hugo',
+    movie: 'movie_matrix',
+    character: 'Agent Smith'
+  },
+  {
+    id: 'role_matrix_cypher',
+    actor: 'person_pantoliano_joe',
+    movie: 'movie_matrix',
+    character: 'Cypher'
+  },
+  {
+    id: 'role_matrix_oracle',
+    actor: 'person_foster_gloria',
+    movie: 'movie_matrix',
+    character: 'The Oracle'
+  },
 
-  { id: 'role_reloaded_neo', actor: 'person_reeves_keanu', movie: 'movie_matrix_reloaded', character: 'Neo' },
-  { id: 'role_reloaded_trinity', actor: 'person_moss_carrie_anne', movie: 'movie_matrix_reloaded', character: 'Trinity' },
-  { id: 'role_reloaded_morpheus', actor: 'person_fishburne_laurence', movie: 'movie_matrix_reloaded', character: 'Morpheus' },
-  { id: 'role_reloaded_smith', actor: 'person_weaving_hugo', movie: 'movie_matrix_reloaded', character: 'Agent Smith' },
-  { id: 'role_reloaded_persephone', actor: 'person_belushi_monica', movie: 'movie_matrix_reloaded', character: 'Persephone' },
+  {
+    id: 'role_reloaded_neo',
+    actor: 'person_reeves_keanu',
+    movie: 'movie_matrix_reloaded',
+    character: 'Neo'
+  },
+  {
+    id: 'role_reloaded_trinity',
+    actor: 'person_moss_carrie_anne',
+    movie: 'movie_matrix_reloaded',
+    character: 'Trinity'
+  },
+  {
+    id: 'role_reloaded_morpheus',
+    actor: 'person_fishburne_laurence',
+    movie: 'movie_matrix_reloaded',
+    character: 'Morpheus'
+  },
+  {
+    id: 'role_reloaded_smith',
+    actor: 'person_weaving_hugo',
+    movie: 'movie_matrix_reloaded',
+    character: 'Agent Smith'
+  },
+  {
+    id: 'role_reloaded_persephone',
+    actor: 'person_belushi_monica',
+    movie: 'movie_matrix_reloaded',
+    character: 'Persephone'
+  },
 
-  { id: 'role_revolutions_neo', actor: 'person_reeves_keanu', movie: 'movie_matrix_revolutions', character: 'Neo' },
-  { id: 'role_revolutions_trinity', actor: 'person_moss_carrie_anne', movie: 'movie_matrix_revolutions', character: 'Trinity' },
-  { id: 'role_revolutions_morpheus', actor: 'person_fishburne_laurence', movie: 'movie_matrix_revolutions', character: 'Morpheus' },
-  { id: 'role_revolutions_smith', actor: 'person_weaving_hugo', movie: 'movie_matrix_revolutions', character: 'Agent Smith' }
+  {
+    id: 'role_revolutions_neo',
+    actor: 'person_reeves_keanu',
+    movie: 'movie_matrix_revolutions',
+    character: 'Neo'
+  },
+  {
+    id: 'role_revolutions_trinity',
+    actor: 'person_moss_carrie_anne',
+    movie: 'movie_matrix_revolutions',
+    character: 'Trinity'
+  },
+  {
+    id: 'role_revolutions_morpheus',
+    actor: 'person_fishburne_laurence',
+    movie: 'movie_matrix_revolutions',
+    character: 'Morpheus'
+  },
+  {
+    id: 'role_revolutions_smith',
+    actor: 'person_weaving_hugo',
+    movie: 'movie_matrix_revolutions',
+    character: 'Agent Smith'
+  }
 ];
 
 /**
@@ -410,61 +511,286 @@ export const starWarsMovies: MovieData[] = [
 
 export const starWarsRoles: RoleData[] = [
   // Episode IV
-  { id: 'role_sw4_luke', actor: 'person_hamill_mark', movie: 'movie_star_wars_iv', character: 'Luke Skywalker' },
-  { id: 'role_sw4_han', actor: 'person_ford_harrison', movie: 'movie_star_wars_iv', character: 'Han Solo' },
-  { id: 'role_sw4_leia', actor: 'person_fisher_carrie', movie: 'movie_star_wars_iv', character: 'Princess Leia' },
-  { id: 'role_sw4_obiwan', actor: 'person_guinness_alec', movie: 'movie_star_wars_iv', character: 'Obi-Wan Kenobi' },
-  { id: 'role_sw4_vader', actor: 'person_prowse_david', movie: 'movie_star_wars_iv', character: 'Darth Vader' },
-  { id: 'role_sw4_r2d2', actor: 'person_baker_kenny', movie: 'movie_star_wars_iv', character: 'R2-D2' },
-  { id: 'role_sw4_c3po', actor: 'person_daniels_anthony', movie: 'movie_star_wars_iv', character: 'C-3PO' },
-  { id: 'role_sw4_chewbacca', actor: 'person_mayhew_peter', movie: 'movie_star_wars_iv', character: 'Chewbacca' },
+  {
+    id: 'role_sw4_luke',
+    actor: 'person_hamill_mark',
+    movie: 'movie_star_wars_iv',
+    character: 'Luke Skywalker'
+  },
+  {
+    id: 'role_sw4_han',
+    actor: 'person_ford_harrison',
+    movie: 'movie_star_wars_iv',
+    character: 'Han Solo'
+  },
+  {
+    id: 'role_sw4_leia',
+    actor: 'person_fisher_carrie',
+    movie: 'movie_star_wars_iv',
+    character: 'Princess Leia'
+  },
+  {
+    id: 'role_sw4_obiwan',
+    actor: 'person_guinness_alec',
+    movie: 'movie_star_wars_iv',
+    character: 'Obi-Wan Kenobi'
+  },
+  {
+    id: 'role_sw4_vader',
+    actor: 'person_prowse_david',
+    movie: 'movie_star_wars_iv',
+    character: 'Darth Vader'
+  },
+  {
+    id: 'role_sw4_r2d2',
+    actor: 'person_baker_kenny',
+    movie: 'movie_star_wars_iv',
+    character: 'R2-D2'
+  },
+  {
+    id: 'role_sw4_c3po',
+    actor: 'person_daniels_anthony',
+    movie: 'movie_star_wars_iv',
+    character: 'C-3PO'
+  },
+  {
+    id: 'role_sw4_chewbacca',
+    actor: 'person_mayhew_peter',
+    movie: 'movie_star_wars_iv',
+    character: 'Chewbacca'
+  },
 
   // Episode V
-  { id: 'role_sw5_luke', actor: 'person_hamill_mark', movie: 'movie_star_wars_v', character: 'Luke Skywalker' },
-  { id: 'role_sw5_han', actor: 'person_ford_harrison', movie: 'movie_star_wars_v', character: 'Han Solo' },
-  { id: 'role_sw5_leia', actor: 'person_fisher_carrie', movie: 'movie_star_wars_v', character: 'Princess Leia' },
-  { id: 'role_sw5_vader', actor: 'person_prowse_david', movie: 'movie_star_wars_v', character: 'Darth Vader' },
-  { id: 'role_sw5_r2d2', actor: 'person_baker_kenny', movie: 'movie_star_wars_v', character: 'R2-D2' },
-  { id: 'role_sw5_c3po', actor: 'person_daniels_anthony', movie: 'movie_star_wars_v', character: 'C-3PO' },
-  { id: 'role_sw5_chewbacca', actor: 'person_mayhew_peter', movie: 'movie_star_wars_v', character: 'Chewbacca' },
+  {
+    id: 'role_sw5_luke',
+    actor: 'person_hamill_mark',
+    movie: 'movie_star_wars_v',
+    character: 'Luke Skywalker'
+  },
+  {
+    id: 'role_sw5_han',
+    actor: 'person_ford_harrison',
+    movie: 'movie_star_wars_v',
+    character: 'Han Solo'
+  },
+  {
+    id: 'role_sw5_leia',
+    actor: 'person_fisher_carrie',
+    movie: 'movie_star_wars_v',
+    character: 'Princess Leia'
+  },
+  {
+    id: 'role_sw5_vader',
+    actor: 'person_prowse_david',
+    movie: 'movie_star_wars_v',
+    character: 'Darth Vader'
+  },
+  {
+    id: 'role_sw5_r2d2',
+    actor: 'person_baker_kenny',
+    movie: 'movie_star_wars_v',
+    character: 'R2-D2'
+  },
+  {
+    id: 'role_sw5_c3po',
+    actor: 'person_daniels_anthony',
+    movie: 'movie_star_wars_v',
+    character: 'C-3PO'
+  },
+  {
+    id: 'role_sw5_chewbacca',
+    actor: 'person_mayhew_peter',
+    movie: 'movie_star_wars_v',
+    character: 'Chewbacca'
+  },
 
   // Episode VI
-  { id: 'role_sw6_luke', actor: 'person_hamill_mark', movie: 'movie_star_wars_vi', character: 'Luke Skywalker' },
-  { id: 'role_sw6_han', actor: 'person_ford_harrison', movie: 'movie_star_wars_vi', character: 'Han Solo' },
-  { id: 'role_sw6_leia', actor: 'person_fisher_carrie', movie: 'movie_star_wars_vi', character: 'Princess Leia' },
-  { id: 'role_sw6_vader', actor: 'person_prowse_david', movie: 'movie_star_wars_vi', character: 'Darth Vader' },
-  { id: 'role_sw6_r2d2', actor: 'person_baker_kenny', movie: 'movie_star_wars_vi', character: 'R2-D2' },
-  { id: 'role_sw6_c3po', actor: 'person_daniels_anthony', movie: 'movie_star_wars_vi', character: 'C-3PO' },
-  { id: 'role_sw6_chewbacca', actor: 'person_mayhew_peter', movie: 'movie_star_wars_vi', character: 'Chewbacca' },
+  {
+    id: 'role_sw6_luke',
+    actor: 'person_hamill_mark',
+    movie: 'movie_star_wars_vi',
+    character: 'Luke Skywalker'
+  },
+  {
+    id: 'role_sw6_han',
+    actor: 'person_ford_harrison',
+    movie: 'movie_star_wars_vi',
+    character: 'Han Solo'
+  },
+  {
+    id: 'role_sw6_leia',
+    actor: 'person_fisher_carrie',
+    movie: 'movie_star_wars_vi',
+    character: 'Princess Leia'
+  },
+  {
+    id: 'role_sw6_vader',
+    actor: 'person_prowse_david',
+    movie: 'movie_star_wars_vi',
+    character: 'Darth Vader'
+  },
+  {
+    id: 'role_sw6_r2d2',
+    actor: 'person_baker_kenny',
+    movie: 'movie_star_wars_vi',
+    character: 'R2-D2'
+  },
+  {
+    id: 'role_sw6_c3po',
+    actor: 'person_daniels_anthony',
+    movie: 'movie_star_wars_vi',
+    character: 'C-3PO'
+  },
+  {
+    id: 'role_sw6_chewbacca',
+    actor: 'person_mayhew_peter',
+    movie: 'movie_star_wars_vi',
+    character: 'Chewbacca'
+  },
 
   // Episode I
-  { id: 'role_sw1_obiwan', actor: 'person_mcgregor_ewan', movie: 'movie_star_wars_i', character: 'Obi-Wan Kenobi' },
-  { id: 'role_sw1_quigon', actor: 'person_neeson_liam', movie: 'movie_star_wars_i', character: 'Qui-Gon Jinn' },
-  { id: 'role_sw1_anakin', actor: 'person_lloyd_jake', movie: 'movie_star_wars_i', character: 'Anakin Skywalker' },
-  { id: 'role_sw1_padme', actor: 'person_portman_natalie', movie: 'movie_star_wars_i', character: 'Padmé Amidala' },
-  { id: 'role_sw1_palpatine', actor: 'person_mcdermid_ian', movie: 'movie_star_wars_i', character: 'Senator Palpatine' },
-  { id: 'role_sw1_r2d2', actor: 'person_baker_kenny', movie: 'movie_star_wars_i', character: 'R2-D2' },
-  { id: 'role_sw1_c3po', actor: 'person_daniels_anthony', movie: 'movie_star_wars_i', character: 'C-3PO' },
+  {
+    id: 'role_sw1_obiwan',
+    actor: 'person_mcgregor_ewan',
+    movie: 'movie_star_wars_i',
+    character: 'Obi-Wan Kenobi'
+  },
+  {
+    id: 'role_sw1_quigon',
+    actor: 'person_neeson_liam',
+    movie: 'movie_star_wars_i',
+    character: 'Qui-Gon Jinn'
+  },
+  {
+    id: 'role_sw1_anakin',
+    actor: 'person_lloyd_jake',
+    movie: 'movie_star_wars_i',
+    character: 'Anakin Skywalker'
+  },
+  {
+    id: 'role_sw1_padme',
+    actor: 'person_portman_natalie',
+    movie: 'movie_star_wars_i',
+    character: 'Padmé Amidala'
+  },
+  {
+    id: 'role_sw1_palpatine',
+    actor: 'person_mcdermid_ian',
+    movie: 'movie_star_wars_i',
+    character: 'Senator Palpatine'
+  },
+  {
+    id: 'role_sw1_r2d2',
+    actor: 'person_baker_kenny',
+    movie: 'movie_star_wars_i',
+    character: 'R2-D2'
+  },
+  {
+    id: 'role_sw1_c3po',
+    actor: 'person_daniels_anthony',
+    movie: 'movie_star_wars_i',
+    character: 'C-3PO'
+  },
 
   // Episode II
-  { id: 'role_sw2_obiwan', actor: 'person_mcgregor_ewan', movie: 'movie_star_wars_ii', character: 'Obi-Wan Kenobi' },
-  { id: 'role_sw2_anakin', actor: 'person_christensen_hayden', movie: 'movie_star_wars_ii', character: 'Anakin Skywalker' },
-  { id: 'role_sw2_padme', actor: 'person_portman_natalie', movie: 'movie_star_wars_ii', character: 'Padmé Amidala' },
-  { id: 'role_sw2_palpatine', actor: 'person_mcdermid_ian', movie: 'movie_star_wars_ii', character: 'Supreme Chancellor Palpatine' },
-  { id: 'role_sw2_dooku', actor: 'person_lee_christopher', movie: 'movie_star_wars_ii', character: 'Count Dooku' },
-  { id: 'role_sw2_mace', actor: 'person_jackson_samuel', movie: 'movie_star_wars_ii', character: 'Mace Windu' },
-  { id: 'role_sw2_r2d2', actor: 'person_baker_kenny', movie: 'movie_star_wars_ii', character: 'R2-D2' },
-  { id: 'role_sw2_c3po', actor: 'person_daniels_anthony', movie: 'movie_star_wars_ii', character: 'C-3PO' },
+  {
+    id: 'role_sw2_obiwan',
+    actor: 'person_mcgregor_ewan',
+    movie: 'movie_star_wars_ii',
+    character: 'Obi-Wan Kenobi'
+  },
+  {
+    id: 'role_sw2_anakin',
+    actor: 'person_christensen_hayden',
+    movie: 'movie_star_wars_ii',
+    character: 'Anakin Skywalker'
+  },
+  {
+    id: 'role_sw2_padme',
+    actor: 'person_portman_natalie',
+    movie: 'movie_star_wars_ii',
+    character: 'Padmé Amidala'
+  },
+  {
+    id: 'role_sw2_palpatine',
+    actor: 'person_mcdermid_ian',
+    movie: 'movie_star_wars_ii',
+    character: 'Supreme Chancellor Palpatine'
+  },
+  {
+    id: 'role_sw2_dooku',
+    actor: 'person_lee_christopher',
+    movie: 'movie_star_wars_ii',
+    character: 'Count Dooku'
+  },
+  {
+    id: 'role_sw2_mace',
+    actor: 'person_jackson_samuel',
+    movie: 'movie_star_wars_ii',
+    character: 'Mace Windu'
+  },
+  {
+    id: 'role_sw2_r2d2',
+    actor: 'person_baker_kenny',
+    movie: 'movie_star_wars_ii',
+    character: 'R2-D2'
+  },
+  {
+    id: 'role_sw2_c3po',
+    actor: 'person_daniels_anthony',
+    movie: 'movie_star_wars_ii',
+    character: 'C-3PO'
+  },
 
   // Episode III
-  { id: 'role_sw3_obiwan', actor: 'person_mcgregor_ewan', movie: 'movie_star_wars_iii', character: 'Obi-Wan Kenobi' },
-  { id: 'role_sw3_anakin', actor: 'person_christensen_hayden', movie: 'movie_star_wars_iii', character: 'Anakin Skywalker / Darth Vader' },
-  { id: 'role_sw3_padme', actor: 'person_portman_natalie', movie: 'movie_star_wars_iii', character: 'Padmé Amidala' },
-  { id: 'role_sw3_palpatine', actor: 'person_mcdermid_ian', movie: 'movie_star_wars_iii', character: 'Emperor Palpatine' },
-  { id: 'role_sw3_dooku', actor: 'person_lee_christopher', movie: 'movie_star_wars_iii', character: 'Count Dooku' },
-  { id: 'role_sw3_mace', actor: 'person_jackson_samuel', movie: 'movie_star_wars_iii', character: 'Mace Windu' },
-  { id: 'role_sw3_r2d2', actor: 'person_baker_kenny', movie: 'movie_star_wars_iii', character: 'R2-D2' },
-  { id: 'role_sw3_c3po', actor: 'person_daniels_anthony', movie: 'movie_star_wars_iii', character: 'C-3PO' }
+  {
+    id: 'role_sw3_obiwan',
+    actor: 'person_mcgregor_ewan',
+    movie: 'movie_star_wars_iii',
+    character: 'Obi-Wan Kenobi'
+  },
+  {
+    id: 'role_sw3_anakin',
+    actor: 'person_christensen_hayden',
+    movie: 'movie_star_wars_iii',
+    character: 'Anakin Skywalker / Darth Vader'
+  },
+  {
+    id: 'role_sw3_padme',
+    actor: 'person_portman_natalie',
+    movie: 'movie_star_wars_iii',
+    character: 'Padmé Amidala'
+  },
+  {
+    id: 'role_sw3_palpatine',
+    actor: 'person_mcdermid_ian',
+    movie: 'movie_star_wars_iii',
+    character: 'Emperor Palpatine'
+  },
+  {
+    id: 'role_sw3_dooku',
+    actor: 'person_lee_christopher',
+    movie: 'movie_star_wars_iii',
+    character: 'Count Dooku'
+  },
+  {
+    id: 'role_sw3_mace',
+    actor: 'person_jackson_samuel',
+    movie: 'movie_star_wars_iii',
+    character: 'Mace Windu'
+  },
+  {
+    id: 'role_sw3_r2d2',
+    actor: 'person_baker_kenny',
+    movie: 'movie_star_wars_iii',
+    character: 'R2-D2'
+  },
+  {
+    id: 'role_sw3_c3po',
+    actor: 'person_daniels_anthony',
+    movie: 'movie_star_wars_iii',
+    character: 'C-3PO'
+  }
 ];
 
 /**
@@ -517,46 +843,226 @@ export const lotrMovies: MovieData[] = [
 
 export const lotrRoles: RoleData[] = [
   // Fellowship
-  { id: 'role_fellowship_frodo', actor: 'person_wood_elijah', movie: 'movie_lotr_fellowship', character: 'Frodo Baggins' },
-  { id: 'role_fellowship_gandalf', actor: 'person_mckellen_ian', movie: 'movie_lotr_fellowship', character: 'Gandalf' },
-  { id: 'role_fellowship_aragorn', actor: 'person_mortensen_viggo', movie: 'movie_lotr_fellowship', character: 'Aragorn' },
-  { id: 'role_fellowship_sam', actor: 'person_astin_sean', movie: 'movie_lotr_fellowship', character: 'Samwise Gamgee' },
-  { id: 'role_fellowship_boromir', actor: 'person_bean_sean', movie: 'movie_lotr_fellowship', character: 'Boromir' },
-  { id: 'role_fellowship_legolas', actor: 'person_bloom_orlando', movie: 'movie_lotr_fellowship', character: 'Legolas' },
-  { id: 'role_fellowship_gimli', actor: 'person_rhys_davies_john', movie: 'movie_lotr_fellowship', character: 'Gimli' },
-  { id: 'role_fellowship_merry', actor: 'person_monaghan_dominic', movie: 'movie_lotr_fellowship', character: 'Merry' },
-  { id: 'role_fellowship_pippin', actor: 'person_boyd_billy', movie: 'movie_lotr_fellowship', character: 'Pippin' },
-  { id: 'role_fellowship_arwen', actor: 'person_tyler_liv', movie: 'movie_lotr_fellowship', character: 'Arwen' },
-  { id: 'role_fellowship_galadriel', actor: 'person_blanchett_cate', movie: 'movie_lotr_fellowship', character: 'Galadriel' },
-  { id: 'role_fellowship_saruman', actor: 'person_lee_christopher_lotr', movie: 'movie_lotr_fellowship', character: 'Saruman' },
-  { id: 'role_fellowship_bilbo', actor: 'person_holm_ian', movie: 'movie_lotr_fellowship', character: 'Bilbo Baggins' },
+  {
+    id: 'role_fellowship_frodo',
+    actor: 'person_wood_elijah',
+    movie: 'movie_lotr_fellowship',
+    character: 'Frodo Baggins'
+  },
+  {
+    id: 'role_fellowship_gandalf',
+    actor: 'person_mckellen_ian',
+    movie: 'movie_lotr_fellowship',
+    character: 'Gandalf'
+  },
+  {
+    id: 'role_fellowship_aragorn',
+    actor: 'person_mortensen_viggo',
+    movie: 'movie_lotr_fellowship',
+    character: 'Aragorn'
+  },
+  {
+    id: 'role_fellowship_sam',
+    actor: 'person_astin_sean',
+    movie: 'movie_lotr_fellowship',
+    character: 'Samwise Gamgee'
+  },
+  {
+    id: 'role_fellowship_boromir',
+    actor: 'person_bean_sean',
+    movie: 'movie_lotr_fellowship',
+    character: 'Boromir'
+  },
+  {
+    id: 'role_fellowship_legolas',
+    actor: 'person_bloom_orlando',
+    movie: 'movie_lotr_fellowship',
+    character: 'Legolas'
+  },
+  {
+    id: 'role_fellowship_gimli',
+    actor: 'person_rhys_davies_john',
+    movie: 'movie_lotr_fellowship',
+    character: 'Gimli'
+  },
+  {
+    id: 'role_fellowship_merry',
+    actor: 'person_monaghan_dominic',
+    movie: 'movie_lotr_fellowship',
+    character: 'Merry'
+  },
+  {
+    id: 'role_fellowship_pippin',
+    actor: 'person_boyd_billy',
+    movie: 'movie_lotr_fellowship',
+    character: 'Pippin'
+  },
+  {
+    id: 'role_fellowship_arwen',
+    actor: 'person_tyler_liv',
+    movie: 'movie_lotr_fellowship',
+    character: 'Arwen'
+  },
+  {
+    id: 'role_fellowship_galadriel',
+    actor: 'person_blanchett_cate',
+    movie: 'movie_lotr_fellowship',
+    character: 'Galadriel'
+  },
+  {
+    id: 'role_fellowship_saruman',
+    actor: 'person_lee_christopher_lotr',
+    movie: 'movie_lotr_fellowship',
+    character: 'Saruman'
+  },
+  {
+    id: 'role_fellowship_bilbo',
+    actor: 'person_holm_ian',
+    movie: 'movie_lotr_fellowship',
+    character: 'Bilbo Baggins'
+  },
 
   // Two Towers
-  { id: 'role_towers_frodo', actor: 'person_wood_elijah', movie: 'movie_lotr_two_towers', character: 'Frodo Baggins' },
-  { id: 'role_towers_gandalf', actor: 'person_mckellen_ian', movie: 'movie_lotr_two_towers', character: 'Gandalf' },
-  { id: 'role_towers_aragorn', actor: 'person_mortensen_viggo', movie: 'movie_lotr_two_towers', character: 'Aragorn' },
-  { id: 'role_towers_sam', actor: 'person_astin_sean', movie: 'movie_lotr_two_towers', character: 'Samwise Gamgee' },
-  { id: 'role_towers_legolas', actor: 'person_bloom_orlando', movie: 'movie_lotr_two_towers', character: 'Legolas' },
-  { id: 'role_towers_gimli', actor: 'person_rhys_davies_john', movie: 'movie_lotr_two_towers', character: 'Gimli' },
-  { id: 'role_towers_merry', actor: 'person_monaghan_dominic', movie: 'movie_lotr_two_towers', character: 'Merry' },
-  { id: 'role_towers_pippin', actor: 'person_boyd_billy', movie: 'movie_lotr_two_towers', character: 'Pippin' },
-  { id: 'role_towers_arwen', actor: 'person_tyler_liv', movie: 'movie_lotr_two_towers', character: 'Arwen' },
-  { id: 'role_towers_gollum', actor: 'person_serkis_andy', movie: 'movie_lotr_two_towers', character: 'Gollum' },
-  { id: 'role_towers_saruman', actor: 'person_lee_christopher_lotr', movie: 'movie_lotr_two_towers', character: 'Saruman' },
+  {
+    id: 'role_towers_frodo',
+    actor: 'person_wood_elijah',
+    movie: 'movie_lotr_two_towers',
+    character: 'Frodo Baggins'
+  },
+  {
+    id: 'role_towers_gandalf',
+    actor: 'person_mckellen_ian',
+    movie: 'movie_lotr_two_towers',
+    character: 'Gandalf'
+  },
+  {
+    id: 'role_towers_aragorn',
+    actor: 'person_mortensen_viggo',
+    movie: 'movie_lotr_two_towers',
+    character: 'Aragorn'
+  },
+  {
+    id: 'role_towers_sam',
+    actor: 'person_astin_sean',
+    movie: 'movie_lotr_two_towers',
+    character: 'Samwise Gamgee'
+  },
+  {
+    id: 'role_towers_legolas',
+    actor: 'person_bloom_orlando',
+    movie: 'movie_lotr_two_towers',
+    character: 'Legolas'
+  },
+  {
+    id: 'role_towers_gimli',
+    actor: 'person_rhys_davies_john',
+    movie: 'movie_lotr_two_towers',
+    character: 'Gimli'
+  },
+  {
+    id: 'role_towers_merry',
+    actor: 'person_monaghan_dominic',
+    movie: 'movie_lotr_two_towers',
+    character: 'Merry'
+  },
+  {
+    id: 'role_towers_pippin',
+    actor: 'person_boyd_billy',
+    movie: 'movie_lotr_two_towers',
+    character: 'Pippin'
+  },
+  {
+    id: 'role_towers_arwen',
+    actor: 'person_tyler_liv',
+    movie: 'movie_lotr_two_towers',
+    character: 'Arwen'
+  },
+  {
+    id: 'role_towers_gollum',
+    actor: 'person_serkis_andy',
+    movie: 'movie_lotr_two_towers',
+    character: 'Gollum'
+  },
+  {
+    id: 'role_towers_saruman',
+    actor: 'person_lee_christopher_lotr',
+    movie: 'movie_lotr_two_towers',
+    character: 'Saruman'
+  },
 
   // Return of the King
-  { id: 'role_return_frodo', actor: 'person_wood_elijah', movie: 'movie_lotr_return', character: 'Frodo Baggins' },
-  { id: 'role_return_gandalf', actor: 'person_mckellen_ian', movie: 'movie_lotr_return', character: 'Gandalf' },
-  { id: 'role_return_aragorn', actor: 'person_mortensen_viggo', movie: 'movie_lotr_return', character: 'Aragorn' },
-  { id: 'role_return_sam', actor: 'person_astin_sean', movie: 'movie_lotr_return', character: 'Samwise Gamgee' },
-  { id: 'role_return_legolas', actor: 'person_bloom_orlando', movie: 'movie_lotr_return', character: 'Legolas' },
-  { id: 'role_return_gimli', actor: 'person_rhys_davies_john', movie: 'movie_lotr_return', character: 'Gimli' },
-  { id: 'role_return_merry', actor: 'person_monaghan_dominic', movie: 'movie_lotr_return', character: 'Merry' },
-  { id: 'role_return_pippin', actor: 'person_boyd_billy', movie: 'movie_lotr_return', character: 'Pippin' },
-  { id: 'role_return_arwen', actor: 'person_tyler_liv', movie: 'movie_lotr_return', character: 'Arwen' },
-  { id: 'role_return_gollum', actor: 'person_serkis_andy', movie: 'movie_lotr_return', character: 'Gollum' },
-  { id: 'role_return_galadriel', actor: 'person_blanchett_cate', movie: 'movie_lotr_return', character: 'Galadriel' },
-  { id: 'role_return_saruman', actor: 'person_lee_christopher_lotr', movie: 'movie_lotr_return', character: 'Saruman' }
+  {
+    id: 'role_return_frodo',
+    actor: 'person_wood_elijah',
+    movie: 'movie_lotr_return',
+    character: 'Frodo Baggins'
+  },
+  {
+    id: 'role_return_gandalf',
+    actor: 'person_mckellen_ian',
+    movie: 'movie_lotr_return',
+    character: 'Gandalf'
+  },
+  {
+    id: 'role_return_aragorn',
+    actor: 'person_mortensen_viggo',
+    movie: 'movie_lotr_return',
+    character: 'Aragorn'
+  },
+  {
+    id: 'role_return_sam',
+    actor: 'person_astin_sean',
+    movie: 'movie_lotr_return',
+    character: 'Samwise Gamgee'
+  },
+  {
+    id: 'role_return_legolas',
+    actor: 'person_bloom_orlando',
+    movie: 'movie_lotr_return',
+    character: 'Legolas'
+  },
+  {
+    id: 'role_return_gimli',
+    actor: 'person_rhys_davies_john',
+    movie: 'movie_lotr_return',
+    character: 'Gimli'
+  },
+  {
+    id: 'role_return_merry',
+    actor: 'person_monaghan_dominic',
+    movie: 'movie_lotr_return',
+    character: 'Merry'
+  },
+  {
+    id: 'role_return_pippin',
+    actor: 'person_boyd_billy',
+    movie: 'movie_lotr_return',
+    character: 'Pippin'
+  },
+  {
+    id: 'role_return_arwen',
+    actor: 'person_tyler_liv',
+    movie: 'movie_lotr_return',
+    character: 'Arwen'
+  },
+  {
+    id: 'role_return_gollum',
+    actor: 'person_serkis_andy',
+    movie: 'movie_lotr_return',
+    character: 'Gollum'
+  },
+  {
+    id: 'role_return_galadriel',
+    actor: 'person_blanchett_cate',
+    movie: 'movie_lotr_return',
+    character: 'Galadriel'
+  },
+  {
+    id: 'role_return_saruman',
+    actor: 'person_lee_christopher_lotr',
+    movie: 'movie_lotr_return',
+    character: 'Saruman'
+  }
 ];
 
 // Additional people for completeness (directors, writers, producers)
@@ -573,7 +1079,10 @@ export const additionalPeople: PersonData[] = [
 /**
  * Seed the database with all movie data
  */
-export async function seedMovieDatabase(db: RhizomeDB, options?: { includeExpanded?: boolean }): Promise<void> {
+export async function seedMovieDatabase(
+  db: RhizomeDB,
+  options?: { includeExpanded?: boolean }
+): Promise<void> {
   const allDeltas: Delta[] = [];
   const includeExpanded = options?.includeExpanded ?? true;
 
@@ -588,12 +1097,13 @@ export async function seedMovieDatabase(db: RhizomeDB, options?: { includeExpand
   for (const role of matrixRoles) {
     allDeltas.push(...createRoleDeltas(db, role));
   }
-  allDeltas.push(...createTrilogyDeltas(
-    db,
-    'trilogy_matrix',
-    'The Matrix Trilogy',
-    ['movie_matrix', 'movie_matrix_reloaded', 'movie_matrix_revolutions']
-  ));
+  allDeltas.push(
+    ...createTrilogyDeltas(db, 'trilogy_matrix', 'The Matrix Trilogy', [
+      'movie_matrix',
+      'movie_matrix_reloaded',
+      'movie_matrix_revolutions'
+    ])
+  );
 
   // Star Wars franchise
   console.log('Seeding Star Wars saga...');
@@ -606,18 +1116,20 @@ export async function seedMovieDatabase(db: RhizomeDB, options?: { includeExpand
   for (const role of starWarsRoles) {
     allDeltas.push(...createRoleDeltas(db, role));
   }
-  allDeltas.push(...createTrilogyDeltas(
-    db,
-    'trilogy_star_wars_original',
-    'Star Wars: Original Trilogy',
-    ['movie_star_wars_iv', 'movie_star_wars_v', 'movie_star_wars_vi']
-  ));
-  allDeltas.push(...createTrilogyDeltas(
-    db,
-    'trilogy_star_wars_prequel',
-    'Star Wars: Prequel Trilogy',
-    ['movie_star_wars_i', 'movie_star_wars_ii', 'movie_star_wars_iii']
-  ));
+  allDeltas.push(
+    ...createTrilogyDeltas(db, 'trilogy_star_wars_original', 'Star Wars: Original Trilogy', [
+      'movie_star_wars_iv',
+      'movie_star_wars_v',
+      'movie_star_wars_vi'
+    ])
+  );
+  allDeltas.push(
+    ...createTrilogyDeltas(db, 'trilogy_star_wars_prequel', 'Star Wars: Prequel Trilogy', [
+      'movie_star_wars_i',
+      'movie_star_wars_ii',
+      'movie_star_wars_iii'
+    ])
+  );
 
   // Lord of the Rings franchise
   console.log('Seeding Lord of the Rings trilogy...');
@@ -630,12 +1142,13 @@ export async function seedMovieDatabase(db: RhizomeDB, options?: { includeExpand
   for (const role of lotrRoles) {
     allDeltas.push(...createRoleDeltas(db, role));
   }
-  allDeltas.push(...createTrilogyDeltas(
-    db,
-    'trilogy_lotr',
-    'The Lord of the Rings Trilogy',
-    ['movie_lotr_fellowship', 'movie_lotr_two_towers', 'movie_lotr_return']
-  ));
+  allDeltas.push(
+    ...createTrilogyDeltas(db, 'trilogy_lotr', 'The Lord of the Rings Trilogy', [
+      'movie_lotr_fellowship',
+      'movie_lotr_two_towers',
+      'movie_lotr_return'
+    ])
+  );
 
   // Expanded dataset (additional films from actors in core dataset)
   if (includeExpanded) {
@@ -657,47 +1170,52 @@ export async function seedMovieDatabase(db: RhizomeDB, options?: { includeExpand
     }
 
     // Add franchise collections
-    allDeltas.push(...createTrilogyDeltas(
-      db,
-      'trilogy_john_wick',
-      'John Wick Series',
-      ['movie_john_wick', 'movie_john_wick_2', 'movie_john_wick_3']
-    ));
+    allDeltas.push(
+      ...createTrilogyDeltas(db, 'trilogy_john_wick', 'John Wick Series', [
+        'movie_john_wick',
+        'movie_john_wick_2',
+        'movie_john_wick_3'
+      ])
+    );
 
-    allDeltas.push(...createTrilogyDeltas(
-      db,
-      'trilogy_indiana_jones',
-      'Indiana Jones Trilogy',
-      ['movie_raiders', 'movie_temple_doom', 'movie_last_crusade']
-    ));
+    allDeltas.push(
+      ...createTrilogyDeltas(db, 'trilogy_indiana_jones', 'Indiana Jones Trilogy', [
+        'movie_raiders',
+        'movie_temple_doom',
+        'movie_last_crusade'
+      ])
+    );
 
-    allDeltas.push(...createTrilogyDeltas(
-      db,
-      'trilogy_xmen_original',
-      'X-Men Original Trilogy',
-      ['movie_xmen', 'movie_xmen_2', 'movie_xmen_last_stand']
-    ));
+    allDeltas.push(
+      ...createTrilogyDeltas(db, 'trilogy_xmen_original', 'X-Men Original Trilogy', [
+        'movie_xmen',
+        'movie_xmen_2',
+        'movie_xmen_last_stand'
+      ])
+    );
 
-    allDeltas.push(...createTrilogyDeltas(
-      db,
-      'trilogy_pirates',
-      'Pirates of the Caribbean Original Trilogy',
-      ['movie_pirates_curse', 'movie_pirates_chest', 'movie_pirates_world_end']
-    ));
+    allDeltas.push(
+      ...createTrilogyDeltas(db, 'trilogy_pirates', 'Pirates of the Caribbean Original Trilogy', [
+        'movie_pirates_curse',
+        'movie_pirates_chest',
+        'movie_pirates_world_end'
+      ])
+    );
 
-    allDeltas.push(...createTrilogyDeltas(
-      db,
-      'trilogy_hobbit',
-      'The Hobbit Trilogy',
-      ['movie_hobbit_journey', 'movie_hobbit_smaug', 'movie_hobbit_battle']
-    ));
+    allDeltas.push(
+      ...createTrilogyDeltas(db, 'trilogy_hobbit', 'The Hobbit Trilogy', [
+        'movie_hobbit_journey',
+        'movie_hobbit_smaug',
+        'movie_hobbit_battle'
+      ])
+    );
 
-    allDeltas.push(...createTrilogyDeltas(
-      db,
-      'trilogy_avengers',
-      'Avengers Series',
-      ['movie_avengers', 'movie_avengers_ultron']
-    ));
+    allDeltas.push(
+      ...createTrilogyDeltas(db, 'trilogy_avengers', 'Avengers Series', [
+        'movie_avengers',
+        'movie_avengers_ultron'
+      ])
+    );
   }
 
   // Persist all deltas
@@ -716,14 +1234,16 @@ export async function getSeedStats(includeExpanded: boolean = true): Promise<{
   totalTrilogies: number;
 }> {
   let totalMovies = matrixMovies.length + starWarsMovies.length + lotrMovies.length;
-  let totalPeople = matrixPeople.length + starWarsPeople.length + lotrPeople.length + additionalPeople.length;
+  let totalPeople =
+    matrixPeople.length + starWarsPeople.length + lotrPeople.length + additionalPeople.length;
   let totalRoles = matrixRoles.length + starWarsRoles.length + lotrRoles.length;
   let totalTrilogies = 4; // Matrix, SW Original, SW Prequel, LOTR
 
   if (includeExpanded) {
     // All data is in this file, so we can directly reference it
     totalMovies += expandedMovies.length;
-    totalPeople += expandedPeople.length + additionalExpandedPeople.length + supportingActors.length;
+    totalPeople +=
+      expandedPeople.length + additionalExpandedPeople.length + supportingActors.length;
     totalRoles += expandedRoles.length;
     totalTrilogies += 6; // John Wick, Indiana Jones, X-Men, Pirates, Hobbit, Avengers
   }
@@ -1246,210 +1766,890 @@ export const additionalExpandedPeople: PersonData[] = [
 // Expanded roles for new movies
 export const expandedRoles: RoleData[] = [
   // John Wick trilogy
-  { id: 'role_jw1_john', actor: 'person_reeves_keanu', movie: 'movie_john_wick', character: 'John Wick' },
-  { id: 'role_jw1_marcus', actor: 'person_dafoe_willem', movie: 'movie_john_wick', character: 'Marcus' },
-  { id: 'role_jw1_viggo', actor: 'person_nyqvist_michael', movie: 'movie_john_wick', character: 'Viggo Tarasov' },
+  {
+    id: 'role_jw1_john',
+    actor: 'person_reeves_keanu',
+    movie: 'movie_john_wick',
+    character: 'John Wick'
+  },
+  {
+    id: 'role_jw1_marcus',
+    actor: 'person_dafoe_willem',
+    movie: 'movie_john_wick',
+    character: 'Marcus'
+  },
+  {
+    id: 'role_jw1_viggo',
+    actor: 'person_nyqvist_michael',
+    movie: 'movie_john_wick',
+    character: 'Viggo Tarasov'
+  },
 
-  { id: 'role_jw2_john', actor: 'person_reeves_keanu', movie: 'movie_john_wick_2', character: 'John Wick' },
-  { id: 'role_jw2_winston', actor: 'person_mcshane_ian', movie: 'movie_john_wick_2', character: 'Winston' },
-  { id: 'role_jw2_bowery', actor: 'person_fishburne_laurence', movie: 'movie_john_wick_2', character: 'The Bowery King' },
+  {
+    id: 'role_jw2_john',
+    actor: 'person_reeves_keanu',
+    movie: 'movie_john_wick_2',
+    character: 'John Wick'
+  },
+  {
+    id: 'role_jw2_winston',
+    actor: 'person_mcshane_ian',
+    movie: 'movie_john_wick_2',
+    character: 'Winston'
+  },
+  {
+    id: 'role_jw2_bowery',
+    actor: 'person_fishburne_laurence',
+    movie: 'movie_john_wick_2',
+    character: 'The Bowery King'
+  },
 
-  { id: 'role_jw3_john', actor: 'person_reeves_keanu', movie: 'movie_john_wick_3', character: 'John Wick' },
-  { id: 'role_jw3_winston', actor: 'person_mcshane_ian', movie: 'movie_john_wick_3', character: 'Winston' },
-  { id: 'role_jw3_bowery', actor: 'person_fishburne_laurence', movie: 'movie_john_wick_3', character: 'The Bowery King' },
+  {
+    id: 'role_jw3_john',
+    actor: 'person_reeves_keanu',
+    movie: 'movie_john_wick_3',
+    character: 'John Wick'
+  },
+  {
+    id: 'role_jw3_winston',
+    actor: 'person_mcshane_ian',
+    movie: 'movie_john_wick_3',
+    character: 'Winston'
+  },
+  {
+    id: 'role_jw3_bowery',
+    actor: 'person_fishburne_laurence',
+    movie: 'movie_john_wick_3',
+    character: 'The Bowery King'
+  },
 
   // Speed
-  { id: 'role_speed_jack', actor: 'person_reeves_keanu', movie: 'movie_speed', character: 'Jack Traven' },
-  { id: 'role_speed_annie', actor: 'person_bullock_sandra', movie: 'movie_speed', character: 'Annie Porter' },
-  { id: 'role_speed_howard', actor: 'person_hopper_dennis', movie: 'movie_speed', character: 'Howard Payne' },
-  { id: 'role_speed_harry', actor: 'person_daniels_jeff', movie: 'movie_speed', character: 'Harry Temple' },
+  {
+    id: 'role_speed_jack',
+    actor: 'person_reeves_keanu',
+    movie: 'movie_speed',
+    character: 'Jack Traven'
+  },
+  {
+    id: 'role_speed_annie',
+    actor: 'person_bullock_sandra',
+    movie: 'movie_speed',
+    character: 'Annie Porter'
+  },
+  {
+    id: 'role_speed_howard',
+    actor: 'person_hopper_dennis',
+    movie: 'movie_speed',
+    character: 'Howard Payne'
+  },
+  {
+    id: 'role_speed_harry',
+    actor: 'person_daniels_jeff',
+    movie: 'movie_speed',
+    character: 'Harry Temple'
+  },
 
   // Point Break
-  { id: 'role_pb_johnny', actor: 'person_reeves_keanu', movie: 'movie_point_break', character: 'Johnny Utah' },
-  { id: 'role_pb_bodhi', actor: 'person_swayze_patrick', movie: 'movie_point_break', character: 'Bodhi' },
-  { id: 'role_pb_tyler', actor: 'person_petty_lori', movie: 'movie_point_break', character: 'Tyler' },
-  { id: 'role_pb_pappas', actor: 'person_busey_gary', movie: 'movie_point_break', character: 'Angelo Pappas' },
+  {
+    id: 'role_pb_johnny',
+    actor: 'person_reeves_keanu',
+    movie: 'movie_point_break',
+    character: 'Johnny Utah'
+  },
+  {
+    id: 'role_pb_bodhi',
+    actor: 'person_swayze_patrick',
+    movie: 'movie_point_break',
+    character: 'Bodhi'
+  },
+  {
+    id: 'role_pb_tyler',
+    actor: 'person_petty_lori',
+    movie: 'movie_point_break',
+    character: 'Tyler'
+  },
+  {
+    id: 'role_pb_pappas',
+    actor: 'person_busey_gary',
+    movie: 'movie_point_break',
+    character: 'Angelo Pappas'
+  },
 
   // Indiana Jones trilogy
-  { id: 'role_raiders_indy', actor: 'person_ford_harrison', movie: 'movie_raiders', character: 'Indiana Jones' },
-  { id: 'role_raiders_marion', actor: 'person_allen_karen', movie: 'movie_raiders', character: 'Marion Ravenwood' },
-  { id: 'role_raiders_sallah', actor: 'person_rhys_davies_john', movie: 'movie_raiders', character: 'Sallah' },
+  {
+    id: 'role_raiders_indy',
+    actor: 'person_ford_harrison',
+    movie: 'movie_raiders',
+    character: 'Indiana Jones'
+  },
+  {
+    id: 'role_raiders_marion',
+    actor: 'person_allen_karen',
+    movie: 'movie_raiders',
+    character: 'Marion Ravenwood'
+  },
+  {
+    id: 'role_raiders_sallah',
+    actor: 'person_rhys_davies_john',
+    movie: 'movie_raiders',
+    character: 'Sallah'
+  },
 
-  { id: 'role_temple_indy', actor: 'person_ford_harrison', movie: 'movie_temple_doom', character: 'Indiana Jones' },
-  { id: 'role_temple_willie', actor: 'person_capshaw_kate', movie: 'movie_temple_doom', character: 'Willie Scott' },
+  {
+    id: 'role_temple_indy',
+    actor: 'person_ford_harrison',
+    movie: 'movie_temple_doom',
+    character: 'Indiana Jones'
+  },
+  {
+    id: 'role_temple_willie',
+    actor: 'person_capshaw_kate',
+    movie: 'movie_temple_doom',
+    character: 'Willie Scott'
+  },
 
-  { id: 'role_crusade_indy', actor: 'person_ford_harrison', movie: 'movie_last_crusade', character: 'Indiana Jones' },
-  { id: 'role_crusade_henry', actor: 'person_connery_sean', movie: 'movie_last_crusade', character: 'Henry Jones Sr.' },
-  { id: 'role_crusade_sallah', actor: 'person_rhys_davies_john', movie: 'movie_last_crusade', character: 'Sallah' },
+  {
+    id: 'role_crusade_indy',
+    actor: 'person_ford_harrison',
+    movie: 'movie_last_crusade',
+    character: 'Indiana Jones'
+  },
+  {
+    id: 'role_crusade_henry',
+    actor: 'person_connery_sean',
+    movie: 'movie_last_crusade',
+    character: 'Henry Jones Sr.'
+  },
+  {
+    id: 'role_crusade_sallah',
+    actor: 'person_rhys_davies_john',
+    movie: 'movie_last_crusade',
+    character: 'Sallah'
+  },
 
   // Blade Runner
-  { id: 'role_br_deckard', actor: 'person_ford_harrison', movie: 'movie_blade_runner', character: 'Rick Deckard' },
-  { id: 'role_br_rachael', actor: 'person_young_sean', movie: 'movie_blade_runner', character: 'Rachael' },
-  { id: 'role_br_roy', actor: 'person_hauer_rutger', movie: 'movie_blade_runner', character: 'Roy Batty' },
-  { id: 'role_br_gaff', actor: 'person_olmos_edward', movie: 'movie_blade_runner', character: 'Gaff' },
+  {
+    id: 'role_br_deckard',
+    actor: 'person_ford_harrison',
+    movie: 'movie_blade_runner',
+    character: 'Rick Deckard'
+  },
+  {
+    id: 'role_br_rachael',
+    actor: 'person_young_sean',
+    movie: 'movie_blade_runner',
+    character: 'Rachael'
+  },
+  {
+    id: 'role_br_roy',
+    actor: 'person_hauer_rutger',
+    movie: 'movie_blade_runner',
+    character: 'Roy Batty'
+  },
+  {
+    id: 'role_br_gaff',
+    actor: 'person_olmos_edward',
+    movie: 'movie_blade_runner',
+    character: 'Gaff'
+  },
 
   // X-Men trilogy
-  { id: 'role_xmen_magneto', actor: 'person_mckellen_ian', movie: 'movie_xmen', character: 'Magneto' },
-  { id: 'role_xmen_xavier', actor: 'person_stewart_patrick', movie: 'movie_xmen', character: 'Professor X' },
-  { id: 'role_xmen_wolverine', actor: 'person_jackman_hugh', movie: 'movie_xmen', character: 'Wolverine' },
+  {
+    id: 'role_xmen_magneto',
+    actor: 'person_mckellen_ian',
+    movie: 'movie_xmen',
+    character: 'Magneto'
+  },
+  {
+    id: 'role_xmen_xavier',
+    actor: 'person_stewart_patrick',
+    movie: 'movie_xmen',
+    character: 'Professor X'
+  },
+  {
+    id: 'role_xmen_wolverine',
+    actor: 'person_jackman_hugh',
+    movie: 'movie_xmen',
+    character: 'Wolverine'
+  },
   { id: 'role_xmen_storm', actor: 'person_berry_halle', movie: 'movie_xmen', character: 'Storm' },
-  { id: 'role_xmen_jean', actor: 'person_janssen_famke', movie: 'movie_xmen', character: 'Jean Grey' },
-  { id: 'role_xmen_cyclops', actor: 'person_marsden_james', movie: 'movie_xmen', character: 'Cyclops' },
+  {
+    id: 'role_xmen_jean',
+    actor: 'person_janssen_famke',
+    movie: 'movie_xmen',
+    character: 'Jean Grey'
+  },
+  {
+    id: 'role_xmen_cyclops',
+    actor: 'person_marsden_james',
+    movie: 'movie_xmen',
+    character: 'Cyclops'
+  },
   { id: 'role_xmen_rogue', actor: 'person_paquin_anna', movie: 'movie_xmen', character: 'Rogue' },
 
-  { id: 'role_xmen2_magneto', actor: 'person_mckellen_ian', movie: 'movie_xmen_2', character: 'Magneto' },
-  { id: 'role_xmen2_xavier', actor: 'person_stewart_patrick', movie: 'movie_xmen_2', character: 'Professor X' },
-  { id: 'role_xmen2_wolverine', actor: 'person_jackman_hugh', movie: 'movie_xmen_2', character: 'Wolverine' },
-  { id: 'role_xmen2_storm', actor: 'person_berry_halle', movie: 'movie_xmen_2', character: 'Storm' },
-  { id: 'role_xmen2_jean', actor: 'person_janssen_famke', movie: 'movie_xmen_2', character: 'Jean Grey' },
+  {
+    id: 'role_xmen2_magneto',
+    actor: 'person_mckellen_ian',
+    movie: 'movie_xmen_2',
+    character: 'Magneto'
+  },
+  {
+    id: 'role_xmen2_xavier',
+    actor: 'person_stewart_patrick',
+    movie: 'movie_xmen_2',
+    character: 'Professor X'
+  },
+  {
+    id: 'role_xmen2_wolverine',
+    actor: 'person_jackman_hugh',
+    movie: 'movie_xmen_2',
+    character: 'Wolverine'
+  },
+  {
+    id: 'role_xmen2_storm',
+    actor: 'person_berry_halle',
+    movie: 'movie_xmen_2',
+    character: 'Storm'
+  },
+  {
+    id: 'role_xmen2_jean',
+    actor: 'person_janssen_famke',
+    movie: 'movie_xmen_2',
+    character: 'Jean Grey'
+  },
 
-  { id: 'role_xmen3_magneto', actor: 'person_mckellen_ian', movie: 'movie_xmen_last_stand', character: 'Magneto' },
-  { id: 'role_xmen3_xavier', actor: 'person_stewart_patrick', movie: 'movie_xmen_last_stand', character: 'Professor X' },
-  { id: 'role_xmen3_wolverine', actor: 'person_jackman_hugh', movie: 'movie_xmen_last_stand', character: 'Wolverine' },
-  { id: 'role_xmen3_storm', actor: 'person_berry_halle', movie: 'movie_xmen_last_stand', character: 'Storm' },
+  {
+    id: 'role_xmen3_magneto',
+    actor: 'person_mckellen_ian',
+    movie: 'movie_xmen_last_stand',
+    character: 'Magneto'
+  },
+  {
+    id: 'role_xmen3_xavier',
+    actor: 'person_stewart_patrick',
+    movie: 'movie_xmen_last_stand',
+    character: 'Professor X'
+  },
+  {
+    id: 'role_xmen3_wolverine',
+    actor: 'person_jackman_hugh',
+    movie: 'movie_xmen_last_stand',
+    character: 'Wolverine'
+  },
+  {
+    id: 'role_xmen3_storm',
+    actor: 'person_berry_halle',
+    movie: 'movie_xmen_last_stand',
+    character: 'Storm'
+  },
 
   // Pirates trilogy
-  { id: 'role_pirates1_jack', actor: 'person_depp_johnny', movie: 'movie_pirates_curse', character: 'Captain Jack Sparrow' },
-  { id: 'role_pirates1_will', actor: 'person_bloom_orlando', movie: 'movie_pirates_curse', character: 'Will Turner' },
-  { id: 'role_pirates1_elizabeth', actor: 'person_knightley_keira', movie: 'movie_pirates_curse', character: 'Elizabeth Swann' },
-  { id: 'role_pirates1_barbossa', actor: 'person_rush_geoffrey', movie: 'movie_pirates_curse', character: 'Captain Barbossa' },
+  {
+    id: 'role_pirates1_jack',
+    actor: 'person_depp_johnny',
+    movie: 'movie_pirates_curse',
+    character: 'Captain Jack Sparrow'
+  },
+  {
+    id: 'role_pirates1_will',
+    actor: 'person_bloom_orlando',
+    movie: 'movie_pirates_curse',
+    character: 'Will Turner'
+  },
+  {
+    id: 'role_pirates1_elizabeth',
+    actor: 'person_knightley_keira',
+    movie: 'movie_pirates_curse',
+    character: 'Elizabeth Swann'
+  },
+  {
+    id: 'role_pirates1_barbossa',
+    actor: 'person_rush_geoffrey',
+    movie: 'movie_pirates_curse',
+    character: 'Captain Barbossa'
+  },
 
-  { id: 'role_pirates2_jack', actor: 'person_depp_johnny', movie: 'movie_pirates_chest', character: 'Captain Jack Sparrow' },
-  { id: 'role_pirates2_will', actor: 'person_bloom_orlando', movie: 'movie_pirates_chest', character: 'Will Turner' },
-  { id: 'role_pirates2_elizabeth', actor: 'person_knightley_keira', movie: 'movie_pirates_chest', character: 'Elizabeth Swann' },
+  {
+    id: 'role_pirates2_jack',
+    actor: 'person_depp_johnny',
+    movie: 'movie_pirates_chest',
+    character: 'Captain Jack Sparrow'
+  },
+  {
+    id: 'role_pirates2_will',
+    actor: 'person_bloom_orlando',
+    movie: 'movie_pirates_chest',
+    character: 'Will Turner'
+  },
+  {
+    id: 'role_pirates2_elizabeth',
+    actor: 'person_knightley_keira',
+    movie: 'movie_pirates_chest',
+    character: 'Elizabeth Swann'
+  },
 
-  { id: 'role_pirates3_jack', actor: 'person_depp_johnny', movie: 'movie_pirates_world_end', character: 'Captain Jack Sparrow' },
-  { id: 'role_pirates3_will', actor: 'person_bloom_orlando', movie: 'movie_pirates_world_end', character: 'Will Turner' },
-  { id: 'role_pirates3_elizabeth', actor: 'person_knightley_keira', movie: 'movie_pirates_world_end', character: 'Elizabeth Swann' },
-  { id: 'role_pirates3_barbossa', actor: 'person_rush_geoffrey', movie: 'movie_pirates_world_end', character: 'Captain Barbossa' },
+  {
+    id: 'role_pirates3_jack',
+    actor: 'person_depp_johnny',
+    movie: 'movie_pirates_world_end',
+    character: 'Captain Jack Sparrow'
+  },
+  {
+    id: 'role_pirates3_will',
+    actor: 'person_bloom_orlando',
+    movie: 'movie_pirates_world_end',
+    character: 'Will Turner'
+  },
+  {
+    id: 'role_pirates3_elizabeth',
+    actor: 'person_knightley_keira',
+    movie: 'movie_pirates_world_end',
+    character: 'Elizabeth Swann'
+  },
+  {
+    id: 'role_pirates3_barbossa',
+    actor: 'person_rush_geoffrey',
+    movie: 'movie_pirates_world_end',
+    character: 'Captain Barbossa'
+  },
 
   // Hobbit trilogy
-  { id: 'role_hobbit1_bilbo', actor: 'person_freeman_martin', movie: 'movie_hobbit_journey', character: 'Bilbo Baggins' },
-  { id: 'role_hobbit1_gandalf', actor: 'person_mckellen_ian', movie: 'movie_hobbit_journey', character: 'Gandalf' },
-  { id: 'role_hobbit1_thorin', actor: 'person_armitage_richard', movie: 'movie_hobbit_journey', character: 'Thorin Oakenshield' },
-  { id: 'role_hobbit1_gollum', actor: 'person_serkis_andy', movie: 'movie_hobbit_journey', character: 'Gollum' },
-  { id: 'role_hobbit1_elrond', actor: 'person_weaving_hugo', movie: 'movie_hobbit_journey', character: 'Elrond' },
-  { id: 'role_hobbit1_galadriel', actor: 'person_blanchett_cate', movie: 'movie_hobbit_journey', character: 'Galadriel' },
-  { id: 'role_hobbit1_saruman', actor: 'person_lee_christopher_lotr', movie: 'movie_hobbit_journey', character: 'Saruman' },
+  {
+    id: 'role_hobbit1_bilbo',
+    actor: 'person_freeman_martin',
+    movie: 'movie_hobbit_journey',
+    character: 'Bilbo Baggins'
+  },
+  {
+    id: 'role_hobbit1_gandalf',
+    actor: 'person_mckellen_ian',
+    movie: 'movie_hobbit_journey',
+    character: 'Gandalf'
+  },
+  {
+    id: 'role_hobbit1_thorin',
+    actor: 'person_armitage_richard',
+    movie: 'movie_hobbit_journey',
+    character: 'Thorin Oakenshield'
+  },
+  {
+    id: 'role_hobbit1_gollum',
+    actor: 'person_serkis_andy',
+    movie: 'movie_hobbit_journey',
+    character: 'Gollum'
+  },
+  {
+    id: 'role_hobbit1_elrond',
+    actor: 'person_weaving_hugo',
+    movie: 'movie_hobbit_journey',
+    character: 'Elrond'
+  },
+  {
+    id: 'role_hobbit1_galadriel',
+    actor: 'person_blanchett_cate',
+    movie: 'movie_hobbit_journey',
+    character: 'Galadriel'
+  },
+  {
+    id: 'role_hobbit1_saruman',
+    actor: 'person_lee_christopher_lotr',
+    movie: 'movie_hobbit_journey',
+    character: 'Saruman'
+  },
 
-  { id: 'role_hobbit2_bilbo', actor: 'person_freeman_martin', movie: 'movie_hobbit_smaug', character: 'Bilbo Baggins' },
-  { id: 'role_hobbit2_gandalf', actor: 'person_mckellen_ian', movie: 'movie_hobbit_smaug', character: 'Gandalf' },
-  { id: 'role_hobbit2_thorin', actor: 'person_armitage_richard', movie: 'movie_hobbit_smaug', character: 'Thorin Oakenshield' },
-  { id: 'role_hobbit2_legolas', actor: 'person_bloom_orlando', movie: 'movie_hobbit_smaug', character: 'Legolas' },
-  { id: 'role_hobbit2_tauriel', actor: 'person_lilly_evangeline', movie: 'movie_hobbit_smaug', character: 'Tauriel' },
+  {
+    id: 'role_hobbit2_bilbo',
+    actor: 'person_freeman_martin',
+    movie: 'movie_hobbit_smaug',
+    character: 'Bilbo Baggins'
+  },
+  {
+    id: 'role_hobbit2_gandalf',
+    actor: 'person_mckellen_ian',
+    movie: 'movie_hobbit_smaug',
+    character: 'Gandalf'
+  },
+  {
+    id: 'role_hobbit2_thorin',
+    actor: 'person_armitage_richard',
+    movie: 'movie_hobbit_smaug',
+    character: 'Thorin Oakenshield'
+  },
+  {
+    id: 'role_hobbit2_legolas',
+    actor: 'person_bloom_orlando',
+    movie: 'movie_hobbit_smaug',
+    character: 'Legolas'
+  },
+  {
+    id: 'role_hobbit2_tauriel',
+    actor: 'person_lilly_evangeline',
+    movie: 'movie_hobbit_smaug',
+    character: 'Tauriel'
+  },
 
-  { id: 'role_hobbit3_bilbo', actor: 'person_freeman_martin', movie: 'movie_hobbit_battle', character: 'Bilbo Baggins' },
-  { id: 'role_hobbit3_gandalf', actor: 'person_mckellen_ian', movie: 'movie_hobbit_battle', character: 'Gandalf' },
-  { id: 'role_hobbit3_thorin', actor: 'person_armitage_richard', movie: 'movie_hobbit_battle', character: 'Thorin Oakenshield' },
-  { id: 'role_hobbit3_legolas', actor: 'person_bloom_orlando', movie: 'movie_hobbit_battle', character: 'Legolas' },
-  { id: 'role_hobbit3_galadriel', actor: 'person_blanchett_cate', movie: 'movie_hobbit_battle', character: 'Galadriel' },
-  { id: 'role_hobbit3_saruman', actor: 'person_lee_christopher_lotr', movie: 'movie_hobbit_battle', character: 'Saruman' },
+  {
+    id: 'role_hobbit3_bilbo',
+    actor: 'person_freeman_martin',
+    movie: 'movie_hobbit_battle',
+    character: 'Bilbo Baggins'
+  },
+  {
+    id: 'role_hobbit3_gandalf',
+    actor: 'person_mckellen_ian',
+    movie: 'movie_hobbit_battle',
+    character: 'Gandalf'
+  },
+  {
+    id: 'role_hobbit3_thorin',
+    actor: 'person_armitage_richard',
+    movie: 'movie_hobbit_battle',
+    character: 'Thorin Oakenshield'
+  },
+  {
+    id: 'role_hobbit3_legolas',
+    actor: 'person_bloom_orlando',
+    movie: 'movie_hobbit_battle',
+    character: 'Legolas'
+  },
+  {
+    id: 'role_hobbit3_galadriel',
+    actor: 'person_blanchett_cate',
+    movie: 'movie_hobbit_battle',
+    character: 'Galadriel'
+  },
+  {
+    id: 'role_hobbit3_saruman',
+    actor: 'person_lee_christopher_lotr',
+    movie: 'movie_hobbit_battle',
+    character: 'Saruman'
+  },
 
   // King Kong
-  { id: 'role_kong_ann', actor: 'person_watts_naomi', movie: 'movie_king_kong_2005', character: 'Ann Darrow' },
-  { id: 'role_kong_carl', actor: 'person_black_jack', movie: 'movie_king_kong_2005', character: 'Carl Denham' },
-  { id: 'role_kong_jack', actor: 'person_brody_adrien', movie: 'movie_king_kong_2005', character: 'Jack Driscoll' },
-  { id: 'role_kong_andy', actor: 'person_serkis_andy', movie: 'movie_king_kong_2005', character: 'Kong / Lumpy' },
+  {
+    id: 'role_kong_ann',
+    actor: 'person_watts_naomi',
+    movie: 'movie_king_kong_2005',
+    character: 'Ann Darrow'
+  },
+  {
+    id: 'role_kong_carl',
+    actor: 'person_black_jack',
+    movie: 'movie_king_kong_2005',
+    character: 'Carl Denham'
+  },
+  {
+    id: 'role_kong_jack',
+    actor: 'person_brody_adrien',
+    movie: 'movie_king_kong_2005',
+    character: 'Jack Driscoll'
+  },
+  {
+    id: 'role_kong_andy',
+    actor: 'person_serkis_andy',
+    movie: 'movie_king_kong_2005',
+    character: 'Kong / Lumpy'
+  },
 
   // Black Swan
-  { id: 'role_bs_nina', actor: 'person_portman_natalie', movie: 'movie_black_swan', character: 'Nina Sayers' },
+  {
+    id: 'role_bs_nina',
+    actor: 'person_portman_natalie',
+    movie: 'movie_black_swan',
+    character: 'Nina Sayers'
+  },
   { id: 'role_bs_lily', actor: 'person_kunis_mila', movie: 'movie_black_swan', character: 'Lily' },
-  { id: 'role_bs_thomas', actor: 'person_cassel_vincent', movie: 'movie_black_swan', character: 'Thomas Leroy' },
+  {
+    id: 'role_bs_thomas',
+    actor: 'person_cassel_vincent',
+    movie: 'movie_black_swan',
+    character: 'Thomas Leroy'
+  },
 
   // V for Vendetta
   { id: 'role_v_v', actor: 'person_weaving_hugo', movie: 'movie_v_vendetta', character: 'V' },
-  { id: 'role_v_evey', actor: 'person_portman_natalie', movie: 'movie_v_vendetta', character: 'Evey Hammond' },
-  { id: 'role_v_finch', actor: 'person_rea_stephen', movie: 'movie_v_vendetta', character: 'Inspector Finch' },
+  {
+    id: 'role_v_evey',
+    actor: 'person_portman_natalie',
+    movie: 'movie_v_vendetta',
+    character: 'Evey Hammond'
+  },
+  {
+    id: 'role_v_finch',
+    actor: 'person_rea_stephen',
+    movie: 'movie_v_vendetta',
+    character: 'Inspector Finch'
+  },
 
   // Thor films
   { id: 'role_thor_thor', actor: 'person_hemsworth_chris', movie: 'movie_thor', character: 'Thor' },
-  { id: 'role_thor_jane', actor: 'person_portman_natalie', movie: 'movie_thor', character: 'Jane Foster' },
+  {
+    id: 'role_thor_jane',
+    actor: 'person_portman_natalie',
+    movie: 'movie_thor',
+    character: 'Jane Foster'
+  },
   { id: 'role_thor_loki', actor: 'person_hiddleston_tom', movie: 'movie_thor', character: 'Loki' },
 
-  { id: 'role_thor2_thor', actor: 'person_hemsworth_chris', movie: 'movie_thor_dark_world', character: 'Thor' },
-  { id: 'role_thor2_jane', actor: 'person_portman_natalie', movie: 'movie_thor_dark_world', character: 'Jane Foster' },
-  { id: 'role_thor2_loki', actor: 'person_hiddleston_tom', movie: 'movie_thor_dark_world', character: 'Loki' },
+  {
+    id: 'role_thor2_thor',
+    actor: 'person_hemsworth_chris',
+    movie: 'movie_thor_dark_world',
+    character: 'Thor'
+  },
+  {
+    id: 'role_thor2_jane',
+    actor: 'person_portman_natalie',
+    movie: 'movie_thor_dark_world',
+    character: 'Jane Foster'
+  },
+  {
+    id: 'role_thor2_loki',
+    actor: 'person_hiddleston_tom',
+    movie: 'movie_thor_dark_world',
+    character: 'Loki'
+  },
 
   // Pulp Fiction
-  { id: 'role_pf_jules', actor: 'person_jackson_samuel', movie: 'movie_pulp_fiction', character: 'Jules Winnfield' },
-  { id: 'role_pf_vincent', actor: 'person_travolta_john', movie: 'movie_pulp_fiction', character: 'Vincent Vega' },
-  { id: 'role_pf_mia', actor: 'person_thurman_uma', movie: 'movie_pulp_fiction', character: 'Mia Wallace' },
+  {
+    id: 'role_pf_jules',
+    actor: 'person_jackson_samuel',
+    movie: 'movie_pulp_fiction',
+    character: 'Jules Winnfield'
+  },
+  {
+    id: 'role_pf_vincent',
+    actor: 'person_travolta_john',
+    movie: 'movie_pulp_fiction',
+    character: 'Vincent Vega'
+  },
+  {
+    id: 'role_pf_mia',
+    actor: 'person_thurman_uma',
+    movie: 'movie_pulp_fiction',
+    character: 'Mia Wallace'
+  },
 
   // Avengers
-  { id: 'role_avengers_fury', actor: 'person_jackson_samuel', movie: 'movie_avengers', character: 'Nick Fury' },
-  { id: 'role_avengers_ironman', actor: 'person_downey_robert', movie: 'movie_avengers', character: 'Tony Stark / Iron Man' },
-  { id: 'role_avengers_cap', actor: 'person_evans_chris', movie: 'movie_avengers', character: 'Steve Rogers / Captain America' },
-  { id: 'role_avengers_thor', actor: 'person_hemsworth_chris', movie: 'movie_avengers', character: 'Thor' },
-  { id: 'role_avengers_widow', actor: 'person_johansson_scarlett', movie: 'movie_avengers', character: 'Natasha Romanoff / Black Widow' },
-  { id: 'role_avengers_hulk', actor: 'person_ruffalo_mark', movie: 'movie_avengers', character: 'Bruce Banner / Hulk' },
-  { id: 'role_avengers_hawkeye', actor: 'person_renner_jeremy', movie: 'movie_avengers', character: 'Clint Barton / Hawkeye' },
-  { id: 'role_avengers_loki', actor: 'person_hiddleston_tom', movie: 'movie_avengers', character: 'Loki' },
+  {
+    id: 'role_avengers_fury',
+    actor: 'person_jackson_samuel',
+    movie: 'movie_avengers',
+    character: 'Nick Fury'
+  },
+  {
+    id: 'role_avengers_ironman',
+    actor: 'person_downey_robert',
+    movie: 'movie_avengers',
+    character: 'Tony Stark / Iron Man'
+  },
+  {
+    id: 'role_avengers_cap',
+    actor: 'person_evans_chris',
+    movie: 'movie_avengers',
+    character: 'Steve Rogers / Captain America'
+  },
+  {
+    id: 'role_avengers_thor',
+    actor: 'person_hemsworth_chris',
+    movie: 'movie_avengers',
+    character: 'Thor'
+  },
+  {
+    id: 'role_avengers_widow',
+    actor: 'person_johansson_scarlett',
+    movie: 'movie_avengers',
+    character: 'Natasha Romanoff / Black Widow'
+  },
+  {
+    id: 'role_avengers_hulk',
+    actor: 'person_ruffalo_mark',
+    movie: 'movie_avengers',
+    character: 'Bruce Banner / Hulk'
+  },
+  {
+    id: 'role_avengers_hawkeye',
+    actor: 'person_renner_jeremy',
+    movie: 'movie_avengers',
+    character: 'Clint Barton / Hawkeye'
+  },
+  {
+    id: 'role_avengers_loki',
+    actor: 'person_hiddleston_tom',
+    movie: 'movie_avengers',
+    character: 'Loki'
+  },
 
-  { id: 'role_ultron_fury', actor: 'person_jackson_samuel', movie: 'movie_avengers_ultron', character: 'Nick Fury' },
-  { id: 'role_ultron_ironman', actor: 'person_downey_robert', movie: 'movie_avengers_ultron', character: 'Tony Stark / Iron Man' },
-  { id: 'role_ultron_cap', actor: 'person_evans_chris', movie: 'movie_avengers_ultron', character: 'Steve Rogers / Captain America' },
-  { id: 'role_ultron_thor', actor: 'person_hemsworth_chris', movie: 'movie_avengers_ultron', character: 'Thor' },
-  { id: 'role_ultron_widow', actor: 'person_johansson_scarlett', movie: 'movie_avengers_ultron', character: 'Natasha Romanoff / Black Widow' },
-  { id: 'role_ultron_hulk', actor: 'person_ruffalo_mark', movie: 'movie_avengers_ultron', character: 'Bruce Banner / Hulk' },
-  { id: 'role_ultron_hawkeye', actor: 'person_renner_jeremy', movie: 'movie_avengers_ultron', character: 'Clint Barton / Hawkeye' },
+  {
+    id: 'role_ultron_fury',
+    actor: 'person_jackson_samuel',
+    movie: 'movie_avengers_ultron',
+    character: 'Nick Fury'
+  },
+  {
+    id: 'role_ultron_ironman',
+    actor: 'person_downey_robert',
+    movie: 'movie_avengers_ultron',
+    character: 'Tony Stark / Iron Man'
+  },
+  {
+    id: 'role_ultron_cap',
+    actor: 'person_evans_chris',
+    movie: 'movie_avengers_ultron',
+    character: 'Steve Rogers / Captain America'
+  },
+  {
+    id: 'role_ultron_thor',
+    actor: 'person_hemsworth_chris',
+    movie: 'movie_avengers_ultron',
+    character: 'Thor'
+  },
+  {
+    id: 'role_ultron_widow',
+    actor: 'person_johansson_scarlett',
+    movie: 'movie_avengers_ultron',
+    character: 'Natasha Romanoff / Black Widow'
+  },
+  {
+    id: 'role_ultron_hulk',
+    actor: 'person_ruffalo_mark',
+    movie: 'movie_avengers_ultron',
+    character: 'Bruce Banner / Hulk'
+  },
+  {
+    id: 'role_ultron_hawkeye',
+    actor: 'person_renner_jeremy',
+    movie: 'movie_avengers_ultron',
+    character: 'Clint Barton / Hawkeye'
+  },
 
   // Memento
-  { id: 'role_memento_leonard', actor: 'person_pearce_guy', movie: 'movie_memento', character: 'Leonard Shelby' },
-  { id: 'role_memento_natalie', actor: 'person_moss_carrie_anne', movie: 'movie_memento', character: 'Natalie' },
-  { id: 'role_memento_teddy', actor: 'person_pantoliano_joe', movie: 'movie_memento', character: 'Teddy Gammell' },
+  {
+    id: 'role_memento_leonard',
+    actor: 'person_pearce_guy',
+    movie: 'movie_memento',
+    character: 'Leonard Shelby'
+  },
+  {
+    id: 'role_memento_natalie',
+    actor: 'person_moss_carrie_anne',
+    movie: 'movie_memento',
+    character: 'Natalie'
+  },
+  {
+    id: 'role_memento_teddy',
+    actor: 'person_pantoliano_joe',
+    movie: 'movie_memento',
+    character: 'Teddy Gammell'
+  },
 
   // History of Violence
-  { id: 'role_hov_tom', actor: 'person_mortensen_viggo', movie: 'movie_history_violence', character: 'Tom Stall' },
-  { id: 'role_hov_edie', actor: 'person_bello_maria', movie: 'movie_history_violence', character: 'Edie Stall' },
-  { id: 'role_hov_carl', actor: 'person_harris_ed', movie: 'movie_history_violence', character: 'Carl Fogarty' },
+  {
+    id: 'role_hov_tom',
+    actor: 'person_mortensen_viggo',
+    movie: 'movie_history_violence',
+    character: 'Tom Stall'
+  },
+  {
+    id: 'role_hov_edie',
+    actor: 'person_bello_maria',
+    movie: 'movie_history_violence',
+    character: 'Edie Stall'
+  },
+  {
+    id: 'role_hov_carl',
+    actor: 'person_harris_ed',
+    movie: 'movie_history_violence',
+    character: 'Carl Fogarty'
+  },
 
   // Eastern Promises
-  { id: 'role_ep_nikolai', actor: 'person_mortensen_viggo', movie: 'movie_eastern_promises', character: 'Nikolai Luzhin' },
-  { id: 'role_ep_anna', actor: 'person_watts_naomi', movie: 'movie_eastern_promises', character: 'Anna Khitrova' },
+  {
+    id: 'role_ep_nikolai',
+    actor: 'person_mortensen_viggo',
+    movie: 'movie_eastern_promises',
+    character: 'Nikolai Luzhin'
+  },
+  {
+    id: 'role_ep_anna',
+    actor: 'person_watts_naomi',
+    movie: 'movie_eastern_promises',
+    character: 'Anna Khitrova'
+  },
 
   // Elizabeth
-  { id: 'role_eliz_elizabeth', actor: 'person_blanchett_cate', movie: 'movie_elizabeth', character: 'Elizabeth I' },
-  { id: 'role_eliz_walsingham', actor: 'person_rush_geoffrey', movie: 'movie_elizabeth', character: 'Sir Francis Walsingham' },
+  {
+    id: 'role_eliz_elizabeth',
+    actor: 'person_blanchett_cate',
+    movie: 'movie_elizabeth',
+    character: 'Elizabeth I'
+  },
+  {
+    id: 'role_eliz_walsingham',
+    actor: 'person_rush_geoffrey',
+    movie: 'movie_elizabeth',
+    character: 'Sir Francis Walsingham'
+  },
 
   // Curious Case
-  { id: 'role_ccbb_benjamin', actor: 'person_pitt_brad', movie: 'movie_curious_case', character: 'Benjamin Button' },
-  { id: 'role_ccbb_daisy', actor: 'person_blanchett_cate', movie: 'movie_curious_case', character: 'Daisy' },
+  {
+    id: 'role_ccbb_benjamin',
+    actor: 'person_pitt_brad',
+    movie: 'movie_curious_case',
+    character: 'Benjamin Button'
+  },
+  {
+    id: 'role_ccbb_daisy',
+    actor: 'person_blanchett_cate',
+    movie: 'movie_curious_case',
+    character: 'Daisy'
+  },
 
   // Taken films
-  { id: 'role_taken_bryan', actor: 'person_neeson_liam', movie: 'movie_taken', character: 'Bryan Mills' },
-  { id: 'role_taken_kim', actor: 'person_grace_maggie', movie: 'movie_taken', character: 'Kim Mills' },
-  { id: 'role_taken_lenore', actor: 'person_janssen_famke', movie: 'movie_taken', character: 'Lenore' },
+  {
+    id: 'role_taken_bryan',
+    actor: 'person_neeson_liam',
+    movie: 'movie_taken',
+    character: 'Bryan Mills'
+  },
+  {
+    id: 'role_taken_kim',
+    actor: 'person_grace_maggie',
+    movie: 'movie_taken',
+    character: 'Kim Mills'
+  },
+  {
+    id: 'role_taken_lenore',
+    actor: 'person_janssen_famke',
+    movie: 'movie_taken',
+    character: 'Lenore'
+  },
 
-  { id: 'role_taken2_bryan', actor: 'person_neeson_liam', movie: 'movie_taken_2', character: 'Bryan Mills' },
-  { id: 'role_taken2_kim', actor: 'person_grace_maggie', movie: 'movie_taken_2', character: 'Kim Mills' },
-  { id: 'role_taken2_lenore', actor: 'person_janssen_famke', movie: 'movie_taken_2', character: 'Lenore' },
+  {
+    id: 'role_taken2_bryan',
+    actor: 'person_neeson_liam',
+    movie: 'movie_taken_2',
+    character: 'Bryan Mills'
+  },
+  {
+    id: 'role_taken2_kim',
+    actor: 'person_grace_maggie',
+    movie: 'movie_taken_2',
+    character: 'Kim Mills'
+  },
+  {
+    id: 'role_taken2_lenore',
+    actor: 'person_janssen_famke',
+    movie: 'movie_taken_2',
+    character: 'Lenore'
+  },
 
   // Trainspotting
-  { id: 'role_train_renton', actor: 'person_mcgregor_ewan', movie: 'movie_trainspotting', character: 'Mark Renton' },
-  { id: 'role_train_begbie', actor: 'person_carlyle_robert', movie: 'movie_trainspotting', character: 'Francis Begbie' },
-  { id: 'role_train_spud', actor: 'person_bremner_ewen', movie: 'movie_trainspotting', character: 'Spud' },
-  { id: 'role_train_sick_boy', actor: 'person_miller_jonny_lee', movie: 'movie_trainspotting', character: 'Sick Boy' },
+  {
+    id: 'role_train_renton',
+    actor: 'person_mcgregor_ewan',
+    movie: 'movie_trainspotting',
+    character: 'Mark Renton'
+  },
+  {
+    id: 'role_train_begbie',
+    actor: 'person_carlyle_robert',
+    movie: 'movie_trainspotting',
+    character: 'Francis Begbie'
+  },
+  {
+    id: 'role_train_spud',
+    actor: 'person_bremner_ewen',
+    movie: 'movie_trainspotting',
+    character: 'Spud'
+  },
+  {
+    id: 'role_train_sick_boy',
+    actor: 'person_miller_jonny_lee',
+    movie: 'movie_trainspotting',
+    character: 'Sick Boy'
+  },
 
   // Moulin Rouge
-  { id: 'role_mr_christian', actor: 'person_mcgregor_ewan', movie: 'movie_moulin_rouge', character: 'Christian' },
-  { id: 'role_mr_satine', actor: 'person_kidman_nicole', movie: 'movie_moulin_rouge', character: 'Satine' },
+  {
+    id: 'role_mr_christian',
+    actor: 'person_mcgregor_ewan',
+    movie: 'movie_moulin_rouge',
+    character: 'Christian'
+  },
+  {
+    id: 'role_mr_satine',
+    actor: 'person_kidman_nicole',
+    movie: 'movie_moulin_rouge',
+    character: 'Satine'
+  },
 
   // Rise Planet Apes
-  { id: 'role_pota_caesar', actor: 'person_serkis_andy', movie: 'movie_planet_apes_rise', character: 'Caesar' },
-  { id: 'role_pota_will', actor: 'person_franco_james', movie: 'movie_planet_apes_rise', character: 'Will Rodman' },
-  { id: 'role_pota_caroline', actor: 'person_pinto_freida', movie: 'movie_planet_apes_rise', character: 'Caroline Aranha' },
+  {
+    id: 'role_pota_caesar',
+    actor: 'person_serkis_andy',
+    movie: 'movie_planet_apes_rise',
+    character: 'Caesar'
+  },
+  {
+    id: 'role_pota_will',
+    actor: 'person_franco_james',
+    movie: 'movie_planet_apes_rise',
+    character: 'Will Rodman'
+  },
+  {
+    id: 'role_pota_caroline',
+    actor: 'person_pinto_freida',
+    movie: 'movie_planet_apes_rise',
+    character: 'Caroline Aranha'
+  },
 
   // GoldenEye
-  { id: 'role_ge_alec', actor: 'person_bean_sean', movie: 'movie_goldeneye', character: 'Alec Trevelyan' },
-  { id: 'role_ge_bond', actor: 'person_brosnan_pierce', movie: 'movie_goldeneye', character: 'James Bond' },
+  {
+    id: 'role_ge_alec',
+    actor: 'person_bean_sean',
+    movie: 'movie_goldeneye',
+    character: 'Alec Trevelyan'
+  },
+  {
+    id: 'role_ge_bond',
+    actor: 'person_brosnan_pierce',
+    movie: 'movie_goldeneye',
+    character: 'James Bond'
+  },
 
   // Star Wars sequels
-  { id: 'role_tfa_luke', actor: 'person_hamill_mark', movie: 'movie_force_awakens', character: 'Luke Skywalker' },
-  { id: 'role_tfa_han', actor: 'person_ford_harrison', movie: 'movie_force_awakens', character: 'Han Solo' },
-  { id: 'role_tfa_leia', actor: 'person_fisher_carrie', movie: 'movie_force_awakens', character: 'General Leia Organa' },
+  {
+    id: 'role_tfa_luke',
+    actor: 'person_hamill_mark',
+    movie: 'movie_force_awakens',
+    character: 'Luke Skywalker'
+  },
+  {
+    id: 'role_tfa_han',
+    actor: 'person_ford_harrison',
+    movie: 'movie_force_awakens',
+    character: 'Han Solo'
+  },
+  {
+    id: 'role_tfa_leia',
+    actor: 'person_fisher_carrie',
+    movie: 'movie_force_awakens',
+    character: 'General Leia Organa'
+  },
 
-  { id: 'role_tlj_luke', actor: 'person_hamill_mark', movie: 'movie_last_jedi', character: 'Luke Skywalker' },
-  { id: 'role_tlj_leia', actor: 'person_fisher_carrie', movie: 'movie_last_jedi', character: 'General Leia Organa' }
+  {
+    id: 'role_tlj_luke',
+    actor: 'person_hamill_mark',
+    movie: 'movie_last_jedi',
+    character: 'Luke Skywalker'
+  },
+  {
+    id: 'role_tlj_leia',
+    actor: 'person_fisher_carrie',
+    movie: 'movie_last_jedi',
+    character: 'General Leia Organa'
+  }
 ];
 
 // Additional supporting actors

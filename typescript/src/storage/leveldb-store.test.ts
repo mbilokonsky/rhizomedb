@@ -338,12 +338,12 @@ describe('LevelDBStore', () => {
 
       const view1 = await db.materializeHyperView(personId, schema);
       expect(view1.id).toBe(personId);
-      expect(view1._deltaCount).toBeGreaterThan(0);
-      expect(view1._lastUpdated).toBeGreaterThan(0);
+      expect(view1._metadata.deltaCount).toBeGreaterThan(0);
+      expect(view1._metadata.lastUpdated).toBeGreaterThan(0);
 
       // Request again - should return cached version
       const view2 = await db.materializeHyperView(personId, schema);
-      expect(view2._lastUpdated).toBe(view1._lastUpdated);
+      expect(view2._metadata.lastUpdated).toBe(view1._metadata.lastUpdated);
     });
 
     it('should invalidate cached views', async () => {
@@ -362,7 +362,7 @@ describe('LevelDBStore', () => {
       await db.persistDelta(delta);
 
       const view1 = await db.materializeHyperView(personId, schema);
-      const timestamp1 = view1._lastUpdated;
+      const timestamp1 = view1._metadata.lastUpdated;
 
       // Invalidate cache
       db.invalidateView(personId, schema.id);
@@ -372,7 +372,7 @@ describe('LevelDBStore', () => {
 
       // Request again - should regenerate
       const view2 = await db.materializeHyperView(personId, schema);
-      expect(view2._lastUpdated).toBeGreaterThanOrEqual(timestamp1);
+      expect(view2._metadata.lastUpdated).toBeGreaterThanOrEqual(timestamp1);
     });
   });
 

@@ -69,10 +69,7 @@ export interface Delta {
  * @param delta - The delta to check for relevance
  * @returns false (exclude), true (include in default property), or string[] (property names)
  */
-export type SelectionFunction = (
-  objectId: string,
-  delta: Delta
-) => boolean | string[];
+export type SelectionFunction = (objectId: string, delta: Delta) => boolean | string[];
 
 /**
  * Primitive type schema for primitive values (string, number, boolean)
@@ -136,6 +133,32 @@ export interface HyperSchema {
 // ============================================================================
 
 /**
+ * Optional metadata for HyperViews
+ *
+ * This is particularly useful for materialized HyperViews that need to track
+ * when they were last updated, how many deltas they contain, etc.
+ */
+export interface HyperViewMetadata {
+  /** When this view was last updated (timestamp) */
+  lastUpdated?: number;
+
+  /** How many deltas are in this view */
+  deltaCount?: number;
+
+  /** The schema ID used to create this view */
+  schemaId?: string;
+
+  /** Content hash of the schema version used to create this view */
+  schemaHash?: string;
+
+  /** Explicit schema version number (if schema uses versioning) */
+  schemaVersion?: number;
+
+  /** Custom metadata fields */
+  [key: string]: any;
+}
+
+/**
  * A structured organization of deltas representing a domain object
  *
  * Each property contains an array of deltas, with pointers potentially
@@ -145,34 +168,25 @@ export interface HyperView {
   /** The domain object ID */
   id: string;
 
-  /** Properties, each containing deltas. Note: id is string, rest are Delta[] */
-  [property: string]: string | Delta[];
+  /** Optional metadata (e.g., for materialized HyperViews) */
+  _metadata?: HyperViewMetadata;
+
+  /** Properties, each containing deltas. Note: id is string, _metadata is optional, rest are Delta[] */
+  [property: string]: string | HyperViewMetadata | Delta[] | undefined;
 }
 
 /**
- * A materialized HyperView with metadata about when it was last updated
+ * A materialized HyperView with required metadata about when it was last updated
+ *
+ * This is a HyperView that has been cached for fast access, with metadata
+ * about the schema used to create it and when it was last updated.
  */
-export interface MaterializedHyperView {
-  /** The domain object ID */
-  id: string;
-
-  /** The schema ID used to create this view */
-  _schemaId: string;
-
-  /** Content hash of the schema version used to create this view */
-  _schemaHash: string;
-
-  /** Explicit schema version number (if schema uses versioning) */
-  _schemaVersion?: number;
-
-  /** When this view was last updated (timestamp) */
-  _lastUpdated: number;
-
-  /** How many deltas are in this view */
-  _deltaCount: number;
-
-  /** Properties, each containing deltas */
-  [property: string]: string | number | Delta[] | undefined;
+export interface MaterializedHyperView extends HyperView {
+  /** Required metadata for materialized views */
+  _metadata: Required<
+    Pick<HyperViewMetadata, 'lastUpdated' | 'deltaCount' | 'schemaId' | 'schemaHash'>
+  > &
+    HyperViewMetadata;
 }
 
 // ============================================================================
@@ -359,7 +373,10 @@ export interface StreamProducer extends RhizomeInstance {
  */
 export interface IndexMaintainer extends RhizomeInstance {
   /** Materialize a HyperView for fast access */
-  materializeHyperView(objectId: string, schema: HyperSchema): MaterializedHyperView | Promise<MaterializedHyperView>;
+  materializeHyperView(
+    objectId: string,
+    schema: HyperSchema
+  ): MaterializedHyperView | Promise<MaterializedHyperView>;
 
   /** Update a materialized HyperView with a new delta */
   updateHyperView(view: MaterializedHyperView, delta: Delta): void;
@@ -474,7 +491,13 @@ export interface InstanceStats {
  * Helper to check if a schema is a PrimitiveHyperSchema
  */
 export function isPrimitiveHyperSchema(schema: any): schema is PrimitiveHyperSchema {
-  return schema && typeof schema === 'object' && 'type' in schema && 'validate' in schema && 'graphQLType' in schema;
+  return (
+    schema &&
+    typeof schema === 'object' &&
+    'type' in schema &&
+    'validate' in schema &&
+    'graphQLType' in schema
+  );
 }
 
 // GraphQL type imports (note: actual GraphQL types injected at runtime to avoid circular deps)

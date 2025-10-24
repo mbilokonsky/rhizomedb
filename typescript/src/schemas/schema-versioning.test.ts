@@ -311,9 +311,9 @@ describe('Schema Versioning', () => {
 
       const view = db.materializeHyperView('user-1', schema);
 
-      expect(view._schemaId).toBe('user-schema');
-      expect(view._schemaHash).toBeTruthy();
-      expect(view._schemaHash.length).toBe(64);
+      expect(view._metadata.schemaId).toBe('user-schema');
+      expect(view._metadata.schemaHash).toBeTruthy();
+      expect(view._metadata.schemaHash.length).toBe(64);
     });
 
     it('should detect when a view is outdated', () => {
@@ -352,7 +352,7 @@ describe('Schema Versioning', () => {
 
       db.registerSchema(schema1);
       const view1 = db.materializeHyperView('user-1', schema1);
-      expect(view1._schemaVersion).toBe(1);
+      expect(view1._metadata.schemaVersion).toBe(1);
 
       // Update schema
       const schema2: VersionedHyperSchema = {
@@ -367,7 +367,7 @@ describe('Schema Versioning', () => {
 
       // Get or rebuild should detect outdated and rebuild
       const view2 = db.getOrRebuildHyperView('user-1', schema2);
-      expect(view2._schemaVersion).toBe(2);
+      expect(view2._metadata.schemaVersion).toBe(2);
     });
 
     it('should use cached view when schema has not changed', () => {
@@ -382,7 +382,7 @@ describe('Schema Versioning', () => {
 
       // Materialize and cache
       const view1 = db.materializeHyperView('user-1', schema);
-      const timestamp1 = view1._lastUpdated;
+      const timestamp1 = view1._metadata.lastUpdated;
 
       // Small delay to ensure different timestamps
       setTimeout(() => {
@@ -390,7 +390,7 @@ describe('Schema Versioning', () => {
         const view2 = db.getOrRebuildHyperView('user-1', schema);
 
         // Should be same instance (from cache)
-        expect(view2._lastUpdated).toBe(timestamp1);
+        expect(view2._metadata.lastUpdated).toBe(timestamp1);
       }, 10);
     });
   });

@@ -31,11 +31,7 @@ export function isDomainNodeReference(value: any): value is DomainNodeReference 
  * Check if a value is a valid Primitive
  */
 export function isPrimitive(value: any): boolean {
-  return (
-    typeof value === 'string' ||
-    typeof value === 'number' ||
-    typeof value === 'boolean'
-  );
+  return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean';
 }
 
 /**
@@ -51,9 +47,7 @@ export function validatePointer(pointer: Pointer): void {
 
   // Valid target (either DomainNodeReference or Primitive)
   if (!isDomainNodeReference(pointer.target) && !isPrimitive(pointer.target)) {
-    throw new ValidationError(
-      'Pointer target must be DomainNodeReference or Primitive'
-    );
+    throw new ValidationError('Pointer target must be DomainNodeReference or Primitive');
   }
 
   // If targetContext is present, must be non-empty string

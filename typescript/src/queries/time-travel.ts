@@ -5,6 +5,10 @@
  * HyperViews using only deltas that existed at that timestamp.
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+
 import { RhizomeDB } from '../storage/instance';
 import { HyperSchema, HyperView, Delta, DeltaFilter } from '../core/types';
 import { constructHyperView } from '../schemas/hyperview';

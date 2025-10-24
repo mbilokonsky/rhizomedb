@@ -4,6 +4,12 @@
  * Converts HyperSchemas to GraphQL schemas and provides resolvers
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+
 import {
   GraphQLSchema,
   GraphQLObjectType,
@@ -155,7 +161,7 @@ function hyperSchemaToGraphQLType(
         const primitiveSchema = rule.schema;
 
         fieldMap[localContext] = {
-          type: primitiveSchema.graphQLType,
+          type: primitiveSchema.graphQLType || GraphQLString,
           resolve: source => {
             const property = source[localContext];
             if (!property || !Array.isArray(property)) return null;

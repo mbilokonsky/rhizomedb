@@ -3,6 +3,8 @@
  * Based on RhizomeDB Technical Specification v0.1
  */
 
+import type { GraphQLScalarType } from 'graphql';
+
 // ============================================================================
 // Delta and Pointer Types
 // ============================================================================
@@ -83,10 +85,10 @@ export interface PrimitiveHyperSchema {
   type: string;
 
   /** GraphQL scalar type for this primitive */
-  graphQLType: any; // GraphQLScalarType from 'graphql' package
+  graphQLType: GraphQLScalarType | undefined;
 
   /** Validation function to check if a value matches this schema */
-  validate: (value: any) => boolean;
+  validate: (value: unknown) => boolean;
 }
 
 /**
@@ -155,6 +157,7 @@ export interface HyperViewMetadata {
   schemaVersion?: number;
 
   /** Custom metadata fields */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
 
@@ -198,12 +201,14 @@ export interface MaterializedHyperView extends HyperView {
  */
 export interface View {
   id: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [property: string]: any;
 }
 
 /**
  * Resolution strategy for handling conflicting deltas
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ResolutionStrategy = (deltas: Delta[]) => any;
 
 /**
@@ -214,6 +219,7 @@ export interface PropertyResolution {
   source: string;
 
   /** How to extract value from a delta */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   extract: (delta: Delta) => any;
 
   /** How to resolve conflicts */
@@ -399,6 +405,7 @@ export interface RhizomeConfig {
   storage: 'memory' | 'leveldb' | 'custom';
 
   /** Storage-specific configuration */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   storageConfig?: any;
 
   /** Maximum materialized HyperViews to cache */
@@ -490,9 +497,9 @@ export interface InstanceStats {
 /**
  * Helper to check if a schema is a PrimitiveHyperSchema
  */
-export function isPrimitiveHyperSchema(schema: any): schema is PrimitiveHyperSchema {
+export function isPrimitiveHyperSchema(schema: unknown): schema is PrimitiveHyperSchema {
   return (
-    schema &&
+    !!schema &&
     typeof schema === 'object' &&
     'type' in schema &&
     'validate' in schema &&
@@ -501,17 +508,22 @@ export function isPrimitiveHyperSchema(schema: any): schema is PrimitiveHyperSch
 }
 
 // GraphQL type imports (note: actual GraphQL types injected at runtime to avoid circular deps)
-let GraphQLString: any;
-let GraphQLInt: any;
-let GraphQLBoolean: any;
+let GraphQLString: GraphQLScalarType | undefined;
+let GraphQLInt: GraphQLScalarType | undefined;
+let GraphQLBoolean: GraphQLScalarType | undefined;
 
 // Initialize GraphQL types from the graphql package
 try {
-  const graphql = require('graphql');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const graphql = require('graphql') as {
+    GraphQLString: GraphQLScalarType;
+    GraphQLInt: GraphQLScalarType;
+    GraphQLBoolean: GraphQLScalarType;
+  };
   GraphQLString = graphql.GraphQLString;
   GraphQLInt = graphql.GraphQLInt;
   GraphQLBoolean = graphql.GraphQLBoolean;
-} catch (e) {
+} catch {
   // GraphQL not available - schemas will have undefined graphQLType
   console.warn('GraphQL package not available - PrimitiveSchemas will not have graphQLType');
 }
@@ -548,30 +560,31 @@ export const PrimitiveSchemas: {
   String: {
     type: 'string',
     graphQLType: GraphQLString,
-    validate: (v: any) => typeof v === 'string',
+    validate: (v: unknown) => typeof v === 'string',
 
     EmailAddress: {
       type: 'string.email',
       graphQLType: GraphQLString,
-      validate: (v: any) => typeof v === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
+      validate: (v: unknown) => typeof v === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
     }
   } as StringPrimitiveSchema,
 
   Integer: {
     type: 'integer',
     graphQLType: GraphQLInt,
-    validate: (v: any) => typeof v === 'number' && Number.isInteger(v),
+    validate: (v: unknown) => typeof v === 'number' && Number.isInteger(v),
 
     Year: {
       type: 'integer.year',
       graphQLType: GraphQLInt,
-      validate: (v: any) => typeof v === 'number' && Number.isInteger(v) && v >= 1800 && v <= 2100
+      validate: (v: unknown) =>
+        typeof v === 'number' && Number.isInteger(v) && v >= 1800 && v <= 2100
     }
   } as IntegerPrimitiveSchema,
 
   Boolean: {
     type: 'boolean',
     graphQLType: GraphQLBoolean,
-    validate: (v: any) => typeof v === 'boolean'
+    validate: (v: unknown) => typeof v === 'boolean'
   }
 };

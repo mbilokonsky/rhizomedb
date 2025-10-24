@@ -2,6 +2,14 @@
  * Tests for GraphQL integration
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/require-await */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import { graphql } from 'graphql';
 import { RhizomeDB } from '../storage/instance';
 import { createStandardSchema } from '../schemas/hyperview';
@@ -13,22 +21,26 @@ function createPersonSchema(additionalTransform: HyperSchema['transform'] = {}):
   return createStandardSchema('person', 'Person', {
     name: {
       schema: PrimitiveSchemas.String,
-      when: (p) => PrimitiveSchemas.String.validate(p.target)
+      when: p => PrimitiveSchemas.String.validate(p.target)
     },
     ...additionalTransform
   });
 }
 
 // Helper to create Post/Blog schema with common primitive fields
-function createPostSchema(id: string, name: string, additionalTransform: HyperSchema['transform'] = {}): HyperSchema {
+function createPostSchema(
+  id: string,
+  name: string,
+  additionalTransform: HyperSchema['transform'] = {}
+): HyperSchema {
   return createStandardSchema(id, name, {
     title: {
       schema: PrimitiveSchemas.String,
-      when: (p) => PrimitiveSchemas.String.validate(p.target)
+      when: p => PrimitiveSchemas.String.validate(p.target)
     },
     content: {
       schema: PrimitiveSchemas.String,
-      when: (p) => PrimitiveSchemas.String.validate(p.target)
+      when: p => PrimitiveSchemas.String.validate(p.target)
     },
     ...additionalTransform
   });
@@ -116,7 +128,7 @@ describe('GraphQL Integration', () => {
       const postSchema = createPostSchema('post', 'Post', {
         author: {
           schema: personSchema,
-          when: (p) => typeof p.target === 'object' && 'id' in p.target
+          when: p => typeof p.target === 'object' && 'id' in p.target
         }
       });
 
@@ -129,20 +141,26 @@ describe('GraphQL Integration', () => {
       const authorId = 'person_alice';
       const postId = 'post_001';
 
-      await db.persistDelta(db.createDelta('system', [
-        { localContext: 'named', target: { id: authorId }, targetContext: 'name' },
-        { localContext: 'name', target: 'Alice' }
-      ]));
+      await db.persistDelta(
+        db.createDelta('system', [
+          { localContext: 'named', target: { id: authorId }, targetContext: 'name' },
+          { localContext: 'name', target: 'Alice' }
+        ])
+      );
 
-      await db.persistDelta(db.createDelta('system', [
-        { localContext: 'post', target: { id: postId }, targetContext: 'title' },
-        { localContext: 'title', target: 'My Post' }
-      ]));
+      await db.persistDelta(
+        db.createDelta('system', [
+          { localContext: 'post', target: { id: postId }, targetContext: 'title' },
+          { localContext: 'title', target: 'My Post' }
+        ])
+      );
 
-      await db.persistDelta(db.createDelta('system', [
-        { localContext: 'post', target: { id: postId }, targetContext: 'author' },
-        { localContext: 'author', target: { id: authorId }, targetContext: 'posts' }
-      ]));
+      await db.persistDelta(
+        db.createDelta('system', [
+          { localContext: 'post', target: { id: postId }, targetContext: 'author' },
+          { localContext: 'author', target: { id: authorId }, targetContext: 'posts' }
+        ])
+      );
 
       // Create GraphQL schema
       const gqlSchema = createGraphQLSchema({
@@ -171,10 +189,12 @@ describe('GraphQL Integration', () => {
         Post: {
           id: postId,
           title: 'My Post',
-          author: [{
-            id: authorId,
-            name: 'Alice'
-          }]
+          author: [
+            {
+              id: authorId,
+              name: 'Alice'
+            }
+          ]
         }
       });
     });
@@ -187,15 +207,19 @@ describe('GraphQL Integration', () => {
       // Create multiple people
       const ids = ['person_alice', 'person_bob'];
 
-      await db.persistDelta(db.createDelta('system', [
-        { localContext: 'named', target: { id: ids[0] }, targetContext: 'name' },
-        { localContext: 'name', target: 'Alice' }
-      ]));
+      await db.persistDelta(
+        db.createDelta('system', [
+          { localContext: 'named', target: { id: ids[0] }, targetContext: 'name' },
+          { localContext: 'name', target: 'Alice' }
+        ])
+      );
 
-      await db.persistDelta(db.createDelta('system', [
-        { localContext: 'named', target: { id: ids[1] }, targetContext: 'name' },
-        { localContext: 'name', target: 'Bob' }
-      ]));
+      await db.persistDelta(
+        db.createDelta('system', [
+          { localContext: 'named', target: { id: ids[1] }, targetContext: 'name' },
+          { localContext: 'name', target: 'Bob' }
+        ])
+      );
 
       const gqlSchema = createGraphQLSchema({
         db,
@@ -287,9 +311,7 @@ describe('GraphQL Integration', () => {
       db.registerSchema(personSchema);
 
       // Create a delta to negate
-      const delta = db.createDelta('alice', [
-        { localContext: 'test', target: 'value' }
-      ]);
+      const delta = db.createDelta('alice', [{ localContext: 'test', target: 'value' }]);
       await db.persistDelta(delta);
 
       const gqlSchema = createGraphQLSchema({

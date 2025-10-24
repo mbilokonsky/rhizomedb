@@ -2,6 +2,12 @@
  * Tests for schema versioning
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-floating-promises */
+
 import { RhizomeDB } from '../storage/instance';
 import { HyperSchema } from '../core/types';
 import {
@@ -295,8 +301,8 @@ describe('Schema Versioning', () => {
         id: 'user-schema',
         name: 'User Schema',
         select: (objectId, delta) => {
-          return delta.pointers.some(p =>
-            typeof p.target === 'object' && 'id' in p.target && p.target.id === objectId
+          return delta.pointers.some(
+            p => typeof p.target === 'object' && 'id' in p.target && p.target.id === objectId
           );
         },
         transform: {}
@@ -304,9 +310,7 @@ describe('Schema Versioning', () => {
 
       db.registerSchema(schema);
 
-      const delta = db.createDelta('system', [
-        { localContext: 'name', target: 'Alice' }
-      ]);
+      const delta = db.createDelta('system', [{ localContext: 'name', target: 'Alice' }]);
       db.persistDelta(delta);
 
       const view = db.materializeHyperView('user-1', schema);
@@ -331,7 +335,7 @@ describe('Schema Versioning', () => {
       const schema2: HyperSchema = {
         id: 'user-schema',
         name: 'User Schema',
-        select: () => false,  // Changed!
+        select: () => false, // Changed!
         transform: {}
       };
 

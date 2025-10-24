@@ -150,6 +150,7 @@ export class RhizomeDB
     this.config = {
       systemId: this.systemId,
       storage: config.storage,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       storageConfig: config.storageConfig,
       cacheSize: config.cacheSize || 1000,
       enableIndexing: config.enableIndexing !== false,
@@ -236,11 +237,14 @@ export class RhizomeDB
     }
   }
 
-  async getDeltas(ids: string[]): Promise<Delta[]> {
-    return ids.map(id => this.deltaIndex.get(id)).filter((d): d is Delta => d !== undefined);
+  getDeltas(ids: string[]): Promise<Delta[]> {
+    return Promise.resolve(
+      ids.map(id => this.deltaIndex.get(id)).filter((d): d is Delta => d !== undefined)
+    );
   }
 
-  async *scanDeltas(filter?: DeltaFilter, cursor?: string): AsyncIterable<Delta> {
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async *scanDeltas(filter?: DeltaFilter, _cursor?: string): AsyncIterable<Delta> {
     const matchingDeltas = filter ? this.queryDeltas(filter) : this.deltas;
 
     for (const delta of matchingDeltas) {
@@ -379,7 +383,7 @@ export class RhizomeDB
     return materializedView;
   }
 
-  updateHyperView(view: MaterializedHyperView, delta: Delta): void {
+  updateHyperView(view: MaterializedHyperView, _delta: Delta): void {
     // For simplicity, just rebuild the view
     // A more sophisticated implementation would incrementally update
     const schema = this.schemaRegistry.get(view._metadata.schemaId);

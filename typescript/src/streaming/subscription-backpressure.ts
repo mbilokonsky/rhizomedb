@@ -130,13 +130,13 @@ export class BackpressureSubscription implements Subscription {
   /**
    * Handle incoming delta
    */
-  async handleDelta(delta: Delta): Promise<void> {
+  handleDelta(delta: Delta): Promise<void> {
     this.stats.totalReceived++;
 
     if (this.paused) {
       // When paused, always buffer
       this.addToBuffer(delta);
-      return;
+      return Promise.resolve();
     }
 
     // Always add to buffer first
@@ -149,6 +149,8 @@ export class BackpressureSubscription implements Subscription {
         console.error('Error processing buffer:', err);
       });
     }
+
+    return Promise.resolve();
   }
 
   /**
@@ -183,12 +185,14 @@ export class BackpressureSubscription implements Subscription {
 
     switch (this.options.overflowStrategy) {
       case OverflowStrategy.DROP_OLDEST:
-        // Remove oldest delta
-        const dropped = this.buffer.shift();
-        if (dropped) {
-          this.stats.totalDropped++;
-          if (this.options.onOverflow) {
-            this.options.onOverflow(dropped, this.getStats());
+        {
+          // Remove oldest delta
+          const dropped = this.buffer.shift();
+          if (dropped) {
+            this.stats.totalDropped++;
+            if (this.options.onOverflow) {
+              this.options.onOverflow(dropped, this.getStats());
+            }
           }
         }
         // Add new delta

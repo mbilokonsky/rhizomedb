@@ -153,6 +153,7 @@ export class LevelDBStore
     this.config = {
       systemId: this.systemId,
       storage: config.storage,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       storageConfig: config.storageConfig,
       cacheSize: config.cacheSize || 1000,
       enableIndexing: config.enableIndexing !== false,
@@ -294,9 +295,9 @@ export class LevelDBStore
         const deltaKey = `${LevelDBStore.DELTA_PREFIX}${id}`;
         const json = await this.db.get(deltaKey);
         deltas.push(this.deserializeDelta(json));
-      } catch (err: any) {
+      } catch (err: unknown) {
         // Delta not found, skip
-        if (err.code !== 'LEVEL_NOT_FOUND') {
+        if ((err as { code?: string }).code !== 'LEVEL_NOT_FOUND') {
           throw err;
         }
       }
@@ -315,7 +316,7 @@ export class LevelDBStore
       lte: prefix + '\xff'
     });
 
-    for await (const [key, deltaId] of iterator) {
+    for await (const [_key, deltaId] of iterator) {
       try {
         const deltaKey = `${LevelDBStore.DELTA_PREFIX}${deltaId}`;
         const json = await this.db.get(deltaKey);
@@ -327,9 +328,9 @@ export class LevelDBStore
         }
 
         yield delta;
-      } catch (err: any) {
+      } catch (err: unknown) {
         // Delta not found, skip
-        if (err.code !== 'LEVEL_NOT_FOUND') {
+        if ((err as { code?: string }).code !== 'LEVEL_NOT_FOUND') {
           throw err;
         }
       }
@@ -415,7 +416,7 @@ export class LevelDBStore
         lte: prefix + '\xff'
       });
 
-      for await (const [key, deltaId] of iterator) {
+      for await (const [_key, deltaId] of iterator) {
         const delta = await this.getDeltas([deltaId]);
         if (delta.length > 0 && this.matchesFilter(delta[0], filter)) {
           results.push(delta[0]);
@@ -574,13 +575,13 @@ export class LevelDBStore
     return materialized;
   }
 
-  updateHyperView(view: MaterializedHyperView, delta: Delta): void {
+  updateHyperView(view: MaterializedHyperView, _delta: Delta): void {
     // For simplicity, just rebuild the view
     // A more sophisticated implementation would incrementally update
     const schema = this.schemaRegistry.get(view._metadata.schemaId);
     if (schema) {
       // Note: This is intentionally fire-and-forget for the sync interface
-      this.materializeHyperView(view.id, schema).then(updated => {
+      void this.materializeHyperView(view.id, schema).then(updated => {
         Object.assign(view, updated);
       });
     }
@@ -611,7 +612,7 @@ export class LevelDBStore
           // Invalidate cache
           this.materializedViews.delete(key);
           // Rebuild - note this is fire-and-forget for sync interface
-          this.materializeHyperView(objectId, schema).then(rebuilt => {
+          void this.materializeHyperView(objectId, schema).then(rebuilt => {
             Object.assign(existing, rebuilt);
           });
           return existing;

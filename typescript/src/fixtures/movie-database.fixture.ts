@@ -7,7 +7,7 @@
  * **This is test/demo data only - not part of the core library.**
  */
 
-import { Delta, Pointer, HyperSchema, PrimitiveSchemas } from '../core/types';
+import { Delta, HyperSchema, PrimitiveSchemas } from '../core/types';
 import { RhizomeDB } from '../storage/instance';
 import { selectByTargetContext } from '../schemas/hyperview';
 
@@ -1087,7 +1087,7 @@ export async function seedMovieDatabase(
   const includeExpanded = options?.includeExpanded ?? true;
 
   // Matrix franchise
-  console.log('Seeding Matrix trilogy...');
+  console.error('Seeding Matrix trilogy...');
   for (const person of [...matrixPeople, ...additionalPeople]) {
     allDeltas.push(...createPersonDeltas(db, person));
   }
@@ -1106,7 +1106,7 @@ export async function seedMovieDatabase(
   );
 
   // Star Wars franchise
-  console.log('Seeding Star Wars saga...');
+  console.error('Seeding Star Wars saga...');
   for (const person of starWarsPeople) {
     allDeltas.push(...createPersonDeltas(db, person));
   }
@@ -1132,7 +1132,7 @@ export async function seedMovieDatabase(
   );
 
   // Lord of the Rings franchise
-  console.log('Seeding Lord of the Rings trilogy...');
+  console.error('Seeding Lord of the Rings trilogy...');
   for (const person of lotrPeople) {
     allDeltas.push(...createPersonDeltas(db, person));
   }
@@ -1152,7 +1152,7 @@ export async function seedMovieDatabase(
 
   // Expanded dataset (additional films from actors in core dataset)
   if (includeExpanded) {
-    console.log('Seeding expanded filmography...');
+    console.error('Seeding expanded filmography...');
 
     // Add all new people (all data is in this file now)
     for (const person of [...expandedPeople, ...additionalExpandedPeople, ...supportingActors]) {
@@ -1219,20 +1219,20 @@ export async function seedMovieDatabase(
   }
 
   // Persist all deltas
-  console.log(`Persisting ${allDeltas.length} deltas...`);
+  console.error(`Persisting ${allDeltas.length} deltas...`);
   await db.persistDeltas(allDeltas);
-  console.log('Movie database seeded successfully!');
+  console.error('Movie database seeded successfully!');
 }
 
 /**
  * Get statistics about seeded data
  */
-export async function getSeedStats(includeExpanded: boolean = true): Promise<{
+export function getSeedStats(includeExpanded: boolean = true): {
   totalMovies: number;
   totalPeople: number;
   totalRoles: number;
   totalTrilogies: number;
-}> {
+} {
   let totalMovies = matrixMovies.length + starWarsMovies.length + lotrMovies.length;
   let totalPeople =
     matrixPeople.length + starWarsPeople.length + lotrPeople.length + additionalPeople.length;

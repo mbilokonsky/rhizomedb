@@ -3,6 +3,15 @@
  * Demonstrates RhizomeDB with a rich, real-world dataset
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/await-thenable */
+/* eslint-disable @typescript-eslint/require-await */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import { RhizomeDB } from '../storage/instance';
 import { LevelDBStore } from '../storage/leveldb-store';
 import { movieSchemas, seedMovieDatabase, getSeedStats } from './movie-database.fixture';
@@ -79,7 +88,7 @@ describe('Movie Database', () => {
 
     it('should find all Matrix movies', () => {
       const matrixMovies = db.queryDeltas({
-        predicate: (delta) => {
+        predicate: delta => {
           const titlePointer = delta.pointers.find(p => p.localContext === 'title');
           if (titlePointer && typeof titlePointer.target === 'string') {
             return titlePointer.target.includes('Matrix');
@@ -108,9 +117,7 @@ describe('Movie Database', () => {
       });
 
       // Filter to just role deltas (those with actor context)
-      const roleDeltas = roles.filter(d =>
-        d.pointers.some(p => p.localContext === 'actor')
-      );
+      const roleDeltas = roles.filter(d => d.pointers.some(p => p.localContext === 'actor'));
 
       // Keanu Reeves played Neo in 3 Matrix movies
       expect(roleDeltas.length).toBeGreaterThanOrEqual(3);
@@ -118,7 +125,7 @@ describe('Movie Database', () => {
 
     it('should find all movies from 1999', () => {
       const movies1999 = db.queryDeltas({
-        predicate: (delta) => {
+        predicate: delta => {
           const yearPointer = delta.pointers.find(p => p.localContext === 'year');
           return yearPointer?.target === 1999;
         }
@@ -185,9 +192,11 @@ describe('Movie Database', () => {
 
     it('should find actors who appeared in multiple franchises', () => {
       // Query for Elijah Wood (appeared in 3 LOTR movies)
-      const woodRoles = db.queryDeltas({
-        targetIds: ['person_wood_elijah']
-      }).filter(d => d.pointers.some(p => p.localContext === 'actor'));
+      const woodRoles = db
+        .queryDeltas({
+          targetIds: ['person_wood_elijah']
+        })
+        .filter(d => d.pointers.some(p => p.localContext === 'actor'));
 
       // Should have roles in multiple movies
       expect(woodRoles.length).toBeGreaterThanOrEqual(3);
@@ -197,11 +206,14 @@ describe('Movie Database', () => {
       const receivedDeltas: Delta[] = [];
 
       // Subscribe to new movies
-      db.subscribe({
-        predicate: (delta) => delta.pointers.some(p => p.localContext === 'title')
-      }, async (delta) => {
-        receivedDeltas.push(delta);
-      });
+      db.subscribe(
+        {
+          predicate: delta => delta.pointers.some(p => p.localContext === 'title')
+        },
+        async delta => {
+          receivedDeltas.push(delta);
+        }
+      );
 
       // Add a new movie
       const newMovie = db.createDelta('user', [
@@ -261,9 +273,7 @@ describe('Movie Database', () => {
       // Should have title, year, runtime, director deltas
       const contexts = new Set(
         matrixDeltas.flatMap(d =>
-          d.pointers
-            .filter(p => p.targetContext)
-            .map(p => p.targetContext!)
+          d.pointers.filter(p => p.targetContext).map(p => p.targetContext!)
         )
       );
 
@@ -275,7 +285,7 @@ describe('Movie Database', () => {
 
     it('should query across persistent storage', async () => {
       const results = await db.queryDeltas({
-        predicate: (delta) => {
+        predicate: delta => {
           const namePointer = delta.pointers.find(p => p.localContext === 'name');
           return namePointer?.target === 'Keanu Reeves';
         }
@@ -349,13 +359,17 @@ describe('Movie Database', () => {
 
     it('should find all collaborations between actors', () => {
       // Find movies where both Elijah Wood and Ian McKellen appear
-      const woodRoles = db.queryDeltas({
-        targetIds: ['person_wood_elijah']
-      }).filter(d => d.pointers.some(p => p.localContext === 'actor'));
+      const woodRoles = db
+        .queryDeltas({
+          targetIds: ['person_wood_elijah']
+        })
+        .filter(d => d.pointers.some(p => p.localContext === 'actor'));
 
-      const mckellRoles = db.queryDeltas({
-        targetIds: ['person_mckellen_ian']
-      }).filter(d => d.pointers.some(p => p.localContext === 'actor'));
+      const mckellRoles = db
+        .queryDeltas({
+          targetIds: ['person_mckellen_ian']
+        })
+        .filter(d => d.pointers.some(p => p.localContext === 'actor'));
 
       const woodMovies = new Set(
         woodRoles
@@ -381,22 +395,23 @@ describe('Movie Database', () => {
 
     it('should find longest running movies', () => {
       const runtimeDeltas = db.queryDeltas({
-        predicate: (delta) => delta.pointers.some(p => p.localContext === 'runtime')
+        predicate: delta => delta.pointers.some(p => p.localContext === 'runtime')
       });
 
-      const movieRuntimes = runtimeDeltas.map(d => {
-        const moviePointer = d.pointers.find(p => p.targetContext === 'runtime');
-        const runtimePointer = d.pointers.find(p => p.localContext === 'runtime');
+      const movieRuntimes = runtimeDeltas
+        .map(d => {
+          const moviePointer = d.pointers.find(p => p.targetContext === 'runtime');
+          const runtimePointer = d.pointers.find(p => p.localContext === 'runtime');
 
-        return {
-          movieId: typeof moviePointer?.target === 'object' && 'id' in moviePointer.target
-            ? moviePointer.target.id
-            : null,
-          runtime: typeof runtimePointer?.target === 'number'
-            ? runtimePointer.target
-            : 0
-        };
-      }).filter(m => m.movieId !== null);
+          return {
+            movieId:
+              typeof moviePointer?.target === 'object' && 'id' in moviePointer.target
+                ? moviePointer.target.id
+                : null,
+            runtime: typeof runtimePointer?.target === 'number' ? runtimePointer.target : 0
+          };
+        })
+        .filter(m => m.movieId !== null);
 
       movieRuntimes.sort((a, b) => b.runtime - a.runtime);
 
@@ -407,7 +422,7 @@ describe('Movie Database', () => {
 
     it('should find movies by decade', () => {
       const movies2000s = db.queryDeltas({
-        predicate: (delta) => {
+        predicate: delta => {
           const yearPointer = delta.pointers.find(p => p.localContext === 'year');
           if (typeof yearPointer?.target === 'number') {
             return yearPointer.target >= 2000 && yearPointer.target < 2010;
@@ -441,7 +456,7 @@ describe('Movie Database', () => {
       // Verify it's there
       let budgetDeltas = db.queryDeltas({
         targetIds: ['movie_matrix'],
-        predicate: (d) => d.pointers.some(p => p.localContext === 'budget')
+        predicate: d => d.pointers.some(p => p.localContext === 'budget')
       });
       expect(budgetDeltas.length).toBe(1);
 
@@ -459,7 +474,7 @@ describe('Movie Database', () => {
       // Query again (negated deltas are excluded by default)
       budgetDeltas = db.queryDeltas({
         targetIds: ['movie_matrix'],
-        predicate: (d) => d.pointers.some(p => p.localContext === 'budget')
+        predicate: d => d.pointers.some(p => p.localContext === 'budget')
       });
 
       // Should only have the correct delta
@@ -575,11 +590,13 @@ describe('Movie Database', () => {
           title: 'The Lord of the Rings: The Fellowship of the Ring',
           year: 2001,
           runtime: 178,
-          director: [{
-            id: 'person_jackson_peter',
-            name: 'Peter Jackson',
-            birthYear: 1961
-          }]
+          director: [
+            {
+              id: 'person_jackson_peter',
+              name: 'Peter Jackson',
+              birthYear: 1961
+            }
+          ]
         }
       });
     });
@@ -611,17 +628,21 @@ describe('Movie Database', () => {
       expect(result.data?.Role).toMatchObject({
         id: 'role_matrix_neo',
         character: 'Neo',
-        actor: [{
-          id: 'person_reeves_keanu',
-          name: 'Keanu Reeves',
-          birthYear: 1964
-        }],
-        movie: [{
-          id: 'movie_matrix',
-          title: 'The Matrix',
-          year: 1999,
-          runtime: 136
-        }]
+        actor: [
+          {
+            id: 'person_reeves_keanu',
+            name: 'Keanu Reeves',
+            birthYear: 1964
+          }
+        ],
+        movie: [
+          {
+            id: 'movie_matrix',
+            title: 'The Matrix',
+            year: 1999,
+            runtime: 136
+          }
+        ]
       });
     });
 
@@ -811,7 +832,7 @@ describe('Movie Database', () => {
       // Verify old delta was negated
       // Query all deltas (including negated ones) to verify the behavior
       const negationDeltas = db.queryDeltas({
-        predicate: (d) => d.pointers.some(p => p.localContext === 'negates')
+        predicate: d => d.pointers.some(p => p.localContext === 'negates')
       });
 
       expect(negationDeltas.length).toBeGreaterThan(0); // At least one negation was created

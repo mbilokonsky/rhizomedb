@@ -2,6 +2,11 @@
  * Tests for delta negation including double negation support
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import { RhizomeDB } from '../storage/instance';
 import { calculateNegationStates, getNegatedDeltaIds, isNegated } from './negation';
 import { Delta } from '../core/types';
@@ -15,9 +20,7 @@ describe('Delta Negation', () => {
 
   describe('Basic Negation', () => {
     it('should mark a delta as negated when negated', async () => {
-      const originalDelta = db.createDelta('alice', [
-        { localContext: 'name', target: 'Alice' }
-      ]);
+      const originalDelta = db.createDelta('alice', [{ localContext: 'name', target: 'Alice' }]);
       await db.persistDelta(originalDelta);
 
       const negation = db.negateDelta('bob', originalDelta.id, 'Incorrect');
@@ -106,18 +109,18 @@ describe('Delta Negation', () => {
       const delta1 = db.createDelta('alice', [{ localContext: 'test', target: '1' }]);
       const delta2 = db.createDelta('bob', [{ localContext: 'test', target: '2' }]);
       const neg1 = db.negateDelta('charlie', delta1.id); // Negates delta1
-      const neg2 = db.negateDelta('dave', neg1.id);      // Negates neg1 (restores delta1)
-      const neg3 = db.negateDelta('eve', delta2.id);     // Negates delta2
+      const neg2 = db.negateDelta('dave', neg1.id); // Negates neg1 (restores delta1)
+      const neg3 = db.negateDelta('eve', delta2.id); // Negates delta2
 
       const allDeltas = [delta1, delta2, neg1, neg2, neg3];
       const states = calculateNegationStates(allDeltas);
 
       expect(states.get(delta1.id)!.isNegated).toBe(false); // Restored by double negation
       expect(states.get(delta1.id)!.wasDoubleNegated).toBe(true);
-      expect(states.get(delta2.id)!.isNegated).toBe(true);  // Negated once
-      expect(states.get(neg1.id)!.isNegated).toBe(true);    // Negated by neg2
-      expect(states.get(neg2.id)!.isNegated).toBe(false);   // Not negated
-      expect(states.get(neg3.id)!.isNegated).toBe(false);   // Not negated
+      expect(states.get(delta2.id)!.isNegated).toBe(true); // Negated once
+      expect(states.get(neg1.id)!.isNegated).toBe(true); // Negated by neg2
+      expect(states.get(neg2.id)!.isNegated).toBe(false); // Not negated
+      expect(states.get(neg3.id)!.isNegated).toBe(false); // Not negated
     });
   });
 
@@ -212,9 +215,7 @@ describe('Delta Negation', () => {
       await db.persistDelta(user);
 
       // User changes their name
-      const nameUpdate = db.createDelta('alice', [
-        { localContext: 'name', target: 'Alicia' }
-      ]);
+      const nameUpdate = db.createDelta('alice', [{ localContext: 'name', target: 'Alicia' }]);
       await db.persistDelta(nameUpdate);
 
       // Admin negates the name update (policy violation)
@@ -222,9 +223,7 @@ describe('Delta Negation', () => {
       await db.persistDelta(negation);
 
       // User's second attempt at name change
-      const nameUpdate2 = db.createDelta('alice', [
-        { localContext: 'name', target: 'Ali' }
-      ]);
+      const nameUpdate2 = db.createDelta('alice', [{ localContext: 'name', target: 'Ali' }]);
       await db.persistDelta(nameUpdate2);
 
       // Query all deltas

@@ -2,6 +2,11 @@
  * Tests for subscription backpressure handling
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/require-await */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import { RhizomeDB } from '../storage/instance';
 import {
   BackpressureSubscription,
@@ -20,7 +25,7 @@ describe('Subscription Backpressure', () => {
   describe('BackpressureSubscription', () => {
     it('should buffer deltas when handler is slow', async () => {
       const received: Delta[] = [];
-      let processingTime = 50;
+      const processingTime = 50;
 
       const slowHandler = async (delta: Delta) => {
         await new Promise(resolve => setTimeout(resolve, processingTime));
@@ -103,7 +108,7 @@ describe('Subscription Backpressure', () => {
         {
           bufferSize: 3,
           overflowStrategy: OverflowStrategy.DROP_NEWEST,
-          onOverflow: (delta) => {
+          onOverflow: delta => {
             dropped.push(delta);
           }
         },
@@ -145,7 +150,9 @@ describe('Subscription Backpressure', () => {
 
       // This should throw
       await expect(async () => {
-        await subscription.handleDelta(db.createDelta('user', [{ localContext: 'test', target: 3 }]));
+        await subscription.handleDelta(
+          db.createDelta('user', [{ localContext: 'test', target: 3 }])
+        );
       }).rejects.toThrow('buffer overflow');
     });
 
@@ -160,7 +167,7 @@ describe('Subscription Backpressure', () => {
           bufferSize: 10,
           overflowStrategy: OverflowStrategy.DROP_OLDEST,
           warningThreshold: 80,
-          onWarning: (stats) => {
+          onWarning: stats => {
             warnings.push(stats);
           }
         },
@@ -172,7 +179,9 @@ describe('Subscription Backpressure', () => {
 
       // Fill to 80%
       for (let i = 0; i < 8; i++) {
-        await subscription.handleDelta(db.createDelta('user', [{ localContext: 'test', target: i }]));
+        await subscription.handleDelta(
+          db.createDelta('user', [{ localContext: 'test', target: i }])
+        );
       }
 
       expect(warnings.length).toBeGreaterThan(0);
@@ -185,7 +194,7 @@ describe('Subscription Backpressure', () => {
       const subscription = createBackpressureSubscription(
         'test',
         {},
-        async (delta) => {
+        async delta => {
           received.push(delta);
         },
         { bufferSize: 10, overflowStrategy: OverflowStrategy.DROP_OLDEST },
@@ -197,7 +206,9 @@ describe('Subscription Backpressure', () => {
 
       // Send deltas while paused
       for (let i = 0; i < 3; i++) {
-        await subscription.handleDelta(db.createDelta('user', [{ localContext: 'test', target: i }]));
+        await subscription.handleDelta(
+          db.createDelta('user', [{ localContext: 'test', target: i }])
+        );
       }
 
       // Should be buffered, not processed
@@ -219,7 +230,7 @@ describe('Subscription Backpressure', () => {
       const subscription = createBackpressureSubscription(
         'test',
         {},
-        async (delta) => {
+        async delta => {
           await new Promise(resolve => setTimeout(resolve, 10));
         },
         { bufferSize: 5, overflowStrategy: OverflowStrategy.DROP_OLDEST },
@@ -228,7 +239,9 @@ describe('Subscription Backpressure', () => {
 
       // Send some deltas
       for (let i = 0; i < 3; i++) {
-        await subscription.handleDelta(db.createDelta('user', [{ localContext: 'test', target: i }]));
+        await subscription.handleDelta(
+          db.createDelta('user', [{ localContext: 'test', target: i }])
+        );
       }
 
       const stats = subscription.getStats();
@@ -264,7 +277,9 @@ describe('Subscription Backpressure', () => {
 
       // Send 3 deltas
       for (let i = 0; i < 3; i++) {
-        await subscription.handleDelta(db.createDelta('user', [{ localContext: 'test', target: i }]));
+        await subscription.handleDelta(
+          db.createDelta('user', [{ localContext: 'test', target: i }])
+        );
       }
 
       // Wait for processing

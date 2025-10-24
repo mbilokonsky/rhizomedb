@@ -2,6 +2,9 @@
  * Tests for delta indexing system
  */
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-floating-promises */
+
 import { RhizomeDB } from './instance';
 import { DeltaIndexes } from './delta-indexes';
 import { Delta } from '../core/types';
@@ -73,7 +76,7 @@ describe('DeltaIndexes', () => {
       // Query range: only delta2 should be in range (now - 500, now + 500)
       const inRange = indexes.getDeltaIdsByTimestampRange(now - 500, now + 500);
       expect(inRange.has(delta1.id)).toBe(false); // Too old
-      expect(inRange.has(delta2.id)).toBe(true);  // In range
+      expect(inRange.has(delta2.id)).toBe(true); // In range
       expect(inRange.has(delta3.id)).toBe(false); // Too new
 
       // Query wider range: should include all
@@ -189,18 +192,18 @@ describe('DeltaIndexes', () => {
       expect(results.length).toBeGreaterThan(0);
       results.forEach(delta => {
         expect(['user0', 'user1']).toContain(delta.author);
-        expect(delta.pointers.some(p =>
-          typeof p.target === 'object' && 'id' in p.target && p.target.id === 'tag0'
-        )).toBe(true);
+        expect(
+          delta.pointers.some(
+            p => typeof p.target === 'object' && 'id' in p.target && p.target.id === 'tag0'
+          )
+        ).toBe(true);
       });
     });
 
     it('should include index stats in instance stats', () => {
       const db = new RhizomeDB({ storage: 'memory', enableIndexing: true });
 
-      const delta = db.createDelta('alice', [
-        { localContext: 'friend', target: { id: 'bob' } }
-      ]);
+      const delta = db.createDelta('alice', [{ localContext: 'friend', target: { id: 'bob' } }]);
       db.persistDelta(delta);
 
       const stats = db.getStats();

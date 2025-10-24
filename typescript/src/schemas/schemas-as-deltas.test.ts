@@ -2,8 +2,19 @@
  * Tests for representing HyperSchemas as deltas
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import { RhizomeDB } from '../storage/instance';
-import { Delta, HyperSchema, HyperView, SelectionFunction, TransformationRules } from '../core/types';
+import {
+  Delta,
+  HyperSchema,
+  HyperView,
+  SelectionFunction,
+  TransformationRules
+} from '../core/types';
 import { selectByTargetContext } from './hyperview';
 import { isDomainNodeReference } from '../core/validation';
 
@@ -98,20 +109,26 @@ describe('Schemas as Deltas', () => {
       // Create the schema deltas (same as above)
       const schemaId = 'named_entity_schema';
 
-      await db.persistDelta(db.createDelta('system', [
-        { localContext: 'schema', target: { id: schemaId }, targetContext: 'name' },
-        { localContext: 'name', target: 'NamedEntity' }
-      ]));
+      await db.persistDelta(
+        db.createDelta('system', [
+          { localContext: 'schema', target: { id: schemaId }, targetContext: 'name' },
+          { localContext: 'name', target: 'NamedEntity' }
+        ])
+      );
 
-      await db.persistDelta(db.createDelta('system', [
-        { localContext: 'schema', target: { id: schemaId }, targetContext: 'select' },
-        { localContext: 'pattern', target: { id: 'select_by_target_context' } }
-      ]));
+      await db.persistDelta(
+        db.createDelta('system', [
+          { localContext: 'schema', target: { id: schemaId }, targetContext: 'select' },
+          { localContext: 'pattern', target: { id: 'select_by_target_context' } }
+        ])
+      );
 
-      await db.persistDelta(db.createDelta('system', [
-        { localContext: 'schema', target: { id: schemaId }, targetContext: 'transform' },
-        { localContext: 'rules', target: '{}' }
-      ]));
+      await db.persistDelta(
+        db.createDelta('system', [
+          { localContext: 'schema', target: { id: schemaId }, targetContext: 'transform' },
+          { localContext: 'rules', target: '{}' }
+        ])
+      );
 
       // Get HyperView and resolve to executable schema
       const metaSchema = createMetaHyperSchema();
@@ -126,10 +143,12 @@ describe('Schemas as Deltas', () => {
 
       // Test that it works on actual data
       const personId = 'person_alice';
-      await db.persistDelta(db.createDelta('author', [
-        { localContext: 'named', target: { id: personId }, targetContext: 'name' },
-        { localContext: 'name', target: 'Alice' }
-      ]));
+      await db.persistDelta(
+        db.createDelta('author', [
+          { localContext: 'named', target: { id: personId }, targetContext: 'name' },
+          { localContext: 'name', target: 'Alice' }
+        ])
+      );
 
       const personView = db.applyHyperSchema(personId, executableSchema);
       expect(personView.id).toBe(personId);
@@ -142,15 +161,19 @@ describe('Schemas as Deltas', () => {
       const schemaId = 'blog_post_schema';
 
       // Basic schema metadata
-      await db.persistDelta(db.createDelta('system', [
-        { localContext: 'schema', target: { id: schemaId }, targetContext: 'name' },
-        { localContext: 'name', target: 'BlogPost' }
-      ]));
+      await db.persistDelta(
+        db.createDelta('system', [
+          { localContext: 'schema', target: { id: schemaId }, targetContext: 'name' },
+          { localContext: 'name', target: 'BlogPost' }
+        ])
+      );
 
-      await db.persistDelta(db.createDelta('system', [
-        { localContext: 'schema', target: { id: schemaId }, targetContext: 'select' },
-        { localContext: 'pattern', target: { id: 'select_by_target_context' } }
-      ]));
+      await db.persistDelta(
+        db.createDelta('system', [
+          { localContext: 'schema', target: { id: schemaId }, targetContext: 'select' },
+          { localContext: 'pattern', target: { id: 'select_by_target_context' } }
+        ])
+      );
 
       // Transform rule 1: author -> NamedEntity
       const authorTransform = db.createDelta('system', [
@@ -232,20 +255,26 @@ describe('Schemas as Deltas', () => {
       const authorId = 'author_alice';
       const postId = 'post_001';
 
-      await db.persistDelta(db.createDelta('system', [
-        { localContext: 'named', target: { id: authorId }, targetContext: 'name' },
-        { localContext: 'name', target: 'Alice' }
-      ]));
+      await db.persistDelta(
+        db.createDelta('system', [
+          { localContext: 'named', target: { id: authorId }, targetContext: 'name' },
+          { localContext: 'name', target: 'Alice' }
+        ])
+      );
 
-      await db.persistDelta(db.createDelta('system', [
-        { localContext: 'post', target: { id: postId }, targetContext: 'title' },
-        { localContext: 'title', target: 'My Post' }
-      ]));
+      await db.persistDelta(
+        db.createDelta('system', [
+          { localContext: 'post', target: { id: postId }, targetContext: 'title' },
+          { localContext: 'title', target: 'My Post' }
+        ])
+      );
 
-      await db.persistDelta(db.createDelta('system', [
-        { localContext: 'post', target: { id: postId }, targetContext: 'author' },
-        { localContext: 'author', target: { id: authorId }, targetContext: 'posts' }
-      ]));
+      await db.persistDelta(
+        db.createDelta('system', [
+          { localContext: 'post', target: { id: postId }, targetContext: 'author' },
+          { localContext: 'author', target: { id: authorId }, targetContext: 'posts' }
+        ])
+      );
 
       // Query using the schema that was defined as deltas!
       const postView = db.applyHyperSchema(postId, blogPostSchema);
@@ -268,22 +297,28 @@ describe('Schemas as Deltas', () => {
       const schemaId = 'person_schema';
 
       // Initial schema: just name
-      await db.persistDelta(db.createDelta('system', [
-        { localContext: 'schema', target: { id: schemaId }, targetContext: 'name' },
-        { localContext: 'name', target: 'Person' }
-      ]));
+      await db.persistDelta(
+        db.createDelta('system', [
+          { localContext: 'schema', target: { id: schemaId }, targetContext: 'name' },
+          { localContext: 'name', target: 'Person' }
+        ])
+      );
 
-      await db.persistDelta(db.createDelta('system', [
-        { localContext: 'schema', target: { id: schemaId }, targetContext: 'select' },
-        { localContext: 'pattern', target: { id: 'select_by_target_context' } }
-      ]));
+      await db.persistDelta(
+        db.createDelta('system', [
+          { localContext: 'schema', target: { id: schemaId }, targetContext: 'select' },
+          { localContext: 'pattern', target: { id: 'select_by_target_context' } }
+        ])
+      );
 
       // Later: add a transformation rule
-      await db.persistDelta(db.createDelta('system', [
-        { localContext: 'schema', target: { id: schemaId }, targetContext: 'transform' },
-        { localContext: 'on-context', target: 'address' },
-        { localContext: 'apply-schema', target: { id: 'address_schema' } }
-      ]));
+      await db.persistDelta(
+        db.createDelta('system', [
+          { localContext: 'schema', target: { id: schemaId }, targetContext: 'transform' },
+          { localContext: 'on-context', target: 'address' },
+          { localContext: 'apply-schema', target: { id: 'address_schema' } }
+        ])
+      );
 
       // Query the evolved schema
       const metaSchema = createMetaHyperSchema();
@@ -331,7 +366,7 @@ describe('Schemas as Deltas', () => {
  * Built-in selection pattern registry
  */
 const BUILT_IN_SELECTORS: Record<string, SelectionFunction> = {
-  'select_by_target_context': selectByTargetContext
+  select_by_target_context: selectByTargetContext
 };
 
 /**
@@ -458,7 +493,7 @@ function resolveTransformationRules(hyperView: HyperView): TransformationRules {
       if (isDomainNodeReference(applySchemaPointer.target)) {
         rules[contextName] = {
           schema: applySchemaPointer.target.id,
-          when: (pointer) => isDomainNodeReference(pointer.target)
+          when: pointer => isDomainNodeReference(pointer.target)
         };
       }
     }
@@ -468,20 +503,26 @@ function resolveTransformationRules(hyperView: HyperView): TransformationRules {
 }
 
 async function createNamedEntitySchemaAsDeltas(db: RhizomeDB, schemaId: string): Promise<void> {
-  await db.persistDelta(db.createDelta('system', [
-    { localContext: 'schema', target: { id: schemaId }, targetContext: 'name' },
-    { localContext: 'name', target: 'NamedEntity' }
-  ]));
+  await db.persistDelta(
+    db.createDelta('system', [
+      { localContext: 'schema', target: { id: schemaId }, targetContext: 'name' },
+      { localContext: 'name', target: 'NamedEntity' }
+    ])
+  );
 
-  await db.persistDelta(db.createDelta('system', [
-    { localContext: 'schema', target: { id: schemaId }, targetContext: 'select' },
-    { localContext: 'pattern', target: { id: 'select_by_target_context' } }
-  ]));
+  await db.persistDelta(
+    db.createDelta('system', [
+      { localContext: 'schema', target: { id: schemaId }, targetContext: 'select' },
+      { localContext: 'pattern', target: { id: 'select_by_target_context' } }
+    ])
+  );
 
-  await db.persistDelta(db.createDelta('system', [
-    { localContext: 'schema', target: { id: schemaId }, targetContext: 'transform' },
-    { localContext: 'rules', target: '{}' }
-  ]));
+  await db.persistDelta(
+    db.createDelta('system', [
+      { localContext: 'schema', target: { id: schemaId }, targetContext: 'transform' },
+      { localContext: 'rules', target: '{}' }
+    ])
+  );
 }
 
 async function createBlogPostSchemaAsDeltas(
@@ -489,19 +530,25 @@ async function createBlogPostSchemaAsDeltas(
   schemaId: string,
   namedEntitySchemaId: string
 ): Promise<void> {
-  await db.persistDelta(db.createDelta('system', [
-    { localContext: 'schema', target: { id: schemaId }, targetContext: 'name' },
-    { localContext: 'name', target: 'BlogPost' }
-  ]));
+  await db.persistDelta(
+    db.createDelta('system', [
+      { localContext: 'schema', target: { id: schemaId }, targetContext: 'name' },
+      { localContext: 'name', target: 'BlogPost' }
+    ])
+  );
 
-  await db.persistDelta(db.createDelta('system', [
-    { localContext: 'schema', target: { id: schemaId }, targetContext: 'select' },
-    { localContext: 'pattern', target: { id: 'select_by_target_context' } }
-  ]));
+  await db.persistDelta(
+    db.createDelta('system', [
+      { localContext: 'schema', target: { id: schemaId }, targetContext: 'select' },
+      { localContext: 'pattern', target: { id: 'select_by_target_context' } }
+    ])
+  );
 
-  await db.persistDelta(db.createDelta('system', [
-    { localContext: 'schema', target: { id: schemaId }, targetContext: 'transform' },
-    { localContext: 'on-context', target: 'author' },
-    { localContext: 'apply-schema', target: { id: namedEntitySchemaId } }
-  ]));
+  await db.persistDelta(
+    db.createDelta('system', [
+      { localContext: 'schema', target: { id: schemaId }, targetContext: 'transform' },
+      { localContext: 'on-context', target: 'author' },
+      { localContext: 'apply-schema', target: { id: namedEntitySchemaId } }
+    ])
+  );
 }

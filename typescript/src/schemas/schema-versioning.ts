@@ -36,21 +36,28 @@ export function calculateSchemaHash(schema: HyperSchema): string {
     // Convert functions to strings for hashing
     select: schema.select.toString(),
     // Sort transformation rules by key for deterministic ordering
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
     transform: Object.keys(schema.transform)
       .sort()
-      .reduce((acc, key) => {
-        const rule = schema.transform[key];
-        acc[key] = {
-          schema:
-            typeof rule.schema === 'string'
-              ? rule.schema
-              : typeof rule.schema === 'object' && 'id' in rule.schema
-                ? rule.schema.id
-                : JSON.stringify(rule.schema),
-          when: rule.when ? rule.when.toString() : undefined
-        };
-        return acc;
-      }, {} as any)
+      .reduce(
+        (acc, key) => {
+          const rule = schema.transform[key];
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          acc[key] = {
+            schema:
+              typeof rule.schema === 'string'
+                ? rule.schema
+                : typeof rule.schema === 'object' && 'id' in rule.schema
+                  ? rule.schema.id
+                  : JSON.stringify(rule.schema),
+            when: rule.when ? rule.when.toString() : undefined
+          };
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+          return acc;
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        {} as any
+      )
   };
 
   const content = JSON.stringify(normalized);

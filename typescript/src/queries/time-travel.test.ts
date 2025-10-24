@@ -2,6 +2,11 @@
  * Tests for Time-Travel Query API
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import { RhizomeDB } from '../storage/instance';
 import { TimeTravelDB, enableTimeTravel } from './time-travel';
 import { createStandardSchema } from '../schemas/hyperview';

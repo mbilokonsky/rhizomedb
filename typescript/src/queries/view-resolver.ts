@@ -6,6 +6,8 @@
  * by applying conflict resolution strategies.
  */
 
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
+
 import {
   Delta,
   HyperView,
@@ -40,6 +42,7 @@ export const firstWrite: ResolutionStrategy = (deltas: Delta[]) => {
 /**
  * Return all values as an array
  */
+// eslint-disable-next-line @typescript-eslint/no-unsafe-return
 export const allValues: ResolutionStrategy = (deltas: Delta[]) => {
   return deltas;
 };
@@ -50,6 +53,7 @@ export const allValues: ResolutionStrategy = (deltas: Delta[]) => {
  * @param trustedAuthors - List of author IDs to trust, in priority order
  * @returns Resolution strategy that picks from trusted authors or falls back to most recent
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function trustedAuthor(trustedAuthors: string[]): ResolutionStrategy {
   return (deltas: Delta[]) => {
     if (deltas.length === 0) return null;

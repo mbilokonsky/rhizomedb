@@ -18,19 +18,20 @@ export class ValidationError extends Error {
 /**
  * Check if a value is a DomainNodeReference
  */
-export function isDomainNodeReference(value: any): value is DomainNodeReference {
+export function isDomainNodeReference(value: unknown): value is DomainNodeReference {
   return (
     typeof value === 'object' &&
     value !== null &&
-    typeof value.id === 'string' &&
-    value.id.length > 0
+    'id' in value &&
+    typeof (value as DomainNodeReference).id === 'string' &&
+    (value as DomainNodeReference).id.length > 0
   );
 }
 
 /**
  * Check if a value is a valid Primitive
  */
-export function isPrimitive(value: any): boolean {
+export function isPrimitive(value: unknown): boolean {
   return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean';
 }
 

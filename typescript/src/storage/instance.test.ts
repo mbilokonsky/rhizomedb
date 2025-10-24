@@ -2,6 +2,11 @@
  * Tests for RhizomeDB instance
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import { RhizomeDB } from './instance';
 import { createStandardSchema } from '../schemas/hyperview';
 import { Delta, HyperSchema, Pointer } from '../core/types';
@@ -89,9 +94,7 @@ describe('RhizomeDB', () => {
         received.push(delta);
       });
 
-      const delta = db.createDelta('author_1', [
-        { localContext: 'test', target: 'value' }
-      ]);
+      const delta = db.createDelta('author_1', [{ localContext: 'test', target: 'value' }]);
       await db.persistDelta(delta);
 
       // Wait for async handler
@@ -108,12 +111,8 @@ describe('RhizomeDB', () => {
         received.push(delta);
       });
 
-      const delta1 = db.createDelta('author_1', [
-        { localContext: 'test', target: 'value' }
-      ]);
-      const delta2 = db.createDelta('author_2', [
-        { localContext: 'test', target: 'value' }
-      ]);
+      const delta1 = db.createDelta('author_1', [{ localContext: 'test', target: 'value' }]);
+      const delta2 = db.createDelta('author_2', [{ localContext: 'test', target: 'value' }]);
 
       await db.persistDelta(delta1);
       await db.persistDelta(delta2);
@@ -131,16 +130,12 @@ describe('RhizomeDB', () => {
         received.push(delta);
       });
 
-      const delta1 = db.createDelta('author_1', [
-        { localContext: 'test', target: 'value' }
-      ]);
+      const delta1 = db.createDelta('author_1', [{ localContext: 'test', target: 'value' }]);
       await db.persistDelta(delta1);
 
       sub.pause();
 
-      const delta2 = db.createDelta('author_1', [
-        { localContext: 'test', target: 'value' }
-      ]);
+      const delta2 = db.createDelta('author_1', [{ localContext: 'test', target: 'value' }]);
       await db.persistDelta(delta2);
 
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -149,9 +144,7 @@ describe('RhizomeDB', () => {
 
       sub.resume();
 
-      const delta3 = db.createDelta('author_1', [
-        { localContext: 'test', target: 'value' }
-      ]);
+      const delta3 = db.createDelta('author_1', [{ localContext: 'test', target: 'value' }]);
       await db.persistDelta(delta3);
 
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -331,12 +324,8 @@ describe('RhizomeDB', () => {
 
   describe('Statistics', () => {
     it('should track instance statistics', async () => {
-      const delta1 = db.createDelta('author_1', [
-        { localContext: 'test', target: 'value' }
-      ]);
-      const delta2 = db.createDelta('author_1', [
-        { localContext: 'test', target: 'value' }
-      ]);
+      const delta1 = db.createDelta('author_1', [{ localContext: 'test', target: 'value' }]);
+      const delta2 = db.createDelta('author_1', [{ localContext: 'test', target: 'value' }]);
 
       await db.persistDelta(delta1);
       await db.persistDelta(delta2);

@@ -2,6 +2,10 @@
  * Tests for Schema DAG Validation
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import { createStandardSchema, SchemaRegistry } from './hyperview';
 import {
   validateSchema,

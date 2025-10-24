@@ -5,6 +5,10 @@
  * and don't have circular references that would cause infinite recursion.
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+
 import {
   HyperSchema,
   TransformationRule,
@@ -290,7 +294,7 @@ export function findDependents(schemaId: string, registry: SchemaRegistry): Set<
       if (typeof rule.schema === 'string') {
         refSchemaId = rule.schema;
       } else if (typeof rule.schema === 'object' && 'id' in rule.schema) {
-        refSchemaId = rule.schema.id;
+        refSchemaId = (rule.schema as HyperSchema).id;
       } else {
         continue;
       }

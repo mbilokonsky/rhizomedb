@@ -2,6 +2,13 @@
  * Tests for MaterializedHyperView schema tracking fix
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-floating-promises */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import { RhizomeDB } from '../storage/instance';
 import { createStandardSchema } from './hyperview';
 import { PrimitiveSchemas } from '../core/types';
@@ -18,10 +25,12 @@ describe('MaterializedHyperView Schema Tracking', () => {
     const schema = createStandardSchema('person_schema', 'Person');
 
     // Create person data
-    await db.persistDelta(db.createDelta('user', [
-      { localContext: 'named', target: { id: personId }, targetContext: 'name' },
-      { localContext: 'name', target: 'Alice' }
-    ]));
+    await db.persistDelta(
+      db.createDelta('user', [
+        { localContext: 'named', target: { id: personId }, targetContext: 'name' },
+        { localContext: 'name', target: 'Alice' }
+      ])
+    );
 
     // Materialize
     const view = db.materializeHyperView(personId, schema);
@@ -35,19 +44,23 @@ describe('MaterializedHyperView Schema Tracking', () => {
     const schema = createStandardSchema('person_schema', 'Person');
 
     // Create and materialize
-    await db.persistDelta(db.createDelta('user', [
-      { localContext: 'named', target: { id: personId }, targetContext: 'name' },
-      { localContext: 'name', target: 'Bob' }
-    ]));
+    await db.persistDelta(
+      db.createDelta('user', [
+        { localContext: 'named', target: { id: personId }, targetContext: 'name' },
+        { localContext: 'name', target: 'Bob' }
+      ])
+    );
 
     const view = db.materializeHyperView(personId, schema);
     expect(view._metadata.deltaCount).toBe(1);
 
     // Add more data
-    await db.persistDelta(db.createDelta('user', [
-      { localContext: 'person', target: { id: personId }, targetContext: 'age' },
-      { localContext: 'age', target: 30 }
-    ]));
+    await db.persistDelta(
+      db.createDelta('user', [
+        { localContext: 'person', target: { id: personId }, targetContext: 'age' },
+        { localContext: 'age', target: 30 }
+      ])
+    );
 
     // Rebuild should use stored schema
     const rebuilt = db.rebuildHyperView(personId);
@@ -59,15 +72,19 @@ describe('MaterializedHyperView Schema Tracking', () => {
     const personId = 'person_charlie';
 
     // Create data
-    await db.persistDelta(db.createDelta('user', [
-      { localContext: 'named', target: { id: personId }, targetContext: 'name' },
-      { localContext: 'name', target: 'Charlie' }
-    ]));
+    await db.persistDelta(
+      db.createDelta('user', [
+        { localContext: 'named', target: { id: personId }, targetContext: 'name' },
+        { localContext: 'name', target: 'Charlie' }
+      ])
+    );
 
-    await db.persistDelta(db.createDelta('user', [
-      { localContext: 'person', target: { id: personId }, targetContext: 'email' },
-      { localContext: 'email', target: 'charlie@example.com' }
-    ]));
+    await db.persistDelta(
+      db.createDelta('user', [
+        { localContext: 'person', target: { id: personId }, targetContext: 'email' },
+        { localContext: 'email', target: 'charlie@example.com' }
+      ])
+    );
 
     // Materialize with two different schemas
     const basicSchema = createStandardSchema('person_basic', 'PersonBasic');
@@ -92,10 +109,12 @@ describe('MaterializedHyperView Schema Tracking', () => {
     const personId = 'person_dave';
     const schema = createStandardSchema('person_schema', 'Person');
 
-    await db.persistDelta(db.createDelta('user', [
-      { localContext: 'named', target: { id: personId }, targetContext: 'name' },
-      { localContext: 'name', target: 'Dave' }
-    ]));
+    await db.persistDelta(
+      db.createDelta('user', [
+        { localContext: 'named', target: { id: personId }, targetContext: 'name' },
+        { localContext: 'name', target: 'Dave' }
+      ])
+    );
 
     const view = db.materializeHyperView(personId, schema);
 
@@ -116,10 +135,12 @@ describe('MaterializedHyperView Schema Tracking', () => {
     const personId = 'person_eve';
     const schema = createStandardSchema('person_schema', 'Person');
 
-    await db.persistDelta(db.createDelta('user', [
-      { localContext: 'named', target: { id: personId }, targetContext: 'name' },
-      { localContext: 'name', target: 'Eve' }
-    ]));
+    await db.persistDelta(
+      db.createDelta('user', [
+        { localContext: 'named', target: { id: personId }, targetContext: 'name' },
+        { localContext: 'name', target: 'Eve' }
+      ])
+    );
 
     const view = db.materializeHyperView(personId, schema);
 
@@ -139,15 +160,17 @@ describe('MaterializedHyperView Schema Tracking', () => {
     const schema = createStandardSchema('person_schema', 'Person', {
       name: {
         schema: PrimitiveSchemas.String,
-        when: (p) => PrimitiveSchemas.String.validate(p.target)
+        when: p => PrimitiveSchemas.String.validate(p.target)
       }
     });
 
     // Initial data
-    await db.persistDelta(db.createDelta('user', [
-      { localContext: 'named', target: { id: personId }, targetContext: 'name' },
-      { localContext: 'name', target: 'Frank' }
-    ]));
+    await db.persistDelta(
+      db.createDelta('user', [
+        { localContext: 'named', target: { id: personId }, targetContext: 'name' },
+        { localContext: 'name', target: 'Frank' }
+      ])
+    );
 
     const view = db.materializeHyperView(personId, schema);
     expect(view._metadata.deltaCount).toBe(1);

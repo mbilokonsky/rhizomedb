@@ -350,7 +350,7 @@ export class RhizomeDB
     // Count deltas in the view
     let deltaCount = 0;
     for (const key in hyperView) {
-      if (key !== 'id' && Array.isArray(hyperView[key])) {
+      if (key !== 'id' && key !== '_metadata' && Array.isArray(hyperView[key])) {
         deltaCount += (hyperView[key] as Delta[]).length;
       }
     }
@@ -361,11 +361,13 @@ export class RhizomeDB
 
     const materializedView: MaterializedHyperView = {
       ...hyperView,
-      _schemaId: schema.id,
-      _schemaHash: schemaHash,
-      _schemaVersion: versionedSchema.version,
-      _lastUpdated: Date.now(),
-      _deltaCount: deltaCount
+      _metadata: {
+        schemaId: schema.id,
+        schemaHash: schemaHash,
+        schemaVersion: versionedSchema.version,
+        lastUpdated: Date.now(),
+        deltaCount: deltaCount
+      }
     };
 
     // Cache if enabled (LRU automatically handles eviction)
@@ -380,7 +382,7 @@ export class RhizomeDB
   updateHyperView(view: MaterializedHyperView, delta: Delta): void {
     // For simplicity, just rebuild the view
     // A more sophisticated implementation would incrementally update
-    const schema = this.schemaRegistry.get(view._schemaId);
+    const schema = this.schemaRegistry.get(view._metadata.schemaId);
     if (schema) {
       const updated = this.materializeHyperView(view.id, schema);
       Object.assign(view, updated);
@@ -422,9 +424,9 @@ export class RhizomeDB
       throw new Error(`No materialized view found for object: ${objectId}${schemaId ? ` with schema: ${schemaId}` : ''}`);
     }
 
-    const schema = this.schemaRegistry.get(existing._schemaId);
+    const schema = this.schemaRegistry.get(existing._metadata.schemaId);
     if (!schema) {
-      throw new Error(`Schema not found: ${existing._schemaId}`);
+      throw new Error(`Schema not found: ${existing._metadata.schemaId}`);
     }
 
     return this.materializeHyperView(objectId, schema);
@@ -452,7 +454,7 @@ export class RhizomeDB
    * @returns true if the view should be rebuilt
    */
   isViewOutdated(view: MaterializedHyperView): boolean {
-    const schema = this.schemaRegistry.get(view._schemaId);
+    const schema = this.schemaRegistry.get(view._metadata.schemaId);
     if (!schema) {
       // Schema doesn't exist anymore - view is orphaned
       return true;
@@ -461,14 +463,14 @@ export class RhizomeDB
     const currentHash = calculateSchemaHash(schema);
 
     // Check if hash has changed
-    if (view._schemaHash !== currentHash) {
+    if (view._metadata.schemaHash !== currentHash) {
       return true;
     }
 
     // Check if explicit version has increased
     const versionedSchema = schema as VersionedHyperSchema;
-    if (versionedSchema.version !== undefined && view._schemaVersion !== undefined) {
-      if (versionedSchema.version > view._schemaVersion) {
+    if (versionedSchema.version !== undefined && view._metadata.schemaVersion !== undefined) {
+      if (versionedSchema.version > view._metadata.schemaVersion) {
         return true;
       }
     }

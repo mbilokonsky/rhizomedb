@@ -26,8 +26,8 @@ describe('MaterializedHyperView Schema Tracking', () => {
     // Materialize
     const view = db.materializeHyperView(personId, schema);
 
-    // Should have schema ID
-    expect(view._schemaId).toBe('person_schema');
+    // Should have schema ID in metadata
+    expect(view._metadata.schemaId).toBe('person_schema');
   });
 
   it('should allow rebuilding view using stored schema', async () => {
@@ -41,7 +41,7 @@ describe('MaterializedHyperView Schema Tracking', () => {
     ]));
 
     const view = db.materializeHyperView(personId, schema);
-    expect(view._deltaCount).toBe(1);
+    expect(view._metadata.deltaCount).toBe(1);
 
     // Add more data
     await db.persistDelta(db.createDelta('user', [
@@ -51,8 +51,8 @@ describe('MaterializedHyperView Schema Tracking', () => {
 
     // Rebuild should use stored schema
     const rebuilt = db.rebuildHyperView(personId);
-    expect(rebuilt._schemaId).toBe('person_schema');
-    expect(rebuilt._deltaCount).toBe(2);
+    expect(rebuilt._metadata.schemaId).toBe('person_schema');
+    expect(rebuilt._metadata.deltaCount).toBe(2);
   });
 
   it('should support multiple schemas for the same object', async () => {
@@ -77,15 +77,15 @@ describe('MaterializedHyperView Schema Tracking', () => {
     const fullView = db.materializeHyperView(personId, fullSchema);
 
     // Both should be cached separately
-    expect(basicView._schemaId).toBe('person_basic');
-    expect(fullView._schemaId).toBe('person_full');
+    expect(basicView._metadata.schemaId).toBe('person_basic');
+    expect(fullView._metadata.schemaId).toBe('person_full');
 
     // Should be able to retrieve specific views
     const retrieved1 = db.getHyperView(personId, 'person_basic');
     const retrieved2 = db.getHyperView(personId, 'person_full');
 
-    expect(retrieved1?._schemaId).toBe('person_basic');
-    expect(retrieved2?._schemaId).toBe('person_full');
+    expect(retrieved1?._metadata.schemaId).toBe('person_basic');
+    expect(retrieved2?._metadata.schemaId).toBe('person_full');
   });
 
   it('should get any view if no schema specified', async () => {
@@ -103,7 +103,7 @@ describe('MaterializedHyperView Schema Tracking', () => {
     const retrieved = db.getHyperView(personId);
     expect(retrieved).not.toBeNull();
     expect(retrieved?.id).toBe(personId);
-    expect(retrieved?._schemaId).toBe('person_schema');
+    expect(retrieved?._metadata.schemaId).toBe('person_schema');
   });
 
   it('should throw error when rebuilding non-existent view', () => {
@@ -124,7 +124,7 @@ describe('MaterializedHyperView Schema Tracking', () => {
     const view = db.materializeHyperView(personId, schema);
 
     // Manually corrupt the schema ID
-    view._schemaId = 'nonexistent_schema';
+    view._metadata.schemaId = 'nonexistent_schema';
 
     // Manually update the cache
     db['materializedViews'].set(`${personId}:nonexistent_schema`, view);
@@ -150,7 +150,7 @@ describe('MaterializedHyperView Schema Tracking', () => {
     ]));
 
     const view = db.materializeHyperView(personId, schema);
-    expect(view._deltaCount).toBe(1);
+    expect(view._metadata.deltaCount).toBe(1);
 
     // Add more data
     const newDelta = db.createDelta('user', [
@@ -163,7 +163,7 @@ describe('MaterializedHyperView Schema Tracking', () => {
     db.updateHyperView(view, newDelta);
 
     // Should have updated count
-    expect(view._deltaCount).toBe(2);
-    expect(view._schemaId).toBe('person_schema');
+    expect(view._metadata.deltaCount).toBe(2);
+    expect(view._metadata.schemaId).toBe('person_schema');
   });
 });

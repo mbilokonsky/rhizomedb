@@ -288,7 +288,7 @@ describe('Movie Database', () => {
       const personView = await db.materializeHyperView('person_wood_elijah', movieSchemas.person);
 
       expect(personView.id).toBe('person_wood_elijah');
-      expect(personView._deltaCount).toBeGreaterThan(0);
+      expect(personView._metadata.deltaCount).toBeGreaterThan(0);
       expect(personView.name).toBeDefined();
     });
 

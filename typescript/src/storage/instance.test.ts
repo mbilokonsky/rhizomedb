@@ -319,8 +319,8 @@ describe('RhizomeDB', () => {
       const materialized = db.materializeHyperView(personId, schema);
 
       expect(materialized.id).toBe(personId);
-      expect(materialized._lastUpdated).toBeGreaterThan(0);
-      expect(materialized._deltaCount).toBe(1);
+      expect(materialized._metadata.lastUpdated).toBeGreaterThan(0);
+      expect(materialized._metadata.deltaCount).toBe(1);
 
       // Should be cached
       const cached = db.getHyperView(personId);

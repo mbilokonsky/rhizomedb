@@ -459,7 +459,7 @@ interface StreamInfo {
 
 #### 3.4.6 IndexMaintenance Interface
 
-Instances that maintain materialized HyperViews MUST implement:
+Instances that maintain materialized HyperViews (i.e., reified, concrete, populated HyperViews cached for fast access) MUST implement:
 
 ```typescript
 interface IndexMaintainer extends RhizomeInstance {
@@ -467,29 +467,23 @@ interface IndexMaintainer extends RhizomeInstance {
   materializeHyperView(
     objectId: string,
     schema: HyperSchema
-  ): MaterializedHyperView
+  ): HyperView
 
   // Update a materialized HyperView with a new delta
   updateHyperView(
-    view: MaterializedHyperView,
+    view: HyperView,
     delta: Delta
   ): void
 
   // Get a materialized HyperView
-  getHyperView(objectId: string): MaterializedHyperView | null
+  getHyperView(objectId: string): HyperView | null
 
   // Invalidate and rebuild a HyperView
-  rebuildHyperView(objectId: string): MaterializedHyperView
-}
-
-interface MaterializedHyperView extends HyperView {
-  // When this view was last updated
-  lastUpdated: number
-
-  // How many deltas are in this view
-  deltaCount: number
+  rebuildHyperView(objectId: string): HyperView
 }
 ```
+
+**Note on terminology**: The term "materialized HyperView" refers to a reified, concrete, populated HyperView (as opposed to an abstract, hypothetical output of a HyperSchema). This is a descriptive term, not a separate technical concept. Implementations MAY track metadata about materialized HyperViews (such as last update time or delta count) using the `_metadata` field in the HyperView interface (see §5.1).
 
 ## 4. HyperSchema Specification
 
@@ -531,7 +525,87 @@ type TransformationRules = {
 }
 ```
 
-### 4.2 Selection Function Semantics
+### 4.2 PrimitiveHyperSchemas
+
+While HyperSchemas primarily define transformations for domain object references, RhizomeDB also wraps primitive values in **PrimitiveHyperSchemas** to provide type validation and metadata.
+
+```typescript
+interface PrimitiveHyperSchema extends HyperSchema {
+  // GraphQL type for this primitive
+  graphqlType: string
+
+  // Validate that a value matches this primitive type
+  validate(value: any): boolean
+
+  // Optional: Base schema this is derived from
+  baseSchema?: PrimitiveHyperSchema
+}
+
+// Built-in primitive schemas
+const PrimitiveSchemas = {
+  String: PrimitiveHyperSchema,      // Any string
+  Integer: PrimitiveHyperSchema,     // Any integer
+  Boolean: PrimitiveHyperSchema,     // Any boolean
+}
+
+// Chained type narrowing - build specific types from base primitives
+PrimitiveSchemas.String.EmailAddress = {
+  ...PrimitiveSchemas.String,
+  graphqlType: 'String',
+  validate: (v) => typeof v === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
+  baseSchema: PrimitiveSchemas.String
+}
+
+PrimitiveSchemas.Integer.Year = {
+  ...PrimitiveSchemas.Integer,
+  graphqlType: 'Int',
+  validate: (v) => typeof v === 'number' && Number.isInteger(v) && v >= 1800 && v <= 2100,
+  baseSchema: PrimitiveSchemas.Integer
+}
+```
+
+#### 4.2.1 Using PrimitiveSchemas in Transformations
+
+PrimitiveSchemas are used in transformation rules to validate and type primitive fields:
+
+```typescript
+const movieSchema: HyperSchema = {
+  id: 'movie_schema',
+  name: 'Movie',
+  select: selectByTargetContext,
+  transform: {
+    // Primitive fields with type validation
+    title: {
+      schema: PrimitiveSchemas.String,
+      when: (p) => PrimitiveSchemas.String.validate(p.target)
+    },
+    year: {
+      schema: PrimitiveSchemas.Integer.Year,
+      when: (p) => PrimitiveSchemas.Integer.Year.validate(p.target)
+    },
+    runtime: {
+      schema: PrimitiveSchemas.Integer,
+      when: (p) => PrimitiveSchemas.Integer.validate(p.target)
+    },
+
+    // Domain object relationships
+    director: {
+      schema: 'person_schema',
+      when: (p) => typeof p.target === 'object' && 'id' in p.target
+    }
+  }
+}
+```
+
+**Benefits of PrimitiveHyperSchemas:**
+
+1. **Type Safety**: Runtime validation ensures values match expected types
+2. **GraphQL Integration**: Automatic GraphQL type inference
+3. **Type Narrowing**: Build constrained types from base primitives (e.g., Year from Integer)
+4. **Metadata-Driven Discovery**: Fields are defined in schemas, not inferred from data
+5. **Consistent Filtering**: Invalid values are filtered out during HyperView construction
+
+### 4.3 Selection Function Semantics
 
 The selection function determines relevance. It receives an object ID and a delta, and returns:
 
@@ -558,7 +632,7 @@ const namedEntitySelection: SelectionFunction = (objectId, delta) => {
 
 This pattern says: "Include this delta if any pointer targets this object, and organize it under the pointer's `targetContext`."
 
-### 4.3 Transformation Rules Semantics
+### 4.4 Transformation Rules Semantics
 
 Transformation rules determine how to expand pointers into nested HyperViews.
 
@@ -589,7 +663,7 @@ const movieSchema: HyperSchema = {
 }
 ```
 
-### 4.4 DAG Requirement
+### 4.5 DAG Requirement
 
 HyperSchemas MUST form a directed acyclic graph. No schema can invoke itself through a chain of transformations.
 
@@ -601,7 +675,7 @@ HyperSchemas MUST form a directed acyclic graph. No schema can invoke itself thr
 
 **Note**: Circular *data* references are fine (Keanu created BRZRKR, BRZRKR was created by Keanu). The schema just stops expanding at appropriate points.
 
-### 4.5 Negation Handling
+### 4.6 Negation Handling
 
 When constructing HyperViews, implementations MUST check for negation deltas.
 
@@ -612,7 +686,7 @@ Algorithm:
 
 **Time-travel**: When querying at a specific timestamp, only apply negations with `timestamp <= queryTimestamp`.
 
-### 4.6 Example: Complete HyperSchema Definition
+### 4.7 Example: Complete HyperSchema Definition
 
 ```typescript
 // Terminal schema - no transformations
@@ -668,8 +742,15 @@ interface HyperView {
   // The domain object ID
   id: string
 
+  // Optional metadata (e.g., for materialized HyperViews)
+  _metadata?: {
+    lastUpdated?: number
+    deltaCount?: number
+    [key: string]: any
+  }
+
   // Properties, each containing deltas
-  [property: string]: Delta[] | string
+  [property: string]: Delta[] | string | HyperView['_metadata']
 }
 
 // Note: In implementation, Delta.pointers may contain nested HyperViews in place of targets
@@ -1322,7 +1403,7 @@ class RhizomeDB implements RhizomeInstance {
 
   // HyperView operations
   applyHyperSchema(objectId: string, schema: HyperSchema): HyperView
-  materializeHyperView(objectId: string, schema: HyperSchema): MaterializedHyperView
+  materializeHyperView(objectId: string, schema: HyperSchema): HyperView
 
   // Streaming
   subscribe(filter: DeltaFilter, handler: DeltaHandler): Subscription

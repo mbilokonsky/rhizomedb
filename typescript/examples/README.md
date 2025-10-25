@@ -18,18 +18,20 @@ The TypeScript implementation supports 6 of the 9 core capabilities:
 | **IndexMaintenance** | Maintain materialized HyperViews | ✅ Implemented |
 | **MutationAPI** | Expose write interface | 🟡 Partial (GraphQL exists) |
 | **QueryAPI** | Expose read interface | 🟡 Partial (GraphQL exists) |
-| **Federation** | Sync with other instances | ❌ **Not Yet Implemented** |
+| **Federation** | Sync with other instances | ✅ **Implemented** |
 
-### ❌ Federation Status
+### ✅ Federation Status
 
-**Inter-instance communication is not yet implemented.** The spec fully documents the federation interface (§8), but the implementation hasn't been started. This means:
+**Inter-instance communication is now fully implemented!** See the `federation/` directory for examples.
 
-- ❌ Instances cannot connect to each other over networks
-- ❌ No automatic delta synchronization between instances
-- ❌ No trust policy enforcement
-- ❌ Manual delta sharing only (within a single process)
+- ✅ Instances can connect to each other over WebSocket
+- ✅ Automatic delta synchronization between instances
+- ✅ Trust policy enforcement
+- ✅ Multiple sync modes (push/pull/bidirectional)
+- ✅ Initial sync strategies (full/from_timestamp/none)
+- ✅ Reconnection with exponential backoff
 
-**However**, the underlying CRDT model naturally supports federation, so these examples show how instances *would* be configured once federation is implemented.
+**See [federation/README.md](./federation/README.md) for detailed examples and documentation.**
 
 ## Instance Archetypes
 

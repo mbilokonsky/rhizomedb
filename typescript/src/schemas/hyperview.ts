@@ -15,10 +15,11 @@ import {
   HyperSchema,
   HyperView,
   Pointer,
+  Reference,
   DomainNodeReference,
   isPrimitiveHyperSchema
 } from '../core/types';
-import { isDomainNodeReference } from '../core/validation';
+import { isDomainNodeReference, isReference } from '../core/validation';
 
 /**
  * Schema registry for lazy resolution of schema references
@@ -208,21 +209,21 @@ export function constructHyperView(
 }
 
 /**
- * Create a simple selection function that selects by targetContext
+ * Create a simple selection function that selects by Reference context
  *
  * This is the most common pattern - include deltas that target this object
- * and organize them by their targetContext.
+ * and organize them by their Reference context.
  */
 export function selectByTargetContext(objectId: string, delta: Delta): boolean | string[] {
   const properties: string[] = [];
 
   for (const pointer of delta.pointers) {
     if (
-      isDomainNodeReference(pointer.target) &&
+      isReference(pointer.target) &&
       pointer.target.id === objectId &&
-      pointer.targetContext
+      pointer.target.context
     ) {
-      properties.push(pointer.targetContext);
+      properties.push(pointer.target.context);
     }
   }
 

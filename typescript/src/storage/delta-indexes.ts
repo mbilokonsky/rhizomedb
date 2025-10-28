@@ -6,7 +6,7 @@
  */
 
 import { Delta, DeltaFilter, IndexStats } from '../core/types';
-import { isDomainNodeReference } from '../core/validation';
+import { isDomainNodeReference, isReference } from '../core/validation';
 
 /**
  * Secondary indexes for delta queries
@@ -33,13 +33,13 @@ export class DeltaIndexes {
   addDelta(delta: Delta): void {
     // Index by target IDs
     for (const pointer of delta.pointers) {
-      if (isDomainNodeReference(pointer.target)) {
+      if (isReference(pointer.target)) {
         this.addToIndex(this.targetIdIndex, pointer.target.id, delta.id);
-      }
 
-      // Index by target context
-      if (pointer.targetContext) {
-        this.addToIndex(this.targetContextIndex, pointer.targetContext, delta.id);
+        // Index by target context
+        if (pointer.target.context) {
+          this.addToIndex(this.targetContextIndex, pointer.target.context, delta.id);
+        }
       }
     }
 
@@ -57,15 +57,15 @@ export class DeltaIndexes {
    * Remove a delta from all indexes
    */
   removeDelta(delta: Delta): void {
-    // Remove from target ID index
+    // Remove from target ID and context indexes
     for (const pointer of delta.pointers) {
-      if (isDomainNodeReference(pointer.target)) {
+      if (isReference(pointer.target)) {
         this.removeFromIndex(this.targetIdIndex, pointer.target.id, delta.id);
-      }
 
-      // Remove from target context index
-      if (pointer.targetContext) {
-        this.removeFromIndex(this.targetContextIndex, pointer.targetContext, delta.id);
+        // Remove from target context index
+        if (pointer.target.context) {
+          this.removeFromIndex(this.targetContextIndex, pointer.target.context, delta.id);
+        }
       }
     }
 

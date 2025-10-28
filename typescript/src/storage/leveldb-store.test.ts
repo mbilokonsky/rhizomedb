@@ -67,7 +67,7 @@ describe('LevelDBStore', () => {
 
       expect(negation.pointers).toHaveLength(2);
       expect(negation.pointers[0].localContext).toBe('negates');
-      expect(negation.pointers[0].target).toEqual({ id: targetDeltaId });
+      expect(negation.pointers[0].target).toEqual({ id: targetDeltaId, context: 'negated_by' });
       expect(negation.pointers[1].localContext).toBe('reason');
       expect(negation.pointers[1].target).toBe(reason);
     });
@@ -133,11 +133,11 @@ describe('LevelDBStore', () => {
     it('should filter deltas by target ID', async () => {
       const personId = 'person_123';
       const delta1 = db.createDelta('user-1', [
-        { localContext: 'name', target: { id: personId }, targetContext: 'named' },
+        { localContext: 'name', target: { id: personId, context: 'named' } },
         { localContext: 'name', target: 'Alice' }
       ]);
       const delta2 = db.createDelta('user-1', [
-        { localContext: 'name', target: { id: 'person_456' }, targetContext: 'named' },
+        { localContext: 'name', target: { id: 'person_456', context: 'named' } },
         { localContext: 'name', target: 'Bob' }
       ]);
 
@@ -239,11 +239,11 @@ describe('LevelDBStore', () => {
 
       // Create deltas for a person
       const delta1 = db.createDelta('system', [
-        { localContext: 'named', target: { id: personId }, targetContext: 'name' },
+        { localContext: 'named', target: { id: personId, context: 'name' } },
         { localContext: 'name', target: 'Alice' }
       ]);
       const delta2 = db.createDelta('system', [
-        { localContext: 'aged', target: { id: personId }, targetContext: 'age' },
+        { localContext: 'aged', target: { id: personId, context: 'age' } },
         { localContext: 'age', target: 30 }
       ]);
 
@@ -267,7 +267,7 @@ describe('LevelDBStore', () => {
 
       // Create a delta
       const delta1 = db.createDelta('user-1', [
-        { localContext: 'value', target: { id: objectId }, targetContext: 'value' },
+        { localContext: 'value', target: { id: objectId, context: 'value' } },
         { localContext: 'value', target: 'original' }
       ]);
       await db.persistDelta(delta1);
@@ -278,7 +278,7 @@ describe('LevelDBStore', () => {
 
       // Create new value
       const delta2 = db.createDelta('user-1', [
-        { localContext: 'value', target: { id: objectId }, targetContext: 'value' },
+        { localContext: 'value', target: { id: objectId, context: 'value' } },
         { localContext: 'value', target: 'corrected' }
       ]);
       await db.persistDelta(delta2);
@@ -301,7 +301,7 @@ describe('LevelDBStore', () => {
       };
 
       const delta = db.createDelta('system', [
-        { localContext: 'named', target: { id: personId }, targetContext: 'name' },
+        { localContext: 'named', target: { id: personId, context: 'name' } },
         { localContext: 'name', target: 'Bob' }
       ]);
       await db.persistDelta(delta);
@@ -326,7 +326,7 @@ describe('LevelDBStore', () => {
       };
 
       const delta = db.createDelta('system', [
-        { localContext: 'named', target: { id: personId }, targetContext: 'name' },
+        { localContext: 'named', target: { id: personId, context: 'name' } },
         { localContext: 'name', target: 'Charlie' }
       ]);
       await db.persistDelta(delta);

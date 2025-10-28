@@ -23,7 +23,7 @@ import {
   StreamProducer,
   IndexMaintainer
 } from '../core/types';
-import { validateDelta, isDomainNodeReference } from '../core/validation';
+import { validateDelta, isDomainNodeReference, isReference } from '../core/validation';
 import { constructHyperView, SchemaRegistry } from '../schemas/hyperview';
 import { calculateSchemaHash, VersionedHyperSchema } from '../schemas/schema-versioning';
 
@@ -104,7 +104,7 @@ class LevelDBSubscription implements Subscription {
 
     if (this.filter.targetContexts) {
       const hasMatchingContext = delta.pointers.some(
-        p => p.targetContext && this.filter.targetContexts!.includes(p.targetContext)
+        p => isReference(p.target) && p.target.context && this.filter.targetContexts!.includes(p.target.context)
       );
       if (!hasMatchingContext) {
         return false;
@@ -219,8 +219,7 @@ export class LevelDBStore
     const pointers: Pointer[] = [
       {
         localContext: 'negates',
-        target: { id: targetDeltaId },
-        targetContext: 'negated_by'
+        target: { id: targetDeltaId, context: 'negated_by' }
       }
     ];
 
@@ -383,7 +382,7 @@ export class LevelDBStore
 
     if (filter.targetContexts) {
       const hasMatchingContext = delta.pointers.some(
-        p => p.targetContext && filter.targetContexts!.includes(p.targetContext)
+        p => isReference(p.target) && p.target.context && filter.targetContexts!.includes(p.target.context)
       );
       if (!hasMatchingContext) {
         return false;

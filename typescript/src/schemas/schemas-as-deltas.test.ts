@@ -33,8 +33,7 @@ describe('Schemas as Deltas', () => {
       const typeDeclaration = db.createDelta('system', [
         {
           localContext: 'entity',
-          target: { id: schemaId },
-          targetContext: 'type'
+          target: { id: schemaId, context: 'type' }
         },
         {
           localContext: 'type',
@@ -46,8 +45,7 @@ describe('Schemas as Deltas', () => {
       const nameDeclaration = db.createDelta('system', [
         {
           localContext: 'schema',
-          target: { id: schemaId },
-          targetContext: 'name'
+          target: { id: schemaId, context: 'name' }
         },
         {
           localContext: 'name',
@@ -59,8 +57,7 @@ describe('Schemas as Deltas', () => {
       const selectionDeclaration = db.createDelta('system', [
         {
           localContext: 'schema',
-          target: { id: schemaId },
-          targetContext: 'select'
+          target: { id: schemaId, context: 'select' }
         },
         {
           localContext: 'pattern',
@@ -73,8 +70,7 @@ describe('Schemas as Deltas', () => {
       const transformDeclaration = db.createDelta('system', [
         {
           localContext: 'schema',
-          target: { id: schemaId },
-          targetContext: 'transform'
+          target: { id: schemaId, context: 'transform' }
         },
         {
           localContext: 'rules',
@@ -111,21 +107,21 @@ describe('Schemas as Deltas', () => {
 
       await db.persistDelta(
         db.createDelta('system', [
-          { localContext: 'schema', target: { id: schemaId }, targetContext: 'name' },
+          { localContext: 'schema', target: { id: schemaId, context: 'name' } },
           { localContext: 'name', target: 'NamedEntity' }
         ])
       );
 
       await db.persistDelta(
         db.createDelta('system', [
-          { localContext: 'schema', target: { id: schemaId }, targetContext: 'select' },
+          { localContext: 'schema', target: { id: schemaId, context: 'select' } },
           { localContext: 'pattern', target: { id: 'select_by_target_context' } }
         ])
       );
 
       await db.persistDelta(
         db.createDelta('system', [
-          { localContext: 'schema', target: { id: schemaId }, targetContext: 'transform' },
+          { localContext: 'schema', target: { id: schemaId, context: 'transform' } },
           { localContext: 'rules', target: '{}' }
         ])
       );
@@ -145,7 +141,7 @@ describe('Schemas as Deltas', () => {
       const personId = 'person_alice';
       await db.persistDelta(
         db.createDelta('author', [
-          { localContext: 'named', target: { id: personId }, targetContext: 'name' },
+          { localContext: 'named', target: { id: personId, context: 'name' } },
           { localContext: 'name', target: 'Alice' }
         ])
       );
@@ -163,14 +159,14 @@ describe('Schemas as Deltas', () => {
       // Basic schema metadata
       await db.persistDelta(
         db.createDelta('system', [
-          { localContext: 'schema', target: { id: schemaId }, targetContext: 'name' },
+          { localContext: 'schema', target: { id: schemaId, context: 'name' } },
           { localContext: 'name', target: 'BlogPost' }
         ])
       );
 
       await db.persistDelta(
         db.createDelta('system', [
-          { localContext: 'schema', target: { id: schemaId }, targetContext: 'select' },
+          { localContext: 'schema', target: { id: schemaId, context: 'select' } },
           { localContext: 'pattern', target: { id: 'select_by_target_context' } }
         ])
       );
@@ -179,8 +175,7 @@ describe('Schemas as Deltas', () => {
       const authorTransform = db.createDelta('system', [
         {
           localContext: 'schema',
-          target: { id: schemaId },
-          targetContext: 'transform'
+          target: { id: schemaId, context: 'transform' }
         },
         {
           localContext: 'on-context',
@@ -196,8 +191,7 @@ describe('Schemas as Deltas', () => {
       const commentTransform = db.createDelta('system', [
         {
           localContext: 'schema',
-          target: { id: schemaId },
-          targetContext: 'transform'
+          target: { id: schemaId, context: 'transform' }
         },
         {
           localContext: 'on-context',
@@ -257,22 +251,22 @@ describe('Schemas as Deltas', () => {
 
       await db.persistDelta(
         db.createDelta('system', [
-          { localContext: 'named', target: { id: authorId }, targetContext: 'name' },
+          { localContext: 'named', target: { id: authorId, context: 'name' } },
           { localContext: 'name', target: 'Alice' }
         ])
       );
 
       await db.persistDelta(
         db.createDelta('system', [
-          { localContext: 'post', target: { id: postId }, targetContext: 'title' },
+          { localContext: 'post', target: { id: postId, context: 'title' } },
           { localContext: 'title', target: 'My Post' }
         ])
       );
 
       await db.persistDelta(
         db.createDelta('system', [
-          { localContext: 'post', target: { id: postId }, targetContext: 'author' },
-          { localContext: 'author', target: { id: authorId }, targetContext: 'posts' }
+          { localContext: 'post', target: { id: postId, context: 'author' } },
+          { localContext: 'author', target: { id: authorId, context: 'posts' } }
         ])
       );
 
@@ -299,14 +293,14 @@ describe('Schemas as Deltas', () => {
       // Initial schema: just name
       await db.persistDelta(
         db.createDelta('system', [
-          { localContext: 'schema', target: { id: schemaId }, targetContext: 'name' },
+          { localContext: 'schema', target: { id: schemaId, context: 'name' } },
           { localContext: 'name', target: 'Person' }
         ])
       );
 
       await db.persistDelta(
         db.createDelta('system', [
-          { localContext: 'schema', target: { id: schemaId }, targetContext: 'select' },
+          { localContext: 'schema', target: { id: schemaId, context: 'select' } },
           { localContext: 'pattern', target: { id: 'select_by_target_context' } }
         ])
       );
@@ -314,7 +308,7 @@ describe('Schemas as Deltas', () => {
       // Later: add a transformation rule
       await db.persistDelta(
         db.createDelta('system', [
-          { localContext: 'schema', target: { id: schemaId }, targetContext: 'transform' },
+          { localContext: 'schema', target: { id: schemaId, context: 'transform' } },
           { localContext: 'on-context', target: 'address' },
           { localContext: 'apply-schema', target: { id: 'address_schema' } }
         ])
@@ -335,7 +329,7 @@ describe('Schemas as Deltas', () => {
 
       // Create a transformation rule
       const badRule = db.createDelta('system', [
-        { localContext: 'schema', target: { id: schemaId }, targetContext: 'transform' },
+        { localContext: 'schema', target: { id: schemaId, context: 'transform' } },
         { localContext: 'on-context', target: 'deprecated_field' },
         { localContext: 'apply-schema', target: { id: 'deprecated_schema' } }
       ]);
@@ -505,21 +499,21 @@ function resolveTransformationRules(hyperView: HyperView): TransformationRules {
 async function createNamedEntitySchemaAsDeltas(db: RhizomeDB, schemaId: string): Promise<void> {
   await db.persistDelta(
     db.createDelta('system', [
-      { localContext: 'schema', target: { id: schemaId }, targetContext: 'name' },
+      { localContext: 'schema', target: { id: schemaId, context: 'name' } },
       { localContext: 'name', target: 'NamedEntity' }
     ])
   );
 
   await db.persistDelta(
     db.createDelta('system', [
-      { localContext: 'schema', target: { id: schemaId }, targetContext: 'select' },
+      { localContext: 'schema', target: { id: schemaId, context: 'select' } },
       { localContext: 'pattern', target: { id: 'select_by_target_context' } }
     ])
   );
 
   await db.persistDelta(
     db.createDelta('system', [
-      { localContext: 'schema', target: { id: schemaId }, targetContext: 'transform' },
+      { localContext: 'schema', target: { id: schemaId, context: 'transform' } },
       { localContext: 'rules', target: '{}' }
     ])
   );
@@ -532,21 +526,21 @@ async function createBlogPostSchemaAsDeltas(
 ): Promise<void> {
   await db.persistDelta(
     db.createDelta('system', [
-      { localContext: 'schema', target: { id: schemaId }, targetContext: 'name' },
+      { localContext: 'schema', target: { id: schemaId, context: 'name' } },
       { localContext: 'name', target: 'BlogPost' }
     ])
   );
 
   await db.persistDelta(
     db.createDelta('system', [
-      { localContext: 'schema', target: { id: schemaId }, targetContext: 'select' },
+      { localContext: 'schema', target: { id: schemaId, context: 'select' } },
       { localContext: 'pattern', target: { id: 'select_by_target_context' } }
     ])
   );
 
   await db.persistDelta(
     db.createDelta('system', [
-      { localContext: 'schema', target: { id: schemaId }, targetContext: 'transform' },
+      { localContext: 'schema', target: { id: schemaId, context: 'transform' } },
       { localContext: 'on-context', target: 'author' },
       { localContext: 'apply-schema', target: { id: namedEntitySchemaId } }
     ])

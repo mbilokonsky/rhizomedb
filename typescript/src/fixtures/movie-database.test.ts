@@ -100,7 +100,7 @@ describe('Movie Database', () => {
       const movieIds = new Set(
         matrixMovies
           .filter(d => d.pointers.some(p => p.localContext === 'title'))
-          .map(d => d.pointers.find(p => p.targetContext === 'title')?.target)
+          .map(d => d.pointers.find(p => typeof p.target === 'object' && 'id' in p.target && 'context' in p.target && p.target.context === 'title')?.target)
           .filter(t => typeof t === 'object' && 'id' in t)
           .map(t => (t as any).id)
       );
@@ -134,7 +134,7 @@ describe('Movie Database', () => {
       const movieIds = new Set(
         movies1999
           .filter(d => d.pointers.some(p => p.localContext === 'year'))
-          .map(d => d.pointers.find(p => p.targetContext === 'year')?.target)
+          .map(d => d.pointers.find(p => typeof p.target === 'object' && 'id' in p.target && 'context' in p.target && p.target.context === 'year')?.target)
           .filter(t => typeof t === 'object' && 'id' in t)
           .map(t => (t as any).id)
       );
@@ -163,7 +163,7 @@ describe('Movie Database', () => {
       const movieIds = new Set(
         jacksonMovies
           .filter(d => d.pointers.some(p => p.localContext === 'director'))
-          .map(d => d.pointers.find(p => p.targetContext === 'director')?.target)
+          .map(d => d.pointers.find(p => typeof p.target === 'object' && 'id' in p.target && 'context' in p.target && p.target.context === 'director')?.target)
           .filter(t => typeof t === 'object' && 'id' in t)
           .map(t => (t as any).id)
       );
@@ -217,7 +217,7 @@ describe('Movie Database', () => {
 
       // Add a new movie
       const newMovie = db.createDelta('user', [
-        { localContext: 'titled', target: { id: 'movie_test' }, targetContext: 'title' },
+        { localContext: 'titled', target: { id: 'movie_test', context: 'title' } },
         { localContext: 'title', target: 'Test Movie' }
       ]);
       await db.persistDelta(newMovie);
@@ -273,7 +273,7 @@ describe('Movie Database', () => {
       // Should have title, year, runtime, director deltas
       const contexts = new Set(
         matrixDeltas.flatMap(d =>
-          d.pointers.filter(p => p.targetContext).map(p => p.targetContext!)
+          d.pointers.filter(p => typeof p.target === 'object' && 'id' in p.target && 'context' in p.target && p.target.context).map(p => (p.target as any).context)
         )
       );
 
@@ -400,7 +400,7 @@ describe('Movie Database', () => {
 
       const movieRuntimes = runtimeDeltas
         .map(d => {
-          const moviePointer = d.pointers.find(p => p.targetContext === 'runtime');
+          const moviePointer = d.pointers.find(p => typeof p.target === 'object' && 'id' in p.target && 'context' in p.target && p.target.context === 'runtime');
           const runtimePointer = d.pointers.find(p => p.localContext === 'runtime');
 
           return {
@@ -434,7 +434,7 @@ describe('Movie Database', () => {
       const movieIds = new Set(
         movies2000s
           .filter(d => d.pointers.some(p => p.localContext === 'year'))
-          .map(d => d.pointers.find(p => p.targetContext === 'year')?.target)
+          .map(d => d.pointers.find(p => typeof p.target === 'object' && 'id' in p.target && 'context' in p.target && p.target.context === 'year')?.target)
           .filter(t => typeof t === 'object' && 'id' in t)
           .map(t => (t as any).id)
       );
@@ -448,7 +448,7 @@ describe('Movie Database', () => {
     it('should demonstrate delta negation for corrections', async () => {
       // Add incorrect data
       const wrongDelta = db.createDelta('user', [
-        { localContext: 'titled', target: { id: 'movie_matrix' }, targetContext: 'budget' },
+        { localContext: 'titled', target: { id: 'movie_matrix', context: 'budget' } },
         { localContext: 'budget', target: 1000000 } // Wrong budget
       ]);
       await db.persistDelta(wrongDelta);
@@ -466,7 +466,7 @@ describe('Movie Database', () => {
 
       // Add correct data
       const correctDelta = db.createDelta('user', [
-        { localContext: 'titled', target: { id: 'movie_matrix' }, targetContext: 'budget' },
+        { localContext: 'titled', target: { id: 'movie_matrix', context: 'budget' } },
         { localContext: 'budget', target: 63000000 } // Correct budget
       ]);
       await db.persistDelta(correctDelta);

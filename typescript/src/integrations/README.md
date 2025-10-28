@@ -26,13 +26,13 @@ type Delta {
 type Pointer {
   localContext: String!
   target: PointerTarget!
-  targetContext: String
 }
 
-union PointerTarget = DomainNodeReference | PrimitiveValue
+union PointerTarget = Reference | HyperView | PrimitiveValue
 
-type DomainNodeReference {
+type Reference {
   id: ID!
+  context: String
 }
 
 type PrimitiveValue {
@@ -83,11 +83,11 @@ type Mutation {
 input PointerInput {
   localContext: String!
   target: PointerTargetInput!
-  targetContext: String
 }
 
 input PointerTargetInput {
   id: ID
+  context: String
   value: String
 }
 ```

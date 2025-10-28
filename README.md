@@ -72,13 +72,22 @@ interface Delta {
   // (No array primitives - use multiple pointers instead)
   pointers: {
     localContext: string
-    target: DomainNodeReference | Primitive
-    targetContext?: string
+    target: Reference | HyperView | Primitive
   }[]
 }
+
+// A Reference is a pointer to a domain object with optional organization context
+interface Reference {
+  id: string
+  context?: string  // Where this delta should be organized when querying this target
+}
+
+// Note: In flat deltas, target is Reference | Primitive
+// When HyperSchemas are applied, Reference targets are expanded into HyperViews
+type Primitive = string | number | boolean
 ```
 
-#### Pointer Context Fields: localContext and targetContext
+#### Pointer Context Fields: localContext and Reference.context
 
 Here's a complete example delta asserting a containment relationship:
 
@@ -91,35 +100,33 @@ Here's a complete example delta asserting a containment relationship:
   pointers: [
     {
       localContext: 'parent',
-      target: { id: 'some_container' },
-      targetContext: 'children'
+      target: { id: 'some_container', context: 'children' }
     },
     {
       localContext: 'child',
-      target: { id: 'some_contained_thing' },
-      targetContext: 'parent'
+      target: { id: 'some_contained_thing', context: 'parent' }
     }
   ]
 }
 ```
 
-Each pointer has three fields that together define the semantics of the relationship:
+Each pointer has two key components that together define the semantics of the relationship:
 
 **`localContext`**: From this delta's perspective, what is this pointer targeting?
 - The first pointer is targeting a **parent**
 - The second pointer is targeting a **child**
 - Together, this delta is asserting a parent/child relationship between `some_container` and `some_contained_thing`
 
-**`targetContext`**: Where should this delta be organized when querying the target object?
+**`target`**: The thing being referenced - either a Reference (with id and optional context), a HyperView (when schemas are applied), or a primitive value
+
+**`Reference.context`**: Where should this delta be organized when querying the target object?
 - When we query `some_container`, this delta should appear under its **children** property
 - When we query `some_contained_thing`, this delta should appear under its **parent** property
 - This creates navigable bidirectional relationships
 
-**`target`**: The thing being referenced (either a domain object `{ id }` or a primitive value)
+**Primitives and Reference.context:**
 
-**Primitives and targetContext:**
-
-When targeting primitive values, `targetContext` is often omitted:
+When targeting primitive values, the `context` field doesn't apply (primitives aren't queried):
 
 ```typescript
 {
@@ -130,13 +137,11 @@ When targeting primitive values, `targetContext` is often omitted:
   pointers: [
     {
       localContext: 'sized',
-      target: { id: 'item_1' },
-      targetContext: 'size'
+      target: { id: 'item_1', context: 'size' }
     },
     {
       localContext: 'size',
-      target: 3  // primitive number
-      // no targetContext - it would be something like 'thingsThatAreThisSize', which is rarely useful
+      target: 3  // primitive number - no Reference wrapper needed
     }
   ]
 }
@@ -202,12 +207,10 @@ const deltas = [
     system,
     pointers: [{
       localContext: 'actor',
-      target: { id: keanu },
-      targetContext: 'appearedIn'
+      target: { id: keanu, context: 'appearedIn' }
     },{
       localContext: 'movie',
-      target: { id: the_matrix },
-      targetContext: 'cast'
+      target: { id: the_matrix, context: 'cast' }
     },{
       localContext: 'characterName',
       target: 'Neo'
@@ -219,12 +222,10 @@ const deltas = [
     system,
     pointers: [{
       localContext: 'creator',
-      target: { id: keanu },
-      targetContext: 'projects'
+      target: { id: keanu, context: 'projects' }
     },{
       localContext: 'creation',
-      target: { id: brzrkr },
-      targetContext: 'createdBy'
+      target: { id: brzrkr, context: 'createdBy' }
     }]
   }
 ]
@@ -445,7 +446,7 @@ Movie = {
 
 If you've ever used GraphQL, though, you know that your actual *query* can draw from the graph expressed by the schema, but it requires you to terminate every selected property in a string. So you actually *can't* write a query where you pick a movie, and the cast includes a role has an actor that contains a role that has has the Movie you started with, etc. In fact, your query *must* terminate in primitive values for all properties - this is how GraphQL prevents you from "returning the whole graph" with a simple query. We're dealing with a similar challenge in the rhizomatic database, but the indirection of having deltas requires a slightly different approach.
 
-In our case, a *HyperSchema* defines a *HyperView*. A hyperview represents a domain object, but the properties of that object don't contain values directly - instead, each property resolves to an array of deltas that have targeted our domain object using that property's name as the `targetContext`. It also specifies the *HyperSchema* to apply to the `target` of the pointers on those nested deltas that are not targeting the parent. This is easier to show by example, but first we're going to need to add a few more deltas to flesh this out.
+In our case, a *HyperSchema* defines a *HyperView*. A hyperview represents a domain object, but the properties of that object don't contain values directly - instead, each property resolves to an array of deltas that have targeted our domain object using that property's name as the Reference's `context` field. It also specifies the *HyperSchema* to apply to the `target` of the pointers on those nested deltas that are not targeting the parent. This is easier to show by example, but first we're going to need to add a few more deltas to flesh this out.
 
 <details>
 <summary>Additional deltas for names and directors (click to expand)</summary>
@@ -462,8 +463,7 @@ const additional_deltas = [
     system,
     pointers: [{
       localContext: 'named',
-      target: { id: keanu },
-      targetContext: 'name'
+      target: { id: keanu, context: 'name' }
     },{
       localContext: 'name',
       target: 'Keanu Reeves'
@@ -476,8 +476,7 @@ const additional_deltas = [
     system,
     pointers: [{
       localContext: 'named',
-      target: { id: lily },
-      targetContext: 'name'
+      target: { id: lily, context: 'name' }
     },{
       localContext: 'name',
       target: 'Lily Wachowski'
@@ -490,8 +489,7 @@ const additional_deltas = [
     system,
     pointers: [{
       localContext: 'named',
-      target: { id: lana },
-      targetContext: 'name'
+      target: { id: lana, context: 'name' }
     },{
       localContext: 'name',
       target: 'Lana Wachowski'
@@ -504,17 +502,14 @@ const additional_deltas = [
     system,
     pointers: [{
       localContext: 'movie',
-      target: { id: the_matrix },
-      targetContext: 'directed_by'
+      target: { id: the_matrix, context: 'directed_by' }
     },{
       localContext: 'director',
-      target: { id: lily },
-      targetContext: 'films_directed'
+      target: { id: lily, context: 'films_directed' }
     },
     {
       localContext: 'director',
-      target: { id: lana },
-      targetContext: 'films_directed'
+      target: { id: lana, context: 'films_directed' }
     }]
   },
 ]
@@ -530,29 +525,29 @@ Now, let's identify the following `HyperSchema` objects, and let's use natural l
     * its job is to select each delta `d` in the system that contains a pointer where `{ localContext: "named", target: { id: n } }`.
     * If `d` also contains a pointer such that `{ localContext: 'name', target: string }`, embed `d` under the `namedEntity.name`.
   * The `Movie` HyperSchema is used to create an object `movie`, and takes a domain object id `m`
-    * it will identify each delta `d` in the system that contain a pointer `p` where `{ localContext: 'movie', target: m }`
-    * if `p.targetContext` is 'directed_by', embed this delta under `m.directed_by` AND
+    * it will identify each delta `d` in the system that contain a pointer `p` where `{ localContext: 'movie', target: { id: m, context: ... } }`
+    * if `p.target.context` is 'directed_by', embed this delta under `m.directed_by` AND
       * for each reamining pointer `p` on `d`, if `p.localContext` is 'director' then replace `p.target` with `NamedEntity(p.target)`
-    * if `p.targetContext` is 'cast', embed this delta under `m.cast` AND
+    * if `p.target.context` is 'cast', embed this delta under `m.cast` AND
       * for each remaining pointer `p` on `d`, if `p.localContext` is 'actor' then replace `p.target` with `NamedEntity(p.target)`
 
 #### HyperSchema Semantics
 
-The examples above use `targetContext` and `localContext` as convenient conventions, but let's be explicit about what HyperSchemas *actually* are at an abstract level.
+The examples above use Reference `context` and `localContext` as convenient conventions, but let's be explicit about what HyperSchemas *actually* are at an abstract level.
 
 **A HyperSchema is fundamentally two operations:**
 
 1. **Selection Function**: `(domainObjectId, allDeltas) → relevantDeltas[]`
    - Determines which deltas from the entire stream are relevant to this domain object
-   - In our examples: "deltas where a pointer has `target.id === domainObjectId AND targetContext === propertyName`"
+   - In our examples: "deltas where a pointer has `target.id === domainObjectId AND target.context === propertyName`"
    - But could also select by: author, timestamp, system, signatures, or any arbitrary predicate
    - This defines the **relevance boundary** for the HyperView
 
 2. **Transformation Rules**: `(delta, pointer) → transformedPointer`
    - For each delta that passed selection, determine how to transform its pointers
    - In our examples: "if `pointer.localContext === 'actor'`, apply `ActorSchema` to `pointer.target`"
-   - But could also transform based on: `targetContext`, timestamp, author, or complex logic
-   - Transformed pointers become nested HyperViews; untransformed pointers remain as `{ id }` or primitives
+   - But could also transform based on: Reference `context`, timestamp, author, or complex logic
+   - Transformed pointers become nested HyperViews; untransformed pointers remain as References or primitives
 
 **Important constraints:**
 
@@ -568,7 +563,7 @@ The examples above use `targetContext` and `localContext` as convenient conventi
   - Missing properties? Simply absent from the HyperView
   - This makes schemas resilient to incomplete or evolving data
 
-- **Conventions vs. Constraints**: The `targetContext`/`localContext` pattern is a useful convention, not a hard requirement
+- **Conventions vs. Constraints**: The Reference `context`/`localContext` pattern is a useful convention, not a hard requirement
   - Makes schemas readable and predictable
   - But the system supports arbitrary selection and transformation logic
   - You could filter by author trust levels, apply schemas based on temporal rules, etc.
@@ -596,7 +591,7 @@ One of the early goals for this project was to prove that it's relationally comp
 
 - **Projection (π)**: HyperSchemas choose which properties to include
   - `π_{name, cast}(Movie)` → "project only name and cast properties"
-  - By defining which targetContexts to expand, we project specific attributes
+  - By defining which Reference contexts to expand, we project specific attributes
 
 - **Join (⋈)**: Delta pointers ARE materialized joins
   - `Movie ⋈_{movie.id = cast.movie_id} Cast` in SQL
@@ -625,8 +620,7 @@ const matrixHyperview = {
       system,
       pointers: [{
         localContext: 'movie',
-        target: { id: the_matrix },
-        targetContext: 'directed_by'
+        target: { id: the_matrix, context: 'directed_by' }
       },{
         localContext: 'director',
         target: {
@@ -639,8 +633,7 @@ const matrixHyperview = {
               system,
               pointers: [{
                 localContext: 'named',
-                target: { id: lily },
-                targetContext: 'name'
+                target: { id: lily, context: 'name' }
               },{
                 localContext: 'name',
                 target: 'Lily Wachowski'
@@ -648,7 +641,7 @@ const matrixHyperview = {
             }
           ]
         },
-        targetContext: 'films_directed'
+        context: 'films_directed'
       },
       {
         localContext: 'director',
@@ -662,8 +655,7 @@ const matrixHyperview = {
               system,
               pointers: [{
                 localContext: 'named',
-                target: { id: lana },
-                targetContext: 'name'
+                target: { id: lana, context: 'name' }
               },{
                 localContext: 'name',
                 target: 'Lana Wachowski'
@@ -671,7 +663,7 @@ const matrixHyperview = {
             }
           ]
         },
-        targetContext: 'films_directed'
+        context: 'films_directed'
       }]
     }
   ],
@@ -693,8 +685,7 @@ const matrixHyperview = {
               system,
               pointers: [{
                 localContext: 'named',
-                target: { id: keanu },
-                targetContext: 'name'
+                target: { id: keanu, context: 'name' }
               },{
                 localContext: 'name',
                 target: 'Keanu Reeves'
@@ -702,11 +693,10 @@ const matrixHyperview = {
             }
           ]
         },
-        targetContext: 'appearedIn'
+        context: 'appearedIn'
       },{
         localContext: 'movie',
-        target: { id: the_matrix },
-        targetContext: 'cast'
+        target: { id: the_matrix, context: 'cast' }
       },{
         localContext: 'characterName',
         target: 'Neo'
@@ -737,8 +727,7 @@ Let's see a concrete example. Imagine two different deltas making claims about K
   system,
   pointers: [{
     localContext: 'named',
-    target: { id: keanu },
-    targetContext: 'name'
+    target: { id: keanu, context: 'name' }
   },{
     localContext: 'name',
     target: 'Keanu Reeves'
@@ -753,8 +742,7 @@ Let's see a concrete example. Imagine two different deltas making claims about K
   system,
   pointers: [{
     localContext: 'named',
-    target: { id: keanu },
-    targetContext: 'name'
+    target: { id: keanu, context: 'name' }
   },{
     localContext: 'name',
     target: 'Keanu Reaves'  // misspelled
@@ -836,8 +824,7 @@ const delta_alice_name = {
   system: "instance_primary",
   pointers: [{
     localContext: 'named',
-    target: { id: 'alice_uuid' },
-    targetContext: 'name'
+    target: { id: 'alice_uuid', context: 'name' }
   }, {
     localContext: 'name',
     target: 'Alice Smith'
@@ -852,7 +839,7 @@ This delta lives in our stream. By itself, it's just an assertion connecting an 
 **Step 2: HyperView** - Apply the `PersonSchema` to `alice_uuid`:
 
 The `PersonSchema` defines:
-- Selection: "Include deltas where a pointer targets this person via 'name' targetContext"
+- Selection: "Include deltas where a pointer targets this person via 'name' Reference context"
 - Transformation: "Don't transform the name pointer (it's already a primitive)"
 
 Applying this schema produces:
@@ -868,8 +855,7 @@ const aliceHyperView = {
       system: "instance_primary",
       pointers: [{
         localContext: 'named',
-        target: { id: 'alice_uuid' },
-        targetContext: 'name'
+        target: { id: 'alice_uuid', context: 'name' }
       }, {
         localContext: 'name',
         target: 'Alice Smith'
@@ -940,8 +926,7 @@ const delta_alice_name = {
   system: "instance_primary",
   pointers: [{
     localContext: 'named',
-    target: { id: 'alice_uuid' },
-    targetContext: 'name'
+    target: { id: 'alice_uuid', context: 'name' }
   }, {
     localContext: 'name',
     target: 'Alice Smith'
@@ -956,8 +941,7 @@ const delta_negation = {
   system: "instance_primary",
   pointers: [{
     localContext: 'negates',
-    target: { id: 'delta_001' },  // Targeting the delta itself
-    targetContext: 'negated_by'
+    target: { id: 'delta_001', context: 'negated_by' }  // Targeting the delta itself
   }, {
     localContext: 'reason',
     target: 'Incorrect information'

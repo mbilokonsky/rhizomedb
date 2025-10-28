@@ -86,7 +86,7 @@ Secondary indexes for query performance optimization.
 
 **Indexes:**
 - `targetIdIndex` - Map from referenced object ID to delta IDs
-- `targetContextIndex` - Map from target context to delta IDs
+- `targetContextIndex` - Map from Reference context to delta IDs
 - `authorIndex` - Map from author to delta IDs
 - `systemIndex` - Map from system to delta IDs
 - `timestampIndex` - Sorted array for range queries

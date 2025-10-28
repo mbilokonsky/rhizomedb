@@ -232,7 +232,7 @@ export async function seedMovieDatabase(db: RhizomeDB) {
   // Add relationships
   const actorRelation = db.createDelta('system', [
     { localContext: 'actor', target: { id: 'person-new-actor' } },
-    { localContext: 'film', target: { id: 'film-new-movie' }, targetContext: 'films' }
+    { localContext: 'film', target: { id: 'film-new-movie', context: 'films' } }
   ]);
   await db.persistDelta(actorRelation);
 }

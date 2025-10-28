@@ -48,7 +48,7 @@ describe('LevelDBStore', () => {
 
   describe('Delta Creation', () => {
     it('should create a valid delta', () => {
-      const pointers: Pointer[] = [{ localContext: 'name', target: 'Alice' }];
+      const pointers: Pointer[] = [{ role: 'name', target: 'Alice' }];
 
       const delta = db.createDelta('user-1', pointers);
 
@@ -66,16 +66,16 @@ describe('LevelDBStore', () => {
       const negation = db.negateDelta('user-1', targetDeltaId, reason);
 
       expect(negation.pointers).toHaveLength(2);
-      expect(negation.pointers[0].localContext).toBe('negates');
+      expect(negation.pointers[0].role).toBe('negates');
       expect(negation.pointers[0].target).toEqual({ id: targetDeltaId, context: 'negated_by' });
-      expect(negation.pointers[1].localContext).toBe('reason');
+      expect(negation.pointers[1].role).toBe('reason');
       expect(negation.pointers[1].target).toBe(reason);
     });
   });
 
   describe('Delta Persistence', () => {
     it('should persist and retrieve a delta', async () => {
-      const delta = db.createDelta('user-1', [{ localContext: 'name', target: 'Bob' }]);
+      const delta = db.createDelta('user-1', [{ role: 'name', target: 'Bob' }]);
 
       await db.persistDelta(delta);
 
@@ -85,8 +85,8 @@ describe('LevelDBStore', () => {
     });
 
     it('should persist multiple deltas', async () => {
-      const delta1 = db.createDelta('user-1', [{ localContext: 'name', target: 'Alice' }]);
-      const delta2 = db.createDelta('user-2', [{ localContext: 'name', target: 'Bob' }]);
+      const delta1 = db.createDelta('user-1', [{ role: 'name', target: 'Alice' }]);
+      const delta2 = db.createDelta('user-2', [{ role: 'name', target: 'Bob' }]);
 
       await db.persistDeltas([delta1, delta2]);
 
@@ -95,9 +95,9 @@ describe('LevelDBStore', () => {
     });
 
     it('should filter deltas by author', async () => {
-      const delta1 = db.createDelta('alice', [{ localContext: 'action', target: 'login' }]);
-      const delta2 = db.createDelta('bob', [{ localContext: 'action', target: 'logout' }]);
-      const delta3 = db.createDelta('alice', [{ localContext: 'action', target: 'update' }]);
+      const delta1 = db.createDelta('alice', [{ role: 'action', target: 'login' }]);
+      const delta2 = db.createDelta('bob', [{ role: 'action', target: 'logout' }]);
+      const delta3 = db.createDelta('alice', [{ role: 'action', target: 'update' }]);
 
       await db.persistDeltas([delta1, delta2, delta3]);
 
@@ -110,13 +110,13 @@ describe('LevelDBStore', () => {
 
     it('should filter deltas by timestamp range', async () => {
       const now = Date.now();
-      const delta1 = db.createDelta('user-1', [{ localContext: 'event', target: 'early' }]);
+      const delta1 = db.createDelta('user-1', [{ role: 'event', target: 'early' }]);
       delta1.timestamp = now - 1000;
 
-      const delta2 = db.createDelta('user-1', [{ localContext: 'event', target: 'middle' }]);
+      const delta2 = db.createDelta('user-1', [{ role: 'event', target: 'middle' }]);
       delta2.timestamp = now;
 
-      const delta3 = db.createDelta('user-1', [{ localContext: 'event', target: 'late' }]);
+      const delta3 = db.createDelta('user-1', [{ role: 'event', target: 'late' }]);
       delta3.timestamp = now + 1000;
 
       await db.persistDeltas([delta1, delta2, delta3]);
@@ -133,12 +133,12 @@ describe('LevelDBStore', () => {
     it('should filter deltas by target ID', async () => {
       const personId = 'person_123';
       const delta1 = db.createDelta('user-1', [
-        { localContext: 'name', target: { id: personId, context: 'named' } },
-        { localContext: 'name', target: 'Alice' }
+        { role: 'name', target: { id: personId, context: 'named' } },
+        { role: 'name', target: 'Alice' }
       ]);
       const delta2 = db.createDelta('user-1', [
-        { localContext: 'name', target: { id: 'person_456', context: 'named' } },
-        { localContext: 'name', target: 'Bob' }
+        { role: 'name', target: { id: 'person_456', context: 'named' } },
+        { role: 'name', target: 'Bob' }
       ]);
 
       await db.persistDeltas([delta1, delta2]);
@@ -160,7 +160,7 @@ describe('LevelDBStore', () => {
         receivedDeltas.push(delta);
       });
 
-      const delta = db.createDelta('user-1', [{ localContext: 'event', target: 'test' }]);
+      const delta = db.createDelta('user-1', [{ role: 'event', target: 'test' }]);
       await db.persistDelta(delta);
 
       // Wait for async propagation
@@ -178,8 +178,8 @@ describe('LevelDBStore', () => {
         receivedDeltas.push(delta);
       });
 
-      const delta1 = db.createDelta('alice', [{ localContext: 'event', target: 'match' }]);
-      const delta2 = db.createDelta('bob', [{ localContext: 'event', target: 'no-match' }]);
+      const delta1 = db.createDelta('alice', [{ role: 'event', target: 'match' }]);
+      const delta2 = db.createDelta('bob', [{ role: 'event', target: 'no-match' }]);
 
       await db.persistDeltas([delta1, delta2]);
 
@@ -198,7 +198,7 @@ describe('LevelDBStore', () => {
         receivedDeltas.push(delta);
       });
 
-      const delta1 = db.createDelta('user-1', [{ localContext: 'event', target: 'first' }]);
+      const delta1 = db.createDelta('user-1', [{ role: 'event', target: 'first' }]);
       await db.persistDelta(delta1);
 
       // Wait for async propagation
@@ -208,7 +208,7 @@ describe('LevelDBStore', () => {
       // Pause subscription
       subscription.pause();
 
-      const delta2 = db.createDelta('user-1', [{ localContext: 'event', target: 'second' }]);
+      const delta2 = db.createDelta('user-1', [{ role: 'event', target: 'second' }]);
       await db.persistDelta(delta2);
 
       // Wait and verify no new delta received
@@ -218,7 +218,7 @@ describe('LevelDBStore', () => {
       // Resume subscription
       subscription.resume();
 
-      const delta3 = db.createDelta('user-1', [{ localContext: 'event', target: 'third' }]);
+      const delta3 = db.createDelta('user-1', [{ role: 'event', target: 'third' }]);
       await db.persistDelta(delta3);
 
       // Wait for async propagation
@@ -239,12 +239,12 @@ describe('LevelDBStore', () => {
 
       // Create deltas for a person
       const delta1 = db.createDelta('system', [
-        { localContext: 'named', target: { id: personId, context: 'name' } },
-        { localContext: 'name', target: 'Alice' }
+        { role: 'named', target: { id: personId, context: 'name' } },
+        { role: 'name', target: 'Alice' }
       ]);
       const delta2 = db.createDelta('system', [
-        { localContext: 'aged', target: { id: personId, context: 'age' } },
-        { localContext: 'age', target: 30 }
+        { role: 'aged', target: { id: personId, context: 'age' } },
+        { role: 'age', target: 30 }
       ]);
 
       await db.persistDeltas([delta1, delta2]);
@@ -267,8 +267,8 @@ describe('LevelDBStore', () => {
 
       // Create a delta
       const delta1 = db.createDelta('user-1', [
-        { localContext: 'value', target: { id: objectId, context: 'value' } },
-        { localContext: 'value', target: 'original' }
+        { role: 'value', target: { id: objectId, context: 'value' } },
+        { role: 'value', target: 'original' }
       ]);
       await db.persistDelta(delta1);
 
@@ -278,8 +278,8 @@ describe('LevelDBStore', () => {
 
       // Create new value
       const delta2 = db.createDelta('user-1', [
-        { localContext: 'value', target: { id: objectId, context: 'value' } },
-        { localContext: 'value', target: 'corrected' }
+        { role: 'value', target: { id: objectId, context: 'value' } },
+        { role: 'value', target: 'corrected' }
       ]);
       await db.persistDelta(delta2);
 
@@ -301,8 +301,8 @@ describe('LevelDBStore', () => {
       };
 
       const delta = db.createDelta('system', [
-        { localContext: 'named', target: { id: personId, context: 'name' } },
-        { localContext: 'name', target: 'Bob' }
+        { role: 'named', target: { id: personId, context: 'name' } },
+        { role: 'name', target: 'Bob' }
       ]);
       await db.persistDelta(delta);
 
@@ -326,8 +326,8 @@ describe('LevelDBStore', () => {
       };
 
       const delta = db.createDelta('system', [
-        { localContext: 'named', target: { id: personId, context: 'name' } },
-        { localContext: 'name', target: 'Charlie' }
+        { role: 'named', target: { id: personId, context: 'name' } },
+        { role: 'name', target: 'Charlie' }
       ]);
       await db.persistDelta(delta);
 
@@ -348,8 +348,8 @@ describe('LevelDBStore', () => {
 
   describe('Statistics', () => {
     it('should track instance statistics', async () => {
-      const delta1 = db.createDelta('user-1', [{ localContext: 'event', target: 'test1' }]);
-      const delta2 = db.createDelta('user-2', [{ localContext: 'event', target: 'test2' }]);
+      const delta1 = db.createDelta('user-1', [{ role: 'event', target: 'test1' }]);
+      const delta2 = db.createDelta('user-2', [{ role: 'event', target: 'test2' }]);
 
       await db.persistDeltas([delta1, delta2]);
 
@@ -364,9 +364,9 @@ describe('LevelDBStore', () => {
 
   describe('Scanning', () => {
     it('should scan all deltas', async () => {
-      const delta1 = db.createDelta('user-1', [{ localContext: 'event', target: 'first' }]);
-      const delta2 = db.createDelta('user-2', [{ localContext: 'event', target: 'second' }]);
-      const delta3 = db.createDelta('user-3', [{ localContext: 'event', target: 'third' }]);
+      const delta1 = db.createDelta('user-1', [{ role: 'event', target: 'first' }]);
+      const delta2 = db.createDelta('user-2', [{ role: 'event', target: 'second' }]);
+      const delta3 = db.createDelta('user-3', [{ role: 'event', target: 'third' }]);
 
       await db.persistDeltas([delta1, delta2, delta3]);
 
@@ -379,9 +379,9 @@ describe('LevelDBStore', () => {
     });
 
     it('should scan with filter', async () => {
-      const delta1 = db.createDelta('alice', [{ localContext: 'event', target: 'first' }]);
-      const delta2 = db.createDelta('bob', [{ localContext: 'event', target: 'second' }]);
-      const delta3 = db.createDelta('alice', [{ localContext: 'event', target: 'third' }]);
+      const delta1 = db.createDelta('alice', [{ role: 'event', target: 'first' }]);
+      const delta2 = db.createDelta('bob', [{ role: 'event', target: 'second' }]);
+      const delta3 = db.createDelta('alice', [{ role: 'event', target: 'third' }]);
 
       await db.persistDeltas([delta1, delta2, delta3]);
 
@@ -398,7 +398,7 @@ describe('LevelDBStore', () => {
 
   describe('Persistence Across Sessions', () => {
     it('should persist data across database close/open', async () => {
-      const delta = db.createDelta('user-1', [{ localContext: 'test', target: 'persistent-data' }]);
+      const delta = db.createDelta('user-1', [{ role: 'test', target: 'persistent-data' }]);
       await db.persistDelta(delta);
 
       // Close the database

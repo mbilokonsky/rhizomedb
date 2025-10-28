@@ -91,8 +91,8 @@ async function main() {
   // Send deltas from trusted client
   console.log('--- Sending delta from trusted client ---');
   const trustedDelta = trustedClient.createDelta('alice', [
-    { localContext: 'data', target: { id: 'item_1' } },
-    { localContext: 'value', target: 'trusted data' }
+    { role: 'data', target: { id: 'item_1' } },
+    { role: 'value', target: 'trusted data' }
   ]);
 
   await trustedClient.persistDelta(trustedDelta);
@@ -103,8 +103,8 @@ async function main() {
   // Send deltas from untrusted client
   console.log('\n--- Sending delta from untrusted client ---');
   const untrustedDelta = untrustedClient.createDelta('mallory', [
-    { localContext: 'data', target: { id: 'item_2' } },
-    { localContext: 'value', target: 'untrusted data' }
+    { role: 'data', target: { id: 'item_2' } },
+    { role: 'value', target: 'untrusted data' }
   ]);
 
   await untrustedClient.persistDelta(untrustedDelta);
@@ -151,7 +151,7 @@ async function main() {
 
   // Custom policy: only accept deltas with specific context
   const customPolicy = createCustomTrustPolicy((delta) => {
-    return delta.pointers.some((p) => p.localContext === 'verified');
+    return delta.pointers.some((p) => p.role === 'verified');
   });
 
   await customTrustClient.connectToRemote('ws://localhost:8080/federation', {

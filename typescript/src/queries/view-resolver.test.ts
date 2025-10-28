@@ -35,8 +35,8 @@ describe('ViewResolver', () => {
 
   describe('Resolution Strategies', () => {
     it('mostRecent should pick the latest delta', () => {
-      const delta1 = db.createDelta('user1', [{ localContext: 'value', target: 'old' }]);
-      const delta2 = db.createDelta('user1', [{ localContext: 'value', target: 'new' }]);
+      const delta1 = db.createDelta('user1', [{ role: 'value', target: 'old' }]);
+      const delta2 = db.createDelta('user1', [{ role: 'value', target: 'new' }]);
 
       // Manually set timestamps to ensure order
       delta1.timestamp = 1000;
@@ -47,14 +47,14 @@ describe('ViewResolver', () => {
 
       // Check that we got the delta with timestamp 2000
       expect(result?.timestamp).toBe(2000);
-      const valuePointer = result?.pointers.find((p: Pointer) => p.localContext === 'value');
+      const valuePointer = result?.pointers.find((p: Pointer) => p.role === 'value');
       expect(valuePointer?.target).toBe('new');
     });
 
     it('firstWrite should pick the earliest delta', () => {
       const deltas: Delta[] = [
-        db.createDelta('user1', [{ localContext: 'value', target: 'old' }]),
-        db.createDelta('user1', [{ localContext: 'value', target: 'new' }])
+        db.createDelta('user1', [{ role: 'value', target: 'old' }]),
+        db.createDelta('user1', [{ role: 'value', target: 'new' }])
       ];
 
       deltas[0].timestamp = 1000;
@@ -66,9 +66,9 @@ describe('ViewResolver', () => {
 
     it('allValues should return all deltas', () => {
       const deltas: Delta[] = [
-        db.createDelta('user1', [{ localContext: 'value', target: 'one' }]),
-        db.createDelta('user1', [{ localContext: 'value', target: 'two' }]),
-        db.createDelta('user1', [{ localContext: 'value', target: 'three' }])
+        db.createDelta('user1', [{ role: 'value', target: 'one' }]),
+        db.createDelta('user1', [{ role: 'value', target: 'two' }]),
+        db.createDelta('user1', [{ role: 'value', target: 'three' }])
       ];
 
       const result = allValues(deltas);
@@ -77,9 +77,9 @@ describe('ViewResolver', () => {
 
     it('trustedAuthor should prefer specific authors', () => {
       const deltas: Delta[] = [
-        db.createDelta('untrusted', [{ localContext: 'name', target: 'Wrong Name' }]),
-        db.createDelta('imdb_official', [{ localContext: 'name', target: 'Correct Name' }]),
-        db.createDelta('random_user', [{ localContext: 'name', target: 'Another Wrong' }])
+        db.createDelta('untrusted', [{ role: 'name', target: 'Wrong Name' }]),
+        db.createDelta('imdb_official', [{ role: 'name', target: 'Correct Name' }]),
+        db.createDelta('random_user', [{ role: 'name', target: 'Another Wrong' }])
       ];
 
       deltas[0].timestamp = 3000;
@@ -90,13 +90,13 @@ describe('ViewResolver', () => {
       const result = strategy(deltas) as Delta;
 
       expect(result.author).toBe('imdb_official');
-      const namePointer = result.pointers.find(p => p.localContext === 'name');
+      const namePointer = result.pointers.find(p => p.role === 'name');
       expect(namePointer?.target).toBe('Correct Name');
     });
 
     it('trustedAuthor should fallback to mostRecent if no trusted author', () => {
-      const delta1 = db.createDelta('user1', [{ localContext: 'value', target: 'old' }]);
-      const delta2 = db.createDelta('user2', [{ localContext: 'value', target: 'new' }]);
+      const delta1 = db.createDelta('user1', [{ role: 'value', target: 'old' }]);
+      const delta2 = db.createDelta('user2', [{ role: 'value', target: 'new' }]);
 
       delta1.timestamp = 1000;
       delta2.timestamp = 2000;
@@ -107,15 +107,15 @@ describe('ViewResolver', () => {
 
       // Should fallback to most recent (timestamp 2000)
       expect(result.timestamp).toBe(2000);
-      const valuePointer = result.pointers.find((p: Pointer) => p.localContext === 'value');
+      const valuePointer = result.pointers.find((p: Pointer) => p.role === 'value');
       expect(valuePointer?.target).toBe('new');
     });
 
     it('average should compute average of numeric values', () => {
       const deltas: Delta[] = [
-        db.createDelta('user1', [{ localContext: 'rating', target: 5 }]),
-        db.createDelta('user2', [{ localContext: 'rating', target: 3 }]),
-        db.createDelta('user3', [{ localContext: 'rating', target: 4 }])
+        db.createDelta('user1', [{ role: 'rating', target: 5 }]),
+        db.createDelta('user2', [{ role: 'rating', target: 3 }]),
+        db.createDelta('user3', [{ role: 'rating', target: 4 }])
       ];
 
       const result = average(deltas);
@@ -124,9 +124,9 @@ describe('ViewResolver', () => {
 
     it('minimum should return smallest numeric value', () => {
       const deltas: Delta[] = [
-        db.createDelta('user1', [{ localContext: 'price', target: 100 }]),
-        db.createDelta('user2', [{ localContext: 'price', target: 50 }]),
-        db.createDelta('user3', [{ localContext: 'price', target: 75 }])
+        db.createDelta('user1', [{ role: 'price', target: 100 }]),
+        db.createDelta('user2', [{ role: 'price', target: 50 }]),
+        db.createDelta('user3', [{ role: 'price', target: 75 }])
       ];
 
       const result = minimum(deltas);
@@ -135,9 +135,9 @@ describe('ViewResolver', () => {
 
     it('maximum should return largest numeric value', () => {
       const deltas: Delta[] = [
-        db.createDelta('user1', [{ localContext: 'score', target: 100 }]),
-        db.createDelta('user2', [{ localContext: 'score', target: 150 }]),
-        db.createDelta('user3', [{ localContext: 'score', target: 125 }])
+        db.createDelta('user1', [{ role: 'score', target: 100 }]),
+        db.createDelta('user2', [{ role: 'score', target: 150 }]),
+        db.createDelta('user3', [{ role: 'score', target: 125 }])
       ];
 
       const result = maximum(deltas);
@@ -146,22 +146,22 @@ describe('ViewResolver', () => {
 
     it('consensus should pick most common value', () => {
       const deltas: Delta[] = [
-        db.createDelta('user1', [{ localContext: 'status', target: 'active' }]),
-        db.createDelta('user2', [{ localContext: 'status', target: 'active' }]),
-        db.createDelta('user3', [{ localContext: 'status', target: 'inactive' }])
+        db.createDelta('user1', [{ role: 'status', target: 'active' }]),
+        db.createDelta('user2', [{ role: 'status', target: 'active' }]),
+        db.createDelta('user3', [{ role: 'status', target: 'inactive' }])
       ];
 
       const result = consensus(deltas) as Delta;
-      const statusPointer = result.pointers.find(p => p.localContext === 'status');
+      const statusPointer = result.pointers.find(p => p.role === 'status');
       expect(statusPointer?.target).toBe('active');
     });
   });
 
   describe('Value Extraction', () => {
-    it('extractPrimitive should extract primitive by localContext', () => {
+    it('extractPrimitive should extract primitive by role', () => {
       const delta = db.createDelta('user', [
-        { localContext: 'name', target: 'Alice' },
-        { localContext: 'age', target: 30 }
+        { role: 'name', target: 'Alice' },
+        { role: 'age', target: 30 }
       ]);
 
       const getName = extractPrimitive('name');
@@ -178,14 +178,14 @@ describe('ViewResolver', () => {
 
       // Create multiple name deltas (conflict)
       const delta1 = db.createDelta('user1', [
-        { localContext: 'named', target: { id: personId, context: 'name' } },
-        { localContext: 'name', target: 'Alice' }
+        { role: 'named', target: { id: personId, context: 'name' } },
+        { role: 'name', target: 'Alice' }
       ]);
       delta1.timestamp = 1000;
 
       const delta2 = db.createDelta('user2', [
-        { localContext: 'named', target: { id: personId, context: 'name' } },
-        { localContext: 'name', target: 'Alice Smith' }
+        { role: 'named', target: { id: personId, context: 'name' } },
+        { role: 'name', target: 'Alice Smith' }
       ]);
       delta2.timestamp = 2000;
 
@@ -224,15 +224,15 @@ describe('ViewResolver', () => {
 
       // Create deltas for name (conflict - use mostRecent)
       const nameDelta1 = db.createDelta('user1', [
-        { localContext: 'product', target: { id: productId, context: 'name' } },
-        { localContext: 'name', target: 'Widget' }
+        { role: 'product', target: { id: productId, context: 'name' } },
+        { role: 'name', target: 'Widget' }
       ]);
       nameDelta1.timestamp = 1000;
       await db.persistDelta(nameDelta1);
 
       const nameDelta2 = db.createDelta('user2', [
-        { localContext: 'product', target: { id: productId, context: 'name' } },
-        { localContext: 'name', target: 'Super Widget' }
+        { role: 'product', target: { id: productId, context: 'name' } },
+        { role: 'name', target: 'Super Widget' }
       ]);
       nameDelta2.timestamp = 2000;
       await db.persistDelta(nameDelta2);
@@ -240,30 +240,30 @@ describe('ViewResolver', () => {
       // Create deltas for price (conflict - use minimum)
       await db.persistDelta(
         db.createDelta('seller1', [
-          { localContext: 'product', target: { id: productId, context: 'price' } },
-          { localContext: 'price', target: 100 }
+          { role: 'product', target: { id: productId, context: 'price' } },
+          { role: 'price', target: 100 }
         ])
       );
 
       await db.persistDelta(
         db.createDelta('seller2', [
-          { localContext: 'product', target: { id: productId, context: 'price' } },
-          { localContext: 'price', target: 85 }
+          { role: 'product', target: { id: productId, context: 'price' } },
+          { role: 'price', target: 85 }
         ])
       );
 
       // Create deltas for rating (conflict - use average)
       await db.persistDelta(
         db.createDelta('reviewer1', [
-          { localContext: 'product', target: { id: productId, context: 'rating' } },
-          { localContext: 'rating', target: 5 }
+          { role: 'product', target: { id: productId, context: 'rating' } },
+          { role: 'rating', target: 5 }
         ])
       );
 
       await db.persistDelta(
         db.createDelta('reviewer2', [
-          { localContext: 'product', target: { id: productId, context: 'rating' } },
-          { localContext: 'rating', target: 3 }
+          { role: 'product', target: { id: productId, context: 'rating' } },
+          { role: 'rating', target: 3 }
         ])
       );
 
@@ -306,8 +306,8 @@ describe('ViewResolver', () => {
       // Only create name, no age
       await db.persistDelta(
         db.createDelta('user', [
-          { localContext: 'named', target: { id: personId, context: 'name' } },
-          { localContext: 'name', target: 'Bob' }
+          { role: 'named', target: { id: personId, context: 'name' } },
+          { role: 'name', target: 'Bob' }
         ])
       );
 
@@ -342,22 +342,22 @@ describe('ViewResolver', () => {
       // Create multiple budget assertions
       await db.persistDelta(
         db.createDelta('random_user', [
-          { localContext: 'movie', target: { id: movieId, context: 'budget' } },
-          { localContext: 'budget', target: 50000000 }
+          { role: 'movie', target: { id: movieId, context: 'budget' } },
+          { role: 'budget', target: 50000000 }
         ])
       );
 
       await db.persistDelta(
         db.createDelta('imdb_official', [
-          { localContext: 'movie', target: { id: movieId, context: 'budget' } },
-          { localContext: 'budget', target: 63000000 }
+          { role: 'movie', target: { id: movieId, context: 'budget' } },
+          { role: 'budget', target: 63000000 }
         ])
       );
 
       await db.persistDelta(
         db.createDelta('wikipedia', [
-          { localContext: 'movie', target: { id: movieId, context: 'budget' } },
-          { localContext: 'budget', target: 65000000 }
+          { role: 'movie', target: { id: movieId, context: 'budget' } },
+          { role: 'budget', target: 65000000 }
         ])
       );
 
@@ -385,15 +385,15 @@ describe('ViewResolver', () => {
       // Create multiple email addresses
       await db.persistDelta(
         db.createDelta('user', [
-          { localContext: 'person', target: { id: personId, context: 'email' } },
-          { localContext: 'email', target: 'charlie@work.com' }
+          { role: 'person', target: { id: personId, context: 'email' } },
+          { role: 'email', target: 'charlie@work.com' }
         ])
       );
 
       await db.persistDelta(
         db.createDelta('user', [
-          { localContext: 'person', target: { id: personId, context: 'email' } },
-          { localContext: 'email', target: 'charlie@personal.com' }
+          { role: 'person', target: { id: personId, context: 'email' } },
+          { role: 'email', target: 'charlie@personal.com' }
         ])
       );
 
@@ -421,8 +421,8 @@ describe('ViewResolver', () => {
   describe('Helper Functions', () => {
     it('createSimpleViewSchema should create valid schema', () => {
       const schema = createSimpleViewSchema({
-        name: { source: 'name', localContext: 'name', strategy: mostRecent },
-        age: { source: 'age', localContext: 'age', strategy: mostRecent }
+        name: { source: 'name', role: 'name', strategy: mostRecent },
+        age: { source: 'age', role: 'age', strategy: mostRecent }
       });
 
       expect(schema.properties.name).toBeDefined();

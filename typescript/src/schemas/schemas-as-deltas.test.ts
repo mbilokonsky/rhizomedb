@@ -32,11 +32,11 @@ describe('Schemas as Deltas', () => {
       // Delta 1: Declare this is a HyperSchema
       const typeDeclaration = db.createDelta('system', [
         {
-          localContext: 'entity',
+          role: 'entity',
           target: { id: schemaId, context: 'type' }
         },
         {
-          localContext: 'type',
+          role: 'type',
           target: 'hyperschema'
         }
       ]);
@@ -44,11 +44,11 @@ describe('Schemas as Deltas', () => {
       // Delta 2: Give it a name
       const nameDeclaration = db.createDelta('system', [
         {
-          localContext: 'schema',
+          role: 'schema',
           target: { id: schemaId, context: 'name' }
         },
         {
-          localContext: 'name',
+          role: 'name',
           target: 'NamedEntity'
         }
       ]);
@@ -56,11 +56,11 @@ describe('Schemas as Deltas', () => {
       // Delta 3: Specify selection pattern (use built-in)
       const selectionDeclaration = db.createDelta('system', [
         {
-          localContext: 'schema',
+          role: 'schema',
           target: { id: schemaId, context: 'select' }
         },
         {
-          localContext: 'pattern',
+          role: 'pattern',
           target: { id: 'select_by_target_context' } // reference to built-in
         }
       ]);
@@ -69,11 +69,11 @@ describe('Schemas as Deltas', () => {
       // Could omit this or explicitly declare empty
       const transformDeclaration = db.createDelta('system', [
         {
-          localContext: 'schema',
+          role: 'schema',
           target: { id: schemaId, context: 'transform' }
         },
         {
-          localContext: 'rules',
+          role: 'rules',
           target: '{}' // empty JSON object as primitive
         }
       ]);
@@ -97,7 +97,7 @@ describe('Schemas as Deltas', () => {
       // Extract the type
       const typeDeltas = schemaHyperView.type as Delta[];
       expect(typeDeltas.length).toBe(1);
-      const typeValue = typeDeltas[0].pointers.find(p => p.localContext === 'type')?.target;
+      const typeValue = typeDeltas[0].pointers.find(p => p.role === 'type')?.target;
       expect(typeValue).toBe('hyperschema');
     });
 
@@ -107,22 +107,22 @@ describe('Schemas as Deltas', () => {
 
       await db.persistDelta(
         db.createDelta('system', [
-          { localContext: 'schema', target: { id: schemaId, context: 'name' } },
-          { localContext: 'name', target: 'NamedEntity' }
+          { role: 'schema', target: { id: schemaId, context: 'name' } },
+          { role: 'name', target: 'NamedEntity' }
         ])
       );
 
       await db.persistDelta(
         db.createDelta('system', [
-          { localContext: 'schema', target: { id: schemaId, context: 'select' } },
-          { localContext: 'pattern', target: { id: 'select_by_target_context' } }
+          { role: 'schema', target: { id: schemaId, context: 'select' } },
+          { role: 'pattern', target: { id: 'select_by_target_context' } }
         ])
       );
 
       await db.persistDelta(
         db.createDelta('system', [
-          { localContext: 'schema', target: { id: schemaId, context: 'transform' } },
-          { localContext: 'rules', target: '{}' }
+          { role: 'schema', target: { id: schemaId, context: 'transform' } },
+          { role: 'rules', target: '{}' }
         ])
       );
 
@@ -141,8 +141,8 @@ describe('Schemas as Deltas', () => {
       const personId = 'person_alice';
       await db.persistDelta(
         db.createDelta('author', [
-          { localContext: 'named', target: { id: personId, context: 'name' } },
-          { localContext: 'name', target: 'Alice' }
+          { role: 'named', target: { id: personId, context: 'name' } },
+          { role: 'name', target: 'Alice' }
         ])
       );
 
@@ -159,30 +159,30 @@ describe('Schemas as Deltas', () => {
       // Basic schema metadata
       await db.persistDelta(
         db.createDelta('system', [
-          { localContext: 'schema', target: { id: schemaId, context: 'name' } },
-          { localContext: 'name', target: 'BlogPost' }
+          { role: 'schema', target: { id: schemaId, context: 'name' } },
+          { role: 'name', target: 'BlogPost' }
         ])
       );
 
       await db.persistDelta(
         db.createDelta('system', [
-          { localContext: 'schema', target: { id: schemaId, context: 'select' } },
-          { localContext: 'pattern', target: { id: 'select_by_target_context' } }
+          { role: 'schema', target: { id: schemaId, context: 'select' } },
+          { role: 'pattern', target: { id: 'select_by_target_context' } }
         ])
       );
 
       // Transform rule 1: author -> NamedEntity
       const authorTransform = db.createDelta('system', [
         {
-          localContext: 'schema',
+          role: 'schema',
           target: { id: schemaId, context: 'transform' }
         },
         {
-          localContext: 'on-context',
+          role: 'on-context',
           target: 'author'
         },
         {
-          localContext: 'apply-schema',
+          role: 'apply-schema',
           target: { id: 'named_entity_schema' }
         }
       ]);
@@ -190,15 +190,15 @@ describe('Schemas as Deltas', () => {
       // Transform rule 2: comment -> Comment
       const commentTransform = db.createDelta('system', [
         {
-          localContext: 'schema',
+          role: 'schema',
           target: { id: schemaId, context: 'transform' }
         },
         {
-          localContext: 'on-context',
+          role: 'on-context',
           target: 'comment'
         },
         {
-          localContext: 'apply-schema',
+          role: 'apply-schema',
           target: { id: 'comment_schema' }
         }
       ]);
@@ -217,11 +217,11 @@ describe('Schemas as Deltas', () => {
 
       // Check the rules reference the right schemas
       const authorRule = transformDeltas.find(d =>
-        d.pointers.some(p => p.localContext === 'on-context' && p.target === 'author')
+        d.pointers.some(p => p.role === 'on-context' && p.target === 'author')
       );
       expect(authorRule).toBeDefined();
 
-      const appliesSchema = authorRule!.pointers.find(p => p.localContext === 'apply-schema');
+      const appliesSchema = authorRule!.pointers.find(p => p.role === 'apply-schema');
       expect(appliesSchema?.target).toEqual({ id: 'named_entity_schema' });
     });
 
@@ -251,22 +251,22 @@ describe('Schemas as Deltas', () => {
 
       await db.persistDelta(
         db.createDelta('system', [
-          { localContext: 'named', target: { id: authorId, context: 'name' } },
-          { localContext: 'name', target: 'Alice' }
+          { role: 'named', target: { id: authorId, context: 'name' } },
+          { role: 'name', target: 'Alice' }
         ])
       );
 
       await db.persistDelta(
         db.createDelta('system', [
-          { localContext: 'post', target: { id: postId, context: 'title' } },
-          { localContext: 'title', target: 'My Post' }
+          { role: 'post', target: { id: postId, context: 'title' } },
+          { role: 'title', target: 'My Post' }
         ])
       );
 
       await db.persistDelta(
         db.createDelta('system', [
-          { localContext: 'post', target: { id: postId, context: 'author' } },
-          { localContext: 'author', target: { id: authorId, context: 'posts' } }
+          { role: 'post', target: { id: postId, context: 'author' } },
+          { role: 'author', target: { id: authorId, context: 'posts' } }
         ])
       );
 
@@ -279,7 +279,7 @@ describe('Schemas as Deltas', () => {
 
       // The author should be a nested HyperView
       const authorDeltas = postView.author as Delta[];
-      const authorPointer = authorDeltas[0].pointers.find(p => p.localContext === 'author');
+      const authorPointer = authorDeltas[0].pointers.find(p => p.role === 'author');
       const nestedAuthor = authorPointer?.target as any;
       expect(nestedAuthor.id).toBe(authorId);
       expect(nestedAuthor.name).toBeDefined();
@@ -293,24 +293,24 @@ describe('Schemas as Deltas', () => {
       // Initial schema: just name
       await db.persistDelta(
         db.createDelta('system', [
-          { localContext: 'schema', target: { id: schemaId, context: 'name' } },
-          { localContext: 'name', target: 'Person' }
+          { role: 'schema', target: { id: schemaId, context: 'name' } },
+          { role: 'name', target: 'Person' }
         ])
       );
 
       await db.persistDelta(
         db.createDelta('system', [
-          { localContext: 'schema', target: { id: schemaId, context: 'select' } },
-          { localContext: 'pattern', target: { id: 'select_by_target_context' } }
+          { role: 'schema', target: { id: schemaId, context: 'select' } },
+          { role: 'pattern', target: { id: 'select_by_target_context' } }
         ])
       );
 
       // Later: add a transformation rule
       await db.persistDelta(
         db.createDelta('system', [
-          { localContext: 'schema', target: { id: schemaId, context: 'transform' } },
-          { localContext: 'on-context', target: 'address' },
-          { localContext: 'apply-schema', target: { id: 'address_schema' } }
+          { role: 'schema', target: { id: schemaId, context: 'transform' } },
+          { role: 'on-context', target: 'address' },
+          { role: 'apply-schema', target: { id: 'address_schema' } }
         ])
       );
 
@@ -329,9 +329,9 @@ describe('Schemas as Deltas', () => {
 
       // Create a transformation rule
       const badRule = db.createDelta('system', [
-        { localContext: 'schema', target: { id: schemaId, context: 'transform' } },
-        { localContext: 'on-context', target: 'deprecated_field' },
-        { localContext: 'apply-schema', target: { id: 'deprecated_schema' } }
+        { role: 'schema', target: { id: schemaId, context: 'transform' } },
+        { role: 'on-context', target: 'deprecated_field' },
+        { role: 'apply-schema', target: { id: 'deprecated_schema' } }
       ]);
 
       await db.persistDelta(badRule);
@@ -413,7 +413,7 @@ function extractName(hyperView: HyperView): string {
   }
 
   const nameDelta = nameDeltas[0]; // Take first (or could do conflict resolution)
-  const namePointer = nameDelta.pointers.find(p => p.localContext === 'name');
+  const namePointer = nameDelta.pointers.find(p => p.role === 'name');
 
   return (namePointer?.target as string) || hyperView.id;
 }
@@ -431,7 +431,7 @@ function resolveSelectionFunction(hyperView: HyperView): SelectionFunction {
   const selectDelta = selectDeltas[0];
 
   // Look for pattern reference (built-in selector)
-  const patternPointer = selectDelta.pointers.find(p => p.localContext === 'pattern');
+  const patternPointer = selectDelta.pointers.find(p => p.role === 'pattern');
   if (patternPointer && isDomainNodeReference(patternPointer.target)) {
     const patternId = patternPointer.target.id;
     const builtIn = BUILT_IN_SELECTORS[patternId];
@@ -441,7 +441,7 @@ function resolveSelectionFunction(hyperView: HyperView): SelectionFunction {
   }
 
   // Look for custom logic (e.g., JSONLogic)
-  const logicPointer = selectDelta.pointers.find(p => p.localContext === 'logic');
+  const logicPointer = selectDelta.pointers.find(p => p.role === 'logic');
   if (logicPointer && typeof logicPointer.target === 'string') {
     // TODO: Parse JSONLogic and create selection function
     // For now, fallback to default
@@ -465,7 +465,7 @@ function resolveTransformationRules(hyperView: HyperView): TransformationRules {
 
   for (const delta of transformDeltas) {
     // Check if this is a JSON-encoded rules object (from terminal schema)
-    const rulesPointer = delta.pointers.find(p => p.localContext === 'rules');
+    const rulesPointer = delta.pointers.find(p => p.role === 'rules');
     if (rulesPointer && typeof rulesPointer.target === 'string') {
       try {
         const parsedRules = JSON.parse(rulesPointer.target);
@@ -478,8 +478,8 @@ function resolveTransformationRules(hyperView: HyperView): TransformationRules {
     }
 
     // Otherwise, extract individual transformation rule
-    const onContextPointer = delta.pointers.find(p => p.localContext === 'on-context');
-    const applySchemaPointer = delta.pointers.find(p => p.localContext === 'apply-schema');
+    const onContextPointer = delta.pointers.find(p => p.role === 'on-context');
+    const applySchemaPointer = delta.pointers.find(p => p.role === 'apply-schema');
 
     if (onContextPointer && applySchemaPointer) {
       const contextName = onContextPointer.target as string;
@@ -499,22 +499,22 @@ function resolveTransformationRules(hyperView: HyperView): TransformationRules {
 async function createNamedEntitySchemaAsDeltas(db: RhizomeDB, schemaId: string): Promise<void> {
   await db.persistDelta(
     db.createDelta('system', [
-      { localContext: 'schema', target: { id: schemaId, context: 'name' } },
-      { localContext: 'name', target: 'NamedEntity' }
+      { role: 'schema', target: { id: schemaId, context: 'name' } },
+      { role: 'name', target: 'NamedEntity' }
     ])
   );
 
   await db.persistDelta(
     db.createDelta('system', [
-      { localContext: 'schema', target: { id: schemaId, context: 'select' } },
-      { localContext: 'pattern', target: { id: 'select_by_target_context' } }
+      { role: 'schema', target: { id: schemaId, context: 'select' } },
+      { role: 'pattern', target: { id: 'select_by_target_context' } }
     ])
   );
 
   await db.persistDelta(
     db.createDelta('system', [
-      { localContext: 'schema', target: { id: schemaId, context: 'transform' } },
-      { localContext: 'rules', target: '{}' }
+      { role: 'schema', target: { id: schemaId, context: 'transform' } },
+      { role: 'rules', target: '{}' }
     ])
   );
 }
@@ -526,23 +526,23 @@ async function createBlogPostSchemaAsDeltas(
 ): Promise<void> {
   await db.persistDelta(
     db.createDelta('system', [
-      { localContext: 'schema', target: { id: schemaId, context: 'name' } },
-      { localContext: 'name', target: 'BlogPost' }
+      { role: 'schema', target: { id: schemaId, context: 'name' } },
+      { role: 'name', target: 'BlogPost' }
     ])
   );
 
   await db.persistDelta(
     db.createDelta('system', [
-      { localContext: 'schema', target: { id: schemaId, context: 'select' } },
-      { localContext: 'pattern', target: { id: 'select_by_target_context' } }
+      { role: 'schema', target: { id: schemaId, context: 'select' } },
+      { role: 'pattern', target: { id: 'select_by_target_context' } }
     ])
   );
 
   await db.persistDelta(
     db.createDelta('system', [
-      { localContext: 'schema', target: { id: schemaId, context: 'transform' } },
-      { localContext: 'on-context', target: 'author' },
-      { localContext: 'apply-schema', target: { id: namedEntitySchemaId } }
+      { role: 'schema', target: { id: schemaId, context: 'transform' } },
+      { role: 'on-context', target: 'author' },
+      { role: 'apply-schema', target: { id: namedEntitySchemaId } }
     ])
   );
 }

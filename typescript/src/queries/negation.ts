@@ -68,7 +68,7 @@ export function calculateNegationStates(
     }
 
     for (const pointer of delta.pointers) {
-      if (pointer.localContext === 'negates' && isDomainNodeReference(pointer.target)) {
+      if (pointer.role === 'negates' && isDomainNodeReference(pointer.target)) {
         const targetId = pointer.target.id;
         if (!negations.has(targetId)) {
           negations.set(targetId, []);

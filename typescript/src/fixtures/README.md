@@ -68,7 +68,7 @@ await seedMovieDatabase(db);
 const matrixDeltas = db.queryDeltas({
   predicate: (delta) =>
     delta.pointers.some(p =>
-      p.localContext === 'title' &&
+      p.role === 'title' &&
       p.target === 'The Matrix'
     )
 });
@@ -156,7 +156,7 @@ People:
      const films2000s = db.queryDeltas({
        predicate: (d) =>
          d.pointers.some(p =>
-           p.localContext === 'year' &&
+           p.role === 'year' &&
            typeof p.target === 'number' &&
            p.target >= 2000 && p.target < 2010
          )
@@ -223,16 +223,16 @@ export async function seedMovieDatabase(db: RhizomeDB) {
 
   // Add new film
   const newFilm = db.createDelta('system', [
-    { localContext: 'type', target: 'film' },
-    { localContext: 'title', target: 'New Movie' },
-    { localContext: 'year', target: 2024 }
+    { role: 'type', target: 'film' },
+    { role: 'title', target: 'New Movie' },
+    { role: 'year', target: 2024 }
   ]);
   await db.persistDelta(newFilm);
 
   // Add relationships
   const actorRelation = db.createDelta('system', [
-    { localContext: 'actor', target: { id: 'person-new-actor' } },
-    { localContext: 'film', target: { id: 'film-new-movie', context: 'films' } }
+    { role: 'actor', target: { id: 'person-new-actor' } },
+    { role: 'film', target: { id: 'film-new-movie', context: 'films' } }
   ]);
   await db.persistDelta(actorRelation);
 }

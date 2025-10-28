@@ -47,11 +47,11 @@ async function main() {
 
   const delta = server.createDelta(authorId, [
     {
-      localContext: 'user',
+      role: 'user',
       target: { id: 'user_123' }
     },
     {
-      localContext: 'name',
+      role: 'name',
       target: 'Alice'
     }
   ]);

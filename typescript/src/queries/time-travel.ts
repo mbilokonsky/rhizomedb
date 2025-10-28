@@ -86,7 +86,7 @@ export class TimeTravelDB {
     for (const delta of existingDeltas) {
       for (const pointer of delta.pointers) {
         if (
-          pointer.localContext === 'negates' &&
+          pointer.role === 'negates' &&
           typeof pointer.target === 'object' &&
           'id' in pointer.target
         ) {
@@ -263,7 +263,7 @@ export class TimeTravelDB {
 
       for (const pointer of delta.pointers) {
         if (
-          pointer.localContext === 'negates' &&
+          pointer.role === 'negates' &&
           typeof pointer.target === 'object' &&
           'id' in pointer.target
         ) {

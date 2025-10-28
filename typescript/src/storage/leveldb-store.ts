@@ -218,14 +218,14 @@ export class LevelDBStore
   negateDelta(author: string, targetDeltaId: string, reason?: string): Delta {
     const pointers: Pointer[] = [
       {
-        localContext: 'negates',
+        role: 'negates',
         target: { id: targetDeltaId, context: 'negated_by' }
       }
     ];
 
     if (reason) {
       pointers.push({
-        localContext: 'reason',
+        role: 'reason',
         target: reason
       });
     }
@@ -444,7 +444,7 @@ export class LevelDBStore
     const negatedIds = new Set<string>();
     for await (const delta of this.scanDeltas()) {
       for (const pointer of delta.pointers) {
-        if (pointer.localContext === 'negates' && isDomainNodeReference(pointer.target)) {
+        if (pointer.role === 'negates' && isDomainNodeReference(pointer.target)) {
           negatedIds.add(pointer.target.id);
         }
       }

@@ -186,7 +186,7 @@ Delta negation semantics including double negation.
 - `NegationState` - Detailed negation state interface
 
 **Negation Semantics:**
-1. Delta A can be negated by Delta B (B.pointers contains `{ localContext: 'negates', target: { id: A.id } }`)
+1. Delta A can be negated by Delta B (B.pointers contains `{ role: 'negates', target: { id: A.id } }`)
 2. Delta B itself can be negated by Delta C (double negation)
 3. When B is negated, A is restored (no longer negated)
 4. This can continue indefinitely (triple negation, etc.)
@@ -195,7 +195,7 @@ Delta negation semantics including double negation.
 **Usage:**
 ```typescript
 // Create and negate a delta
-const original = db.createDelta('alice', [{ localContext: 'value', target: 42 }]);
+const original = db.createDelta('alice', [{ role: 'value', target: 42 }]);
 await db.persistDelta(original);
 
 const negation = db.negateDelta('bob', original.id, 'Incorrect value');

@@ -155,15 +155,15 @@ function hyperSchemaToGraphQLType(
     };
 
     // Infer fields from transformation rules
-    for (const [localContext, rule] of Object.entries(hyperSchema.transform)) {
+    for (const [role, rule] of Object.entries(hyperSchema.transform)) {
       // Check if this is a PrimitiveHyperSchema
       if (typeof rule.schema !== 'string' && isPrimitiveHyperSchema(rule.schema)) {
         const primitiveSchema = rule.schema;
 
-        fieldMap[localContext] = {
+        fieldMap[role] = {
           type: primitiveSchema.graphQLType || GraphQLString,
           resolve: source => {
-            const property = source[localContext];
+            const property = source[role];
             if (!property || !Array.isArray(property)) return null;
 
             const deltas = property as Delta[];
@@ -172,7 +172,7 @@ function hyperSchemaToGraphQLType(
             // Extract primitive value from pointer
             const delta = deltas[0];
             const pointer = delta.pointers.find(
-              p => p.localContext === localContext && !isDomainNodeReference(p.target)
+              p => p.role === role && !isDomainNodeReference(p.target)
             );
 
             // Validate the value against the primitive schema
@@ -197,12 +197,12 @@ function hyperSchemaToGraphQLType(
             typeCache
           );
 
-          fieldMap[localContext] = {
+          fieldMap[role] = {
             // Domain references can have multiple values, so use GraphQLList
             type: new GraphQLList(nestedType),
             resolve: source => {
               // Source should have this property from HyperView
-              const property = source[localContext];
+              const property = source[role];
               if (!property || !Array.isArray(property)) return [];
 
               const deltas = property as Delta[];
@@ -212,7 +212,7 @@ function hyperSchemaToGraphQLType(
               const targets = deltas
                 .map(delta => {
                   const pointer = delta.pointers.find(
-                    p => p.localContext === localContext && isDomainNodeReference(p.target)
+                    p => p.role === role && isDomainNodeReference(p.target)
                   );
                   return pointer?.target;
                 })
@@ -292,7 +292,7 @@ function createInputType(
   const sampleDeltas = db.queryDeltas({
     predicate: delta => {
       return delta.pointers.some(
-        p => !isDomainNodeReference(p.target) && p.localContext && p.localContext !== 'id'
+        p => !isDomainNodeReference(p.target) && p.role && p.role !== 'id'
       );
     }
   });
@@ -304,11 +304,11 @@ function createInputType(
     for (const pointer of delta.pointers) {
       if (
         !isDomainNodeReference(pointer.target) &&
-        pointer.localContext &&
-        pointer.localContext !== 'id'
+        pointer.role &&
+        pointer.role !== 'id'
       ) {
-        if (!discoveredFields.has(pointer.localContext)) {
-          discoveredFields.set(pointer.localContext, pointer.target);
+        if (!discoveredFields.has(pointer.role)) {
+          discoveredFields.set(pointer.role, pointer.target);
         }
       }
     }
@@ -359,7 +359,7 @@ async function negateExistingProperty(
     predicate: delta =>
       delta.pointers.some(
         p =>
-          p.localContext === propertyName &&
+          p.role === propertyName &&
           typeof p.target === 'object' &&
           'context' in p.target &&
           p.target.context === propertyName
@@ -436,11 +436,11 @@ function createMutationType(
 
           const pointers: Pointer[] = [
             {
-              localContext: key.replace(/^_/, ''), // Remove leading underscore if any
+              role: key.replace(/^_/, ''), // Remove leading underscore if any
               target: { id: objectId, context: key }
             },
             {
-              localContext: key,
+              role: key,
               target: value as any
             }
           ];
@@ -473,11 +473,11 @@ function createMutationType(
           // Create new delta with new value
           const pointers: Pointer[] = [
             {
-              localContext: key.replace(/^_/, ''),
+              role: key.replace(/^_/, ''),
               target: { id, context: key }
             },
             {
-              localContext: key,
+              role: key,
               target: value as any
             }
           ];
@@ -584,7 +584,7 @@ function createSimpleViewSchema(fields: string[]): ViewSchema {
     properties[field] = {
       source: field,
       extract: (delta: Delta) => {
-        const pointer = delta.pointers.find(p => p.localContext === field);
+        const pointer = delta.pointers.find(p => p.role === field);
         return pointer?.target || null;
       },
       resolve: mostRecent

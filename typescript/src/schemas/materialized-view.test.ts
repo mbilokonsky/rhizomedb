@@ -27,8 +27,8 @@ describe('MaterializedHyperView Schema Tracking', () => {
     // Create person data
     await db.persistDelta(
       db.createDelta('user', [
-        { localContext: 'named', target: { id: personId, context: 'name' } },
-        { localContext: 'name', target: 'Alice' }
+        { role: 'named', target: { id: personId, context: 'name' } },
+        { role: 'name', target: 'Alice' }
       ])
     );
 
@@ -46,8 +46,8 @@ describe('MaterializedHyperView Schema Tracking', () => {
     // Create and materialize
     await db.persistDelta(
       db.createDelta('user', [
-        { localContext: 'named', target: { id: personId, context: 'name' } },
-        { localContext: 'name', target: 'Bob' }
+        { role: 'named', target: { id: personId, context: 'name' } },
+        { role: 'name', target: 'Bob' }
       ])
     );
 
@@ -57,8 +57,8 @@ describe('MaterializedHyperView Schema Tracking', () => {
     // Add more data
     await db.persistDelta(
       db.createDelta('user', [
-        { localContext: 'person', target: { id: personId, context: 'age' } },
-        { localContext: 'age', target: 30 }
+        { role: 'person', target: { id: personId, context: 'age' } },
+        { role: 'age', target: 30 }
       ])
     );
 
@@ -74,15 +74,15 @@ describe('MaterializedHyperView Schema Tracking', () => {
     // Create data
     await db.persistDelta(
       db.createDelta('user', [
-        { localContext: 'named', target: { id: personId, context: 'name' } },
-        { localContext: 'name', target: 'Charlie' }
+        { role: 'named', target: { id: personId, context: 'name' } },
+        { role: 'name', target: 'Charlie' }
       ])
     );
 
     await db.persistDelta(
       db.createDelta('user', [
-        { localContext: 'person', target: { id: personId, context: 'email' } },
-        { localContext: 'email', target: 'charlie@example.com' }
+        { role: 'person', target: { id: personId, context: 'email' } },
+        { role: 'email', target: 'charlie@example.com' }
       ])
     );
 
@@ -111,8 +111,8 @@ describe('MaterializedHyperView Schema Tracking', () => {
 
     await db.persistDelta(
       db.createDelta('user', [
-        { localContext: 'named', target: { id: personId, context: 'name' } },
-        { localContext: 'name', target: 'Dave' }
+        { role: 'named', target: { id: personId, context: 'name' } },
+        { role: 'name', target: 'Dave' }
       ])
     );
 
@@ -137,8 +137,8 @@ describe('MaterializedHyperView Schema Tracking', () => {
 
     await db.persistDelta(
       db.createDelta('user', [
-        { localContext: 'named', target: { id: personId, context: 'name' } },
-        { localContext: 'name', target: 'Eve' }
+        { role: 'named', target: { id: personId, context: 'name' } },
+        { role: 'name', target: 'Eve' }
       ])
     );
 
@@ -167,8 +167,8 @@ describe('MaterializedHyperView Schema Tracking', () => {
     // Initial data
     await db.persistDelta(
       db.createDelta('user', [
-        { localContext: 'named', target: { id: personId, context: 'name' } },
-        { localContext: 'name', target: 'Frank' }
+        { role: 'named', target: { id: personId, context: 'name' } },
+        { role: 'name', target: 'Frank' }
       ])
     );
 
@@ -177,8 +177,8 @@ describe('MaterializedHyperView Schema Tracking', () => {
 
     // Add more data
     const newDelta = db.createDelta('user', [
-      { localContext: 'person', target: { id: personId, context: 'age' } },
-      { localContext: 'age', target: 40 }
+      { role: 'person', target: { id: personId, context: 'age' } },
+      { role: 'age', target: 40 }
     ]);
     await db.persistDelta(newDelta);
 

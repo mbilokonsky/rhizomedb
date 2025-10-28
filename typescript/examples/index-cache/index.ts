@@ -52,15 +52,15 @@ async function main() {
   for (let i = 1; i <= 5; i++) {
     const productDelta = cache.createDelta('canonical-server-001', [
       {
-        localContext: 'product',
+        role: 'product',
         target: { id: `product_${i}` }
       },
       {
-        localContext: 'name',
+        role: 'name',
         target: `Product ${i}`
       },
       {
-        localContext: 'price',
+        role: 'price',
         target: (i * 10).toString()
       }
     ]);
@@ -73,15 +73,15 @@ async function main() {
   // User order deltas
   const orderDelta = cache.createDelta('browser-client-456', [
     {
-      localContext: 'order',
+      role: 'order',
       target: { id: 'order_1001' }
     },
     {
-      localContext: 'order',
+      role: 'order',
       target: { id: 'product_3', context: 'product' }
     },
     {
-      localContext: 'quantity',
+      role: 'quantity',
       target: '2'
     }
   ]);

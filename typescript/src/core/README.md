@@ -52,7 +52,7 @@ const delta: Delta = {
   system: 'instance-1',
   pointers: [
     { localContext: 'name', target: 'Alice' },
-    { localContext: 'friend', target: { id: 'user-2' }, targetContext: 'friends' }
+    { localContext: 'friend', target: { id: 'user-2', context: 'friends' } }
   ]
 };
 

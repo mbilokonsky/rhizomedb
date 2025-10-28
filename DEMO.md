@@ -440,7 +440,7 @@ const movieRuntimes = runtimeDeltas.map(extractRuntime).sort((a, b) => b - a);
 ```typescript
 // Add incorrect data
 const wrongDelta = db.createDelta('user', [
-  { localContext: 'budget', target: { id: 'movie_matrix' }, targetContext: 'budget' },
+  { localContext: 'budget', target: { id: 'movie_matrix', context: 'budget' } },
   { localContext: 'budget', target: 1000000 } // Wrong!
 ]);
 await db.persistDelta(wrongDelta);
@@ -451,7 +451,7 @@ await db.persistDelta(negation);
 
 // Add correct data
 const correctDelta = db.createDelta('user', [
-  { localContext: 'budget', target: { id: 'movie_matrix' }, targetContext: 'budget' },
+  { localContext: 'budget', target: { id: 'movie_matrix', context: 'budget' } },
   { localContext: 'budget', target: 63000000 } // Correct!
 ]);
 await db.persistDelta(correctDelta);

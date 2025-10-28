@@ -53,10 +53,6 @@ async function main() {
     {
       localContext: 'name',
       target: 'Alice'
-    },
-    {
-      localContext: 'user',
-      targetContext: 'name'
     }
   ]);
 

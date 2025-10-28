@@ -14,7 +14,7 @@ Core HyperView construction and schema registry.
 **Key Concepts:**
 - **Selection**: Determines which deltas are relevant to an object
 - **Transformation**: Expands pointers into nested HyperViews or validates primitives
-- **Context**: Each delta can appear in multiple properties based on targetContext
+- **Context**: Each delta can appear in multiple properties based on Reference context
 
 **Usage:**
 ```typescript
@@ -47,7 +47,7 @@ const hyperView = constructHyperView('user-1', userSchema, allDeltas, registry);
 // Result structure:
 {
   id: 'user-1',
-  friends: [delta1, delta2, ...],  // Deltas with targetContext='friends'
+  friends: [delta1, delta2, ...],  // Deltas with Reference context='friends'
   default: [delta3, ...],          // Other relevant deltas
 }
 ```
@@ -56,7 +56,7 @@ const hyperView = constructHyperView('user-1', userSchema, allDeltas, registry);
 - Recursive schema expansion (with cycle detection opt-in)
 - Primitive validation via PrimitiveHyperSchemas
 - Time-travel support (asOfTimestamp parameter)
-- Property grouping by targetContext
+- Property grouping by Reference context
 
 **Tests:** Tested via `materialized-view.test.ts` and `schemas-as-deltas.test.ts`
 
@@ -237,7 +237,7 @@ This allows:
 **Performance:**
 1. Keep selection functions fast (they run for every delta)
 2. Minimize transformation depth (each level is expensive)
-3. Use specific targetContexts to reduce property arrays
+3. Use specific Reference contexts to reduce property arrays
 4. Cache materialized views aggressively
 
 ## Testing

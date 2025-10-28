@@ -48,16 +48,8 @@ async function main() {
       target: 'Software engineer interested in distributed systems'
     },
     {
-      localContext: 'profile',
-      targetContext: 'bio'
-    },
-    {
       localContext: 'theme',
       target: 'dark'
-    },
-    {
-      localContext: 'profile',
-      targetContext: 'theme'
     }
   ]);
 
@@ -105,12 +97,7 @@ async function main() {
     },
     {
       localContext: 'comment',
-      targetContext: 'text'
-    },
-    {
-      localContext: 'comment',
-      target: { id: 'profile_456' },
-      targetContext: 'comments'
+      target: { id: 'profile_456', context: 'comments' }
     }
   ]);
 

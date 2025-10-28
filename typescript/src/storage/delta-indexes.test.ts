@@ -21,7 +21,7 @@ describe('DeltaIndexes', () => {
       const db = new RhizomeDB({ storage: 'memory' });
       const delta = db.createDelta('user1', [
         { localContext: 'name', target: 'Alice' },
-        { localContext: 'friend', target: { id: 'user2' }, targetContext: 'friends' }
+        { localContext: 'friend', target: { id: 'user2', context: 'friends' } }
       ]);
 
       indexes.addDelta(delta);
@@ -46,7 +46,7 @@ describe('DeltaIndexes', () => {
     it('should remove deltas from all indexes', () => {
       const db = new RhizomeDB({ storage: 'memory' });
       const delta = db.createDelta('user1', [
-        { localContext: 'friend', target: { id: 'user2' }, targetContext: 'friends' }
+        { localContext: 'friend', target: { id: 'user2', context: 'friends' } }
       ]);
 
       indexes.addDelta(delta);
@@ -92,15 +92,15 @@ describe('DeltaIndexes', () => {
       const db = new RhizomeDB({ storage: 'memory' });
 
       const delta1 = db.createDelta('alice', [
-        { localContext: 'tag', target: { id: 'tag1' }, targetContext: 'tagged' }
+        { localContext: 'tag', target: { id: 'tag1', context: 'tagged' } }
       ]);
 
       const delta2 = db.createDelta('bob', [
-        { localContext: 'tag', target: { id: 'tag1' }, targetContext: 'tagged' }
+        { localContext: 'tag', target: { id: 'tag1', context: 'tagged' } }
       ]);
 
       const delta3 = db.createDelta('alice', [
-        { localContext: 'tag', target: { id: 'tag2' }, targetContext: 'tagged' }
+        { localContext: 'tag', target: { id: 'tag2', context: 'tagged' } }
       ]);
 
       indexes.addDelta(delta1);
@@ -133,11 +133,11 @@ describe('DeltaIndexes', () => {
       const db = new RhizomeDB({ storage: 'memory' });
 
       const delta1 = db.createDelta('alice', [
-        { localContext: 'friend', target: { id: 'bob' }, targetContext: 'friends' }
+        { localContext: 'friend', target: { id: 'bob', context: 'friends' } }
       ]);
 
       const delta2 = db.createDelta('bob', [
-        { localContext: 'friend', target: { id: 'alice' }, targetContext: 'friends' }
+        { localContext: 'friend', target: { id: 'alice', context: 'friends' } }
       ]);
 
       indexes.addDelta(delta1);
@@ -159,7 +159,7 @@ describe('DeltaIndexes', () => {
 
       const delta = db.createDelta('alice', [
         { localContext: 'name', target: 'Alice' },
-        { localContext: 'friend', target: { id: 'bob' }, targetContext: 'friends' }
+        { localContext: 'friend', target: { id: 'bob', context: 'friends' } }
       ]);
 
       await db.persistDelta(delta);
@@ -176,7 +176,7 @@ describe('DeltaIndexes', () => {
       // Create some test data
       for (let i = 0; i < 100; i++) {
         const delta = db.createDelta(`user${i % 10}`, [
-          { localContext: 'tag', target: { id: `tag${i % 5}` }, targetContext: 'tagged' }
+          { localContext: 'tag', target: { id: `tag${i % 5}`, context: 'tagged' } }
         ]);
         await db.persistDelta(delta);
       }

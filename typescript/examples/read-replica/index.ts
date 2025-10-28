@@ -67,16 +67,8 @@ async function main() {
       target: 'Bob'
     },
     {
-      localContext: 'user',
-      targetContext: 'name'
-    },
-    {
       localContext: 'email',
       target: 'bob@example.com'
-    },
-    {
-      localContext: 'user',
-      targetContext: 'email'
     }
   ]);
 
@@ -92,10 +84,6 @@ async function main() {
     {
       localContext: 'status',
       target: 'active'
-    },
-    {
-      localContext: 'user',
-      targetContext: 'status'
     }
   ]);
 

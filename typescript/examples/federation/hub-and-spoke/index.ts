@@ -97,8 +97,7 @@ async function main() {
   console.log('[spoke-A] Creating document...');
   const docDelta = spokes[0].createDelta('user-alice', [
     { localContext: 'doc', target: { id: 'doc_1' } },
-    { localContext: 'title', target: 'Collaborative Document' },
-    { localContext: 'doc', targetContext: 'title' }
+    { localContext: 'title', target: 'Collaborative Document' }
   ]);
 
   await spokes[0].persistDelta(docDelta);
@@ -110,8 +109,7 @@ async function main() {
   console.log('[spoke-B] Adding content...');
   const contentDelta = spokes[1].createDelta('user-bob', [
     { localContext: 'doc', target: { id: 'doc_1' } },
-    { localContext: 'content', target: 'This is a collaborative document.' },
-    { localContext: 'doc', targetContext: 'content' }
+    { localContext: 'content', target: 'This is a collaborative document.' }
   ]);
 
   await spokes[1].persistDelta(contentDelta);
@@ -124,9 +122,7 @@ async function main() {
   const commentDelta = spokes[2].createDelta('user-carol', [
     { localContext: 'comment', target: { id: 'comment_1' } },
     { localContext: 'doc', target: { id: 'doc_1' } },
-    { localContext: 'comment', targetContext: 'doc' },
-    { localContext: 'text', target: 'Great collaboration!' },
-    { localContext: 'comment', targetContext: 'text' }
+    { localContext: 'text', target: 'Great collaboration!' }
   ]);
 
   await spokes[2].persistDelta(commentDelta);

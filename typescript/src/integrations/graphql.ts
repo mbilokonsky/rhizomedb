@@ -357,7 +357,13 @@ async function negateExistingProperty(
   const existingDeltas = db.queryDeltas({
     targetIds: [objectId],
     predicate: delta =>
-      delta.pointers.some(p => p.localContext === propertyName && p.targetContext === propertyName)
+      delta.pointers.some(
+        p =>
+          p.localContext === propertyName &&
+          typeof p.target === 'object' &&
+          'context' in p.target &&
+          p.target.context === propertyName
+      )
   });
 
   // Negate each existing delta
@@ -431,8 +437,7 @@ function createMutationType(
           const pointers: Pointer[] = [
             {
               localContext: key.replace(/^_/, ''), // Remove leading underscore if any
-              target: { id: objectId },
-              targetContext: key
+              target: { id: objectId, context: key }
             },
             {
               localContext: key,
@@ -469,8 +474,7 @@ function createMutationType(
           const pointers: Pointer[] = [
             {
               localContext: key.replace(/^_/, ''),
-              target: { id },
-              targetContext: key
+              target: { id, context: key }
             },
             {
               localContext: key,

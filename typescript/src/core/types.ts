@@ -15,24 +15,39 @@ import type { GraphQLScalarType } from 'graphql';
 export type Primitive = string | number | boolean;
 
 /**
- * Reference to a domain object by ID
+ * Reference to a domain object with optional organization context
+ *
+ * When a pointer targets a domain object, it uses a Reference which includes:
+ * - id: The unique identifier of the target object
+ * - context: Optional hint for where this delta should appear when querying the target
+ */
+export interface Reference {
+  /** Unique identifier of the target domain object */
+  id: string;
+
+  /** Optional: Where this delta should be organized when querying the target */
+  context?: string;
+}
+
+/**
+ * @deprecated Use Reference instead. Kept for backward compatibility.
  */
 export interface DomainNodeReference {
   id: string;
 }
 
 /**
- * A contextualized pointer from a delta to a target (domain object or primitive)
+ * A contextualized pointer from a delta to a target
+ *
+ * In flat deltas, target is Reference | Primitive
+ * When HyperSchemas are applied, Reference targets are expanded into HyperViews
  */
 export interface Pointer {
   /** The semantic role of this pointer from the delta's perspective */
   localContext: string;
 
   /** The referenced entity or value */
-  target: DomainNodeReference | Primitive;
-
-  /** Optional: Where this delta should be organized when querying the target */
-  targetContext?: string;
+  target: Reference | Primitive;
 }
 
 /**

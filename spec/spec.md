@@ -70,15 +70,17 @@ interface Pointer {
   localContext: string
 
   // The referenced entity or value
-  target: DomainNodeReference | Primitive
-
-  // Optional: Where this delta should be organized when querying the target
-  targetContext?: string
+  target: Reference | HyperView | Primitive
 }
 
-interface DomainNodeReference {
+// A Reference is a pointer to a domain object with optional organization context
+interface Reference {
   id: string
+  context?: string  // Where this delta should be organized when querying this target
 }
+
+// Note: In flat deltas, target is Reference | Primitive
+// When HyperSchemas are applied, Reference targets are expanded into HyperViews
 
 type Primitive = string | number | boolean
 // Note: No null, undefined, or array primitives
@@ -97,8 +99,8 @@ A valid delta MUST satisfy:
 5. **Valid pointers array**: `pointers` must be an array (can be empty)
 6. **Valid pointer structure**: Each pointer must have:
    - Non-empty `localContext` string
-   - Valid `target` (either DomainNodeReference with non-empty `id`, or primitive value)
-   - Optional `targetContext` (if present, must be non-empty string)
+   - Valid `target` (either Reference with non-empty `id` and optional `context`, HyperView, or primitive value)
+   - If `target` is a Reference and `context` is present, it must be a non-empty string
 
 **Edge cases**:
 
@@ -127,10 +129,10 @@ Guidelines for delta granularity:
 
 #### 2.2.4 Pointer Context Semantics
 
-The `localContext` and `targetContext` fields define the semantics of the assertion:
+The `localContext` and Reference `context` fields define the semantics of the assertion:
 
 - **localContext**: Describes the pointer's role within this delta
-- **targetContext**: Specifies where this delta appears when querying the target object
+- **Reference.context**: Specifies where this delta appears when querying the target object
 
 Example:
 ```typescript
@@ -142,13 +144,11 @@ Example:
   pointers: [
     {
       localContext: 'parent',
-      target: { id: 'container_1' },
-      targetContext: 'children'
+      target: { id: 'container_1', context: 'children' }
     },
     {
       localContext: 'child',
-      target: { id: 'item_1' },
-      targetContext: 'parent'
+      target: { id: 'item_1', context: 'parent' }
     }
   ]
 }
@@ -158,7 +158,7 @@ This delta asserts a parent-child relationship. When querying `container_1`, thi
 
 #### 2.2.5 Primitive Pointers
 
-When targeting primitive values, `targetContext` is typically omitted (as primitives don't have queryable properties):
+When targeting primitive values, the `context` field doesn't apply (as primitives don't have queryable properties):
 
 ```typescript
 {
@@ -169,13 +169,12 @@ When targeting primitive values, `targetContext` is typically omitted (as primit
   pointers: [
     {
       localContext: 'named',
-      target: { id: 'person_1' },
-      targetContext: 'name'
+      target: { id: 'person_1', context: 'name' }
     },
     {
       localContext: 'name',
       target: 'Alice Smith'
-      // No targetContext - primitives aren't queried
+      // Primitive - no Reference wrapper needed
     }
   ]
 }
@@ -221,8 +220,7 @@ A negation delta targets another delta:
   pointers: [
     {
       localContext: 'negates',
-      target: { id: 'delta_002' },  // Targeting a delta, not a domain object
-      targetContext: 'negated_by'
+      target: { id: 'delta_002', context: 'negated_by' }  // Targeting a delta, not a domain object
     },
     {
       localContext: 'reason',
@@ -338,7 +336,7 @@ interface DeltaFilter {
   // Filter by target object IDs
   targetIds?: string[]
 
-  // Filter by target contexts
+  // Filter by target Reference contexts
   targetContexts?: string[]
 
   // Filter by author
@@ -613,7 +611,7 @@ The selection function determines relevance. It receives an object ID and a delt
 - **`true`**: Delta is relevant (include in default property)
 - **`string[]`**: Delta is relevant, organize under these property names
 
-**Common pattern**: Select by `targetContext`
+**Common pattern**: Select by Reference `context`
 
 ```typescript
 // Example: NamedEntity schema
@@ -621,8 +619,10 @@ const namedEntitySelection: SelectionFunction = (objectId, delta) => {
   const properties: string[] = []
 
   for (const pointer of delta.pointers) {
-    if (pointer.target.id === objectId && pointer.targetContext) {
-      properties.push(pointer.targetContext)
+    if (isReference(pointer.target) &&
+        pointer.target.id === objectId &&
+        pointer.target.context) {
+      properties.push(pointer.target.context)
     }
   }
 
@@ -630,7 +630,7 @@ const namedEntitySelection: SelectionFunction = (objectId, delta) => {
 }
 ```
 
-This pattern says: "Include this delta if any pointer targets this object, and organize it under the pointer's `targetContext`."
+This pattern says: "Include this delta if any pointer targets this object, and organize it under the pointer target's `context`."
 
 ### 4.4 Transformation Rules Semantics
 
@@ -650,8 +650,10 @@ const movieSchema: HyperSchema = {
   select: (objectId, delta) => {
     const properties: string[] = []
     for (const pointer of delta.pointers) {
-      if (pointer.target.id === objectId && pointer.targetContext) {
-        properties.push(pointer.targetContext)
+      if (isReference(pointer.target) &&
+          pointer.target.id === objectId &&
+          pointer.target.context) {
+        properties.push(pointer.target.context)
       }
     }
     return properties.length > 0 ? properties : false
@@ -696,8 +698,10 @@ const namedEntitySchema: HyperSchema = {
   select: (objectId, delta) => {
     const properties: string[] = []
     for (const pointer of delta.pointers) {
-      if (pointer.target.id === objectId && pointer.targetContext) {
-        properties.push(pointer.targetContext)
+      if (isReference(pointer.target) &&
+          pointer.target.id === objectId &&
+          pointer.target.context) {
+        properties.push(pointer.target.context)
       }
     }
     return properties.length > 0 ? properties : false
@@ -712,8 +716,10 @@ const movieSchema: HyperSchema = {
   select: (objectId, delta) => {
     const properties: string[] = []
     for (const pointer of delta.pointers) {
-      if (pointer.target.id === objectId && pointer.targetContext) {
-        properties.push(pointer.targetContext)
+      if (isReference(pointer.target) &&
+          pointer.target.id === objectId &&
+          pointer.target.context) {
+        properties.push(pointer.target.context)
       }
     }
     return properties.length > 0 ? properties : false
@@ -721,11 +727,11 @@ const movieSchema: HyperSchema = {
   transform: {
     'director': {
       schema: namedEntitySchema,
-      when: (pointer) => typeof pointer.target === 'object' && 'id' in pointer.target
+      when: (pointer) => isReference(pointer.target)
     },
     'actor': {
       schema: namedEntitySchema,
-      when: (pointer) => typeof pointer.target === 'object' && 'id' in pointer.target
+      when: (pointer) => isReference(pointer.target)
     }
   }
 }
@@ -860,7 +866,7 @@ function constructHyperView(
 
 The naive algorithm above scans all deltas for each object. Practical implementations SHOULD optimize:
 
-1. **Indexing**: Maintain indexes on `target.id` and `targetContext` for O(1) delta lookup
+1. **Indexing**: Maintain indexes on `target.id` and `target.context` for O(1) delta lookup
 2. **Memoization**: Cache HyperViews to avoid recomputation
 3. **Incremental Updates**: When a new delta arrives, update only affected HyperViews
 4. **Lazy Expansion**: Don't expand nested HyperViews until accessed
@@ -1493,8 +1499,7 @@ const delta1: Delta = {
   pointers: [
     {
       localContext: 'named',
-      target: { id: AUTHOR_ID },
-      targetContext: 'name'
+      target: { id: AUTHOR_ID, context: 'name' }
     },
     {
       localContext: 'name',
@@ -1512,8 +1517,7 @@ const delta2: Delta = {
   pointers: [
     {
       localContext: 'post',
-      target: { id: POST_ID },
-      targetContext: 'title'
+      target: { id: POST_ID, context: 'title' }
     },
     {
       localContext: 'title',
@@ -1531,8 +1535,7 @@ const delta3: Delta = {
   pointers: [
     {
       localContext: 'post',
-      target: { id: POST_ID },
-      targetContext: 'content'
+      target: { id: POST_ID, context: 'content' }
     },
     {
       localContext: 'content',
@@ -1550,13 +1553,11 @@ const delta4: Delta = {
   pointers: [
     {
       localContext: 'post',
-      target: { id: POST_ID },
-      targetContext: 'author'
+      target: { id: POST_ID, context: 'author' }
     },
     {
       localContext: 'author',
-      target: { id: AUTHOR_ID },
-      targetContext: 'posts'
+      target: { id: AUTHOR_ID, context: 'posts' }
     }
   ]
 }
@@ -1570,8 +1571,7 @@ const delta5: Delta = {
   pointers: [
     {
       localContext: 'comment',
-      target: { id: COMMENT_1_ID },
-      targetContext: 'text'
+      target: { id: COMMENT_1_ID, context: 'text' }
     },
     {
       localContext: 'text',
@@ -1593,13 +1593,11 @@ const delta6: Delta = {
   pointers: [
     {
       localContext: 'post',
-      target: { id: POST_ID },
-      targetContext: 'comments'
+      target: { id: POST_ID, context: 'comments' }
     },
     {
       localContext: 'comment',
-      target: { id: COMMENT_1_ID },
-      targetContext: 'post'
+      target: { id: COMMENT_1_ID, context: 'post' }
     }
   ]
 }
@@ -1613,8 +1611,7 @@ const delta7: Delta = {
   pointers: [
     {
       localContext: 'comment',
-      target: { id: COMMENT_2_ID },
-      targetContext: 'text'
+      target: { id: COMMENT_2_ID, context: 'text' }
     },
     {
       localContext: 'text',
@@ -1632,8 +1629,7 @@ const delta8: Delta = {
   pointers: [
     {
       localContext: 'negates',
-      target: { id: 'delta_007' },
-      targetContext: 'negated_by'
+      target: { id: 'delta_007', context: 'negated_by' }
     },
     {
       localContext: 'reason',
@@ -1655,10 +1651,10 @@ const NamedEntitySchema: HyperSchema = {
   select: (objectId, delta) => {
     const properties: string[] = []
     for (const pointer of delta.pointers) {
-      if (typeof pointer.target === 'object' &&
+      if (isReference(pointer.target) &&
           pointer.target.id === objectId &&
-          pointer.targetContext) {
-        properties.push(pointer.targetContext)
+          pointer.target.context) {
+        properties.push(pointer.target.context)
       }
     }
     return properties.length > 0 ? properties : false
@@ -1673,10 +1669,10 @@ const CommentSchema: HyperSchema = {
   select: (objectId, delta) => {
     const properties: string[] = []
     for (const pointer of delta.pointers) {
-      if (typeof pointer.target === 'object' &&
+      if (isReference(pointer.target) &&
           pointer.target.id === objectId &&
-          pointer.targetContext) {
-        properties.push(pointer.targetContext)
+          pointer.target.context) {
+        properties.push(pointer.target.context)
       }
     }
     return properties.length > 0 ? properties : false
@@ -1691,10 +1687,10 @@ const BlogPostSchema: HyperSchema = {
   select: (objectId, delta) => {
     const properties: string[] = []
     for (const pointer of delta.pointers) {
-      if (typeof pointer.target === 'object' &&
+      if (isReference(pointer.target) &&
           pointer.target.id === objectId &&
-          pointer.targetContext) {
-        properties.push(pointer.targetContext)
+          pointer.target.context) {
+        properties.push(pointer.target.context)
       }
     }
     return properties.length > 0 ? properties : false
@@ -1702,11 +1698,11 @@ const BlogPostSchema: HyperSchema = {
   transform: {
     'author': {
       schema: NamedEntitySchema,
-      when: (pointer) => typeof pointer.target === 'object' && 'id' in pointer.target
+      when: (pointer) => isReference(pointer.target)
     },
     'comment': {
       schema: CommentSchema,
-      when: (pointer) => typeof pointer.target === 'object' && 'id' in pointer.target
+      when: (pointer) => isReference(pointer.target)
     }
   }
 }
@@ -1733,7 +1729,7 @@ const postHyperView = constructHyperView(
       author: 'author_alice',
       system: 'blog_instance_1',
       pointers: [
-        { localContext: 'post', target: { id: 'post_001' }, targetContext: 'title' },
+        { localContext: 'post', target: { id: 'post_001', context: 'title' } },
         { localContext: 'title', target: 'Understanding RhizomeDB' }
       ]
     }
@@ -1745,7 +1741,7 @@ const postHyperView = constructHyperView(
       author: 'author_alice',
       system: 'blog_instance_1',
       pointers: [
-        { localContext: 'post', target: { id: 'post_001' }, targetContext: 'content' },
+        { localContext: 'post', target: { id: 'post_001', context: 'content' } },
         { localContext: 'content', target: 'RhizomeDB is a novel database architecture...' }
       ]
     }
@@ -1757,7 +1753,7 @@ const postHyperView = constructHyperView(
       author: 'author_alice',
       system: 'blog_instance_1',
       pointers: [
-        { localContext: 'post', target: { id: 'post_001' }, targetContext: 'author' },
+        { localContext: 'post', target: { id: 'post_001', context: 'author' } },
         {
           localContext: 'author',
           target: {
@@ -1770,13 +1766,13 @@ const postHyperView = constructHyperView(
                 author: 'author_alice',
                 system: 'blog_instance_1',
                 pointers: [
-                  { localContext: 'named', target: { id: 'author_alice' }, targetContext: 'name' },
+                  { localContext: 'named', target: { id: 'author_alice', context: 'name' } },
                   { localContext: 'name', target: 'Alice Johnson' }
                 ]
               }
             ]
           },
-          targetContext: 'posts'
+          context: 'posts'
         }
       ]
     }
@@ -1788,7 +1784,7 @@ const postHyperView = constructHyperView(
       author: 'user_bob',
       system: 'blog_instance_1',
       pointers: [
-        { localContext: 'post', target: { id: 'post_001' }, targetContext: 'comments' },
+        { localContext: 'post', target: { id: 'post_001', context: 'comments' } },
         {
           localContext: 'comment',
           target: {
@@ -1801,14 +1797,14 @@ const postHyperView = constructHyperView(
                 author: 'user_bob',
                 system: 'blog_instance_1',
                 pointers: [
-                  { localContext: 'comment', target: { id: 'comment_001' }, targetContext: 'text' },
+                  { localContext: 'comment', target: { id: 'comment_001', context: 'text' } },
                   { localContext: 'text', target: 'Great explanation!' },
                   { localContext: 'author', target: 'Bob' }
                 ]
               }
             ]
           },
-          targetContext: 'post'
+          context: 'post'
         }
       ]
     }
@@ -1949,7 +1945,7 @@ These questions remain open and should be addressed through implementation exper
 
 ### 12.2 Semantic Convergence
 
-1. **Context vocabulary**: How do we achieve consistent `localContext`/`targetContext` naming across federated instances?
+1. **Context vocabulary**: How do we achieve consistent `localContext`/Reference `context` naming across federated instances?
 
 2. **Schema conflicts**: When two instances define incompatible HyperSchemas for the same domain, how do we merge them?
 

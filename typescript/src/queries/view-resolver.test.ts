@@ -178,13 +178,13 @@ describe('ViewResolver', () => {
 
       // Create multiple name deltas (conflict)
       const delta1 = db.createDelta('user1', [
-        { localContext: 'named', target: { id: personId }, targetContext: 'name' },
+        { localContext: 'named', target: { id: personId, context: 'name' } },
         { localContext: 'name', target: 'Alice' }
       ]);
       delta1.timestamp = 1000;
 
       const delta2 = db.createDelta('user2', [
-        { localContext: 'named', target: { id: personId }, targetContext: 'name' },
+        { localContext: 'named', target: { id: personId, context: 'name' } },
         { localContext: 'name', target: 'Alice Smith' }
       ]);
       delta2.timestamp = 2000;
@@ -224,14 +224,14 @@ describe('ViewResolver', () => {
 
       // Create deltas for name (conflict - use mostRecent)
       const nameDelta1 = db.createDelta('user1', [
-        { localContext: 'product', target: { id: productId }, targetContext: 'name' },
+        { localContext: 'product', target: { id: productId, context: 'name' } },
         { localContext: 'name', target: 'Widget' }
       ]);
       nameDelta1.timestamp = 1000;
       await db.persistDelta(nameDelta1);
 
       const nameDelta2 = db.createDelta('user2', [
-        { localContext: 'product', target: { id: productId }, targetContext: 'name' },
+        { localContext: 'product', target: { id: productId, context: 'name' } },
         { localContext: 'name', target: 'Super Widget' }
       ]);
       nameDelta2.timestamp = 2000;
@@ -240,14 +240,14 @@ describe('ViewResolver', () => {
       // Create deltas for price (conflict - use minimum)
       await db.persistDelta(
         db.createDelta('seller1', [
-          { localContext: 'product', target: { id: productId }, targetContext: 'price' },
+          { localContext: 'product', target: { id: productId, context: 'price' } },
           { localContext: 'price', target: 100 }
         ])
       );
 
       await db.persistDelta(
         db.createDelta('seller2', [
-          { localContext: 'product', target: { id: productId }, targetContext: 'price' },
+          { localContext: 'product', target: { id: productId, context: 'price' } },
           { localContext: 'price', target: 85 }
         ])
       );
@@ -255,14 +255,14 @@ describe('ViewResolver', () => {
       // Create deltas for rating (conflict - use average)
       await db.persistDelta(
         db.createDelta('reviewer1', [
-          { localContext: 'product', target: { id: productId }, targetContext: 'rating' },
+          { localContext: 'product', target: { id: productId, context: 'rating' } },
           { localContext: 'rating', target: 5 }
         ])
       );
 
       await db.persistDelta(
         db.createDelta('reviewer2', [
-          { localContext: 'product', target: { id: productId }, targetContext: 'rating' },
+          { localContext: 'product', target: { id: productId, context: 'rating' } },
           { localContext: 'rating', target: 3 }
         ])
       );
@@ -306,7 +306,7 @@ describe('ViewResolver', () => {
       // Only create name, no age
       await db.persistDelta(
         db.createDelta('user', [
-          { localContext: 'named', target: { id: personId }, targetContext: 'name' },
+          { localContext: 'named', target: { id: personId, context: 'name' } },
           { localContext: 'name', target: 'Bob' }
         ])
       );
@@ -342,21 +342,21 @@ describe('ViewResolver', () => {
       // Create multiple budget assertions
       await db.persistDelta(
         db.createDelta('random_user', [
-          { localContext: 'movie', target: { id: movieId }, targetContext: 'budget' },
+          { localContext: 'movie', target: { id: movieId, context: 'budget' } },
           { localContext: 'budget', target: 50000000 }
         ])
       );
 
       await db.persistDelta(
         db.createDelta('imdb_official', [
-          { localContext: 'movie', target: { id: movieId }, targetContext: 'budget' },
+          { localContext: 'movie', target: { id: movieId, context: 'budget' } },
           { localContext: 'budget', target: 63000000 }
         ])
       );
 
       await db.persistDelta(
         db.createDelta('wikipedia', [
-          { localContext: 'movie', target: { id: movieId }, targetContext: 'budget' },
+          { localContext: 'movie', target: { id: movieId, context: 'budget' } },
           { localContext: 'budget', target: 65000000 }
         ])
       );
@@ -385,14 +385,14 @@ describe('ViewResolver', () => {
       // Create multiple email addresses
       await db.persistDelta(
         db.createDelta('user', [
-          { localContext: 'person', target: { id: personId }, targetContext: 'email' },
+          { localContext: 'person', target: { id: personId, context: 'email' } },
           { localContext: 'email', target: 'charlie@work.com' }
         ])
       );
 
       await db.persistDelta(
         db.createDelta('user', [
-          { localContext: 'person', target: { id: personId }, targetContext: 'email' },
+          { localContext: 'person', target: { id: personId, context: 'email' } },
           { localContext: 'email', target: 'charlie@personal.com' }
         ])
       );

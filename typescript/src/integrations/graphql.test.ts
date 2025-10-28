@@ -85,8 +85,7 @@ describe('GraphQL Integration', () => {
       const nameDelta = db.createDelta('author', [
         {
           localContext: 'named',
-          target: { id: personId },
-          targetContext: 'name'
+          target: { id: personId, context: 'name' }
         },
         {
           localContext: 'name',
@@ -143,22 +142,22 @@ describe('GraphQL Integration', () => {
 
       await db.persistDelta(
         db.createDelta('system', [
-          { localContext: 'named', target: { id: authorId }, targetContext: 'name' },
+          { localContext: 'named', target: { id: authorId, context: 'name' } },
           { localContext: 'name', target: 'Alice' }
         ])
       );
 
       await db.persistDelta(
         db.createDelta('system', [
-          { localContext: 'post', target: { id: postId }, targetContext: 'title' },
+          { localContext: 'post', target: { id: postId, context: 'title' } },
           { localContext: 'title', target: 'My Post' }
         ])
       );
 
       await db.persistDelta(
         db.createDelta('system', [
-          { localContext: 'post', target: { id: postId }, targetContext: 'author' },
-          { localContext: 'author', target: { id: authorId }, targetContext: 'posts' }
+          { localContext: 'post', target: { id: postId, context: 'author' } },
+          { localContext: 'author', target: { id: authorId, context: 'posts' } }
         ])
       );
 
@@ -209,14 +208,14 @@ describe('GraphQL Integration', () => {
 
       await db.persistDelta(
         db.createDelta('system', [
-          { localContext: 'named', target: { id: ids[0] }, targetContext: 'name' },
+          { localContext: 'named', target: { id: ids[0], context: 'name' } },
           { localContext: 'name', target: 'Alice' }
         ])
       );
 
       await db.persistDelta(
         db.createDelta('system', [
-          { localContext: 'named', target: { id: ids[1] }, targetContext: 'name' },
+          { localContext: 'named', target: { id: ids[1], context: 'name' } },
           { localContext: 'name', target: 'Bob' }
         ])
       );
@@ -386,7 +385,7 @@ describe('GraphQL Integration', () => {
 
       // 3. Update it (create new delta with same object ID)
       const updateDelta = db.createDelta('alice', [
-        { localContext: 'blog', target: { id: 'blog_001' }, targetContext: 'content' },
+        { localContext: 'blog', target: { id: 'blog_001', context: 'content' } },
         { localContext: 'content', target: 'Updated content!' }
       ]);
       await db.persistDelta(updateDelta);
@@ -408,7 +407,7 @@ describe('GraphQL Integration', () => {
 
       // Create initial name
       const delta1 = db.createDelta('system', [
-        { localContext: 'named', target: { id: personId }, targetContext: 'name' },
+        { localContext: 'named', target: { id: personId, context: 'name' } },
         { localContext: 'name', target: 'Alice' }
       ]);
       await db.persistDelta(delta1);
@@ -420,7 +419,7 @@ describe('GraphQL Integration', () => {
 
       // Update name
       const delta2 = db.createDelta('system', [
-        { localContext: 'named', target: { id: personId }, targetContext: 'name' },
+        { localContext: 'named', target: { id: personId, context: 'name' } },
         { localContext: 'name', target: 'Alice Johnson' }
       ]);
       await db.persistDelta(delta2);

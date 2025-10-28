@@ -3,7 +3,7 @@
  * Based on RhizomeDB Specification §2.1.1
  */
 
-import { Delta, Pointer, DomainNodeReference } from './types';
+import { Delta, Pointer, Reference, DomainNodeReference } from './types';
 
 /**
  * Validation error thrown when a delta or pointer is invalid
@@ -16,7 +16,31 @@ export class ValidationError extends Error {
 }
 
 /**
+ * Check if a value is a Reference
+ */
+export function isReference(value: unknown): value is Reference {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  const ref = value as Reference;
+
+  // Must have id
+  if (!('id' in ref) || typeof ref.id !== 'string' || ref.id.length === 0) {
+    return false;
+  }
+
+  // If context is present, must be non-empty string
+  if (ref.context !== undefined && (typeof ref.context !== 'string' || ref.context.length === 0)) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
  * Check if a value is a DomainNodeReference
+ * @deprecated Use isReference instead. Kept for backward compatibility.
  */
 export function isDomainNodeReference(value: unknown): value is DomainNodeReference {
   return (
@@ -46,17 +70,9 @@ export function validatePointer(pointer: Pointer): void {
     throw new ValidationError('Pointer must have non-empty localContext string');
   }
 
-  // Valid target (either DomainNodeReference or Primitive)
-  if (!isDomainNodeReference(pointer.target) && !isPrimitive(pointer.target)) {
-    throw new ValidationError('Pointer target must be DomainNodeReference or Primitive');
-  }
-
-  // If targetContext is present, must be non-empty string
-  if (
-    pointer.targetContext !== undefined &&
-    (typeof pointer.targetContext !== 'string' || pointer.targetContext.length === 0)
-  ) {
-    throw new ValidationError('Pointer targetContext, if present, must be non-empty string');
+  // Valid target (either Reference or Primitive)
+  if (!isReference(pointer.target) && !isPrimitive(pointer.target)) {
+    throw new ValidationError('Pointer target must be Reference or Primitive');
   }
 }
 

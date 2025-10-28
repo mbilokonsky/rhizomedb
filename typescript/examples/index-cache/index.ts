@@ -60,16 +60,8 @@ async function main() {
         target: `Product ${i}`
       },
       {
-        localContext: 'product',
-        targetContext: 'name'
-      },
-      {
         localContext: 'price',
         target: (i * 10).toString()
-      },
-      {
-        localContext: 'product',
-        targetContext: 'price'
       }
     ]);
 
@@ -86,16 +78,11 @@ async function main() {
     },
     {
       localContext: 'order',
-      target: { id: 'product_3' },
-      targetContext: 'product'
+      target: { id: 'product_3', context: 'product' }
     },
     {
       localContext: 'quantity',
       target: '2'
-    },
-    {
-      localContext: 'order',
-      targetContext: 'quantity'
     }
   ]);
 

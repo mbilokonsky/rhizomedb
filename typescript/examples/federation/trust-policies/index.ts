@@ -92,8 +92,7 @@ async function main() {
   console.log('--- Sending delta from trusted client ---');
   const trustedDelta = trustedClient.createDelta('alice', [
     { localContext: 'data', target: { id: 'item_1' } },
-    { localContext: 'value', target: 'trusted data' },
-    { localContext: 'data', targetContext: 'value' }
+    { localContext: 'value', target: 'trusted data' }
   ]);
 
   await trustedClient.persistDelta(trustedDelta);
@@ -105,8 +104,7 @@ async function main() {
   console.log('\n--- Sending delta from untrusted client ---');
   const untrustedDelta = untrustedClient.createDelta('mallory', [
     { localContext: 'data', target: { id: 'item_2' } },
-    { localContext: 'value', target: 'untrusted data' },
-    { localContext: 'data', targetContext: 'value' }
+    { localContext: 'value', target: 'untrusted data' }
   ]);
 
   await untrustedClient.persistDelta(untrustedDelta);

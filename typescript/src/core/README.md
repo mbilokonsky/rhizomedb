@@ -34,7 +34,7 @@ Validation utilities for deltas, pointers, and references.
 
 **Validation Rules:**
 - Deltas must have id, timestamp, author, system, and pointers
-- Pointers must have localContext and target
+- Pointers must have role and target
 - Timestamps must be positive numbers
 - Author and system must be non-empty strings
 
@@ -51,8 +51,8 @@ const delta: Delta = {
   author: 'user-1',
   system: 'instance-1',
   pointers: [
-    { localContext: 'name', target: 'Alice' },
-    { localContext: 'friend', target: { id: 'user-2', context: 'friends' } }
+    { role: 'name', target: 'Alice' },
+    { role: 'friend', target: { id: 'user-2', context: 'friends' } }
   ]
 };
 

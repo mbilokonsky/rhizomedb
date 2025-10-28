@@ -24,7 +24,7 @@ type Delta {
 }
 
 type Pointer {
-  localContext: String!
+  role: String!
   target: PointerTarget!
 }
 
@@ -81,7 +81,7 @@ type Mutation {
 }
 
 input PointerInput {
-  localContext: String!
+  role: String!
   target: PointerTargetInput!
 }
 
@@ -123,7 +123,7 @@ query RecentDeltas {
     timestamp
     author
     pointers {
-      localContext
+      role
       target {
         ... on DomainNodeReference {
           id
@@ -160,11 +160,11 @@ mutation CreateDelta {
     author: "user-1"
     pointers: [
       {
-        localContext: "name"
+        role: "name"
         target: { value: "Alice" }
       }
       {
-        localContext: "friend"
+        role: "friend"
         target: { id: "user-2" }
         targetContext: "friends"
       }
@@ -184,7 +184,7 @@ mutation NegateDelta {
   ) {
     id
     pointers {
-      localContext
+      role
       target {
         ... on DomainNodeReference {
           id

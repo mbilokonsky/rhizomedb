@@ -67,7 +67,7 @@ interface Delta {
 
 interface Pointer {
   // The semantic role of this pointer from the delta's perspective
-  localContext: string
+  role: string
 
   // The referenced entity or value
   target: Reference | HyperView | Primitive
@@ -85,7 +85,7 @@ interface Reference {
 type Primitive = string | number | boolean
 // Note: No null, undefined, or array primitives
 // - Absence is represented by lack of deltas
-// - Arrays are represented by multiple pointers with the same localContext
+// - Arrays are represented by multiple pointers with the same role
 ```
 
 ### 2.1.1 Delta Validation Rules
@@ -98,14 +98,14 @@ A valid delta MUST satisfy:
 4. **Non-empty system**: `system` must be a non-empty string
 5. **Valid pointers array**: `pointers` must be an array (can be empty)
 6. **Valid pointer structure**: Each pointer must have:
-   - Non-empty `localContext` string
+   - Non-empty `role` string
    - Valid `target` (either Reference with non-empty `id` and optional `context`, HyperView, or primitive value)
    - If `target` is a Reference and `context` is present, it must be a non-empty string
 
 **Edge cases**:
 
 - **Empty pointers array**: Valid. Represents a delta that exists but makes no assertions. Rare but useful for metadata deltas.
-- **Multiple pointers with same localContext**: Valid. Represents an array of values for that context.
+- **Multiple pointers with same role**: Valid. Represents an array of values for that context.
 - **Self-referential delta**: A delta can target itself (e.g., for metadata about the delta itself).
 - **Primitive in DomainNodeReference slot**: Invalid. Use TypeScript type checking to prevent.
 
@@ -129,9 +129,9 @@ Guidelines for delta granularity:
 
 #### 2.2.4 Pointer Context Semantics
 
-The `localContext` and Reference `context` fields define the semantics of the assertion:
+The `role` and Reference `context` fields define the semantics of the assertion:
 
-- **localContext**: Describes the pointer's role within this delta
+- **role**: Describes the pointer's role within this delta
 - **Reference.context**: Specifies where this delta appears when querying the target object
 
 Example:
@@ -143,11 +143,11 @@ Example:
   system: "instance_1",
   pointers: [
     {
-      localContext: 'parent',
+      role: 'parent',
       target: { id: 'container_1', context: 'children' }
     },
     {
-      localContext: 'child',
+      role: 'child',
       target: { id: 'item_1', context: 'parent' }
     }
   ]
@@ -168,11 +168,11 @@ When targeting primitive values, the `context` field doesn't apply (as primitive
   system: "instance_1",
   pointers: [
     {
-      localContext: 'named',
+      role: 'named',
       target: { id: 'person_1', context: 'name' }
     },
     {
-      localContext: 'name',
+      role: 'name',
       target: 'Alice Smith'
       // Primitive - no Reference wrapper needed
     }
@@ -219,11 +219,11 @@ A negation delta targets another delta:
   system: "instance_1",
   pointers: [
     {
-      localContext: 'negates',
+      role: 'negates',
       target: { id: 'delta_002', context: 'negated_by' }  // Targeting a delta, not a domain object
     },
     {
-      localContext: 'reason',
+      role: 'reason',
       target: 'Incorrect information'
     }
   ]
@@ -513,7 +513,7 @@ type SelectionFunction = (
 ) => boolean | string[]  // true = include, false = exclude, string[] = property names
 
 type TransformationRules = {
-  [localContext: string]: {
+  [role: string]: {
     // Which HyperSchema to apply to this pointer's target
     schema: HyperSchema | string  // string = schema ID for lazy resolution
 
@@ -637,7 +637,7 @@ This pattern says: "Include this delta if any pointer targets this object, and o
 Transformation rules determine how to expand pointers into nested HyperViews.
 
 For each pointer in a selected delta:
-1. Check if `pointer.localContext` matches a transformation rule
+1. Check if `pointer.role` matches a transformation rule
 2. If yes, apply the specified HyperSchema to `pointer.target`
 3. If no, leave `pointer.target` as-is (either `{ id }` or primitive)
 
@@ -683,7 +683,7 @@ When constructing HyperViews, implementations MUST check for negation deltas.
 
 Algorithm:
 1. Collect deltas matching selection function
-2. For each delta `d`, query for deltas where `pointer.localContext === 'negates' AND pointer.target.id === d.id`
+2. For each delta `d`, query for deltas where `pointer.role === 'negates' AND pointer.target.id === d.id`
 3. If negation exists and `negation.timestamp <= queryTimestamp`, exclude `d` from HyperView
 
 **Time-travel**: When querying at a specific timestamp, only apply negations with `timestamp <= queryTimestamp`.
@@ -785,7 +785,7 @@ function constructHyperView(
   const negations = new Set<string>()
   for (const delta of allDeltas) {
     for (const pointer of delta.pointers) {
-      if (pointer.localContext === 'negates' &&
+      if (pointer.role === 'negates' &&
           typeof pointer.target === 'object' &&
           'id' in pointer.target &&
           delta.timestamp <= queryTimestamp) {
@@ -813,7 +813,7 @@ function constructHyperView(
     // 3. Transform pointers according to transformation rules
     const transformedDelta = { ...delta }
     transformedDelta.pointers = delta.pointers.map(pointer => {
-      const rule = schema.transform[pointer.localContext]
+      const rule = schema.transform[pointer.role]
 
       // No transformation rule, or rule doesn't apply
       if (!rule || (rule.when && !rule.when(pointer, delta))) {
@@ -938,8 +938,8 @@ const trustedAuthor = (trustedAuthors: string[]): ResolutionStrategy => {
 }
 
 // Extract primitive from pointer
-const extractPrimitive = (localContext: string) => (delta: Delta) => {
-  const pointer = delta.pointers.find(p => p.localContext === localContext)
+const extractPrimitive = (role: string) => (delta: Delta) => {
+  const pointer = delta.pointers.find(p => p.role === role)
   return pointer?.target
 }
 
@@ -1498,11 +1498,11 @@ const delta1: Delta = {
   system: SYSTEM_ID,
   pointers: [
     {
-      localContext: 'named',
+      role: 'named',
       target: { id: AUTHOR_ID, context: 'name' }
     },
     {
-      localContext: 'name',
+      role: 'name',
       target: 'Alice Johnson'
     }
   ]
@@ -1516,11 +1516,11 @@ const delta2: Delta = {
   system: SYSTEM_ID,
   pointers: [
     {
-      localContext: 'post',
+      role: 'post',
       target: { id: POST_ID, context: 'title' }
     },
     {
-      localContext: 'title',
+      role: 'title',
       target: 'Understanding RhizomeDB'
     }
   ]
@@ -1534,11 +1534,11 @@ const delta3: Delta = {
   system: SYSTEM_ID,
   pointers: [
     {
-      localContext: 'post',
+      role: 'post',
       target: { id: POST_ID, context: 'content' }
     },
     {
-      localContext: 'content',
+      role: 'content',
       target: 'RhizomeDB is a novel database architecture...'
     }
   ]
@@ -1552,11 +1552,11 @@ const delta4: Delta = {
   system: SYSTEM_ID,
   pointers: [
     {
-      localContext: 'post',
+      role: 'post',
       target: { id: POST_ID, context: 'author' }
     },
     {
-      localContext: 'author',
+      role: 'author',
       target: { id: AUTHOR_ID, context: 'posts' }
     }
   ]
@@ -1570,15 +1570,15 @@ const delta5: Delta = {
   system: SYSTEM_ID,
   pointers: [
     {
-      localContext: 'comment',
+      role: 'comment',
       target: { id: COMMENT_1_ID, context: 'text' }
     },
     {
-      localContext: 'text',
+      role: 'text',
       target: 'Great explanation!'
     },
     {
-      localContext: 'author',
+      role: 'author',
       target: 'Bob'
     }
   ]
@@ -1592,11 +1592,11 @@ const delta6: Delta = {
   system: SYSTEM_ID,
   pointers: [
     {
-      localContext: 'post',
+      role: 'post',
       target: { id: POST_ID, context: 'comments' }
     },
     {
-      localContext: 'comment',
+      role: 'comment',
       target: { id: COMMENT_1_ID, context: 'post' }
     }
   ]
@@ -1610,11 +1610,11 @@ const delta7: Delta = {
   system: SYSTEM_ID,
   pointers: [
     {
-      localContext: 'comment',
+      role: 'comment',
       target: { id: COMMENT_2_ID, context: 'text' }
     },
     {
-      localContext: 'text',
+      role: 'text',
       target: 'This is spam!'  // Oops, mistake
     }
   ]
@@ -1628,11 +1628,11 @@ const delta8: Delta = {
   system: SYSTEM_ID,
   pointers: [
     {
-      localContext: 'negates',
+      role: 'negates',
       target: { id: 'delta_007', context: 'negated_by' }
     },
     {
-      localContext: 'reason',
+      role: 'reason',
       target: 'Accidental spam comment'
     }
   ]
@@ -1729,8 +1729,8 @@ const postHyperView = constructHyperView(
       author: 'author_alice',
       system: 'blog_instance_1',
       pointers: [
-        { localContext: 'post', target: { id: 'post_001', context: 'title' } },
-        { localContext: 'title', target: 'Understanding RhizomeDB' }
+        { role: 'post', target: { id: 'post_001', context: 'title' } },
+        { role: 'title', target: 'Understanding RhizomeDB' }
       ]
     }
   ],
@@ -1741,8 +1741,8 @@ const postHyperView = constructHyperView(
       author: 'author_alice',
       system: 'blog_instance_1',
       pointers: [
-        { localContext: 'post', target: { id: 'post_001', context: 'content' } },
-        { localContext: 'content', target: 'RhizomeDB is a novel database architecture...' }
+        { role: 'post', target: { id: 'post_001', context: 'content' } },
+        { role: 'content', target: 'RhizomeDB is a novel database architecture...' }
       ]
     }
   ],
@@ -1753,9 +1753,9 @@ const postHyperView = constructHyperView(
       author: 'author_alice',
       system: 'blog_instance_1',
       pointers: [
-        { localContext: 'post', target: { id: 'post_001', context: 'author' } },
+        { role: 'post', target: { id: 'post_001', context: 'author' } },
         {
-          localContext: 'author',
+          role: 'author',
           target: {
             // Nested HyperView for author (via NamedEntitySchema)
             id: 'author_alice',
@@ -1766,8 +1766,8 @@ const postHyperView = constructHyperView(
                 author: 'author_alice',
                 system: 'blog_instance_1',
                 pointers: [
-                  { localContext: 'named', target: { id: 'author_alice', context: 'name' } },
-                  { localContext: 'name', target: 'Alice Johnson' }
+                  { role: 'named', target: { id: 'author_alice', context: 'name' } },
+                  { role: 'name', target: 'Alice Johnson' }
                 ]
               }
             ]
@@ -1784,9 +1784,9 @@ const postHyperView = constructHyperView(
       author: 'user_bob',
       system: 'blog_instance_1',
       pointers: [
-        { localContext: 'post', target: { id: 'post_001', context: 'comments' } },
+        { role: 'post', target: { id: 'post_001', context: 'comments' } },
         {
-          localContext: 'comment',
+          role: 'comment',
           target: {
             // Nested HyperView for comment (via CommentSchema)
             id: 'comment_001',
@@ -1797,9 +1797,9 @@ const postHyperView = constructHyperView(
                 author: 'user_bob',
                 system: 'blog_instance_1',
                 pointers: [
-                  { localContext: 'comment', target: { id: 'comment_001', context: 'text' } },
-                  { localContext: 'text', target: 'Great explanation!' },
-                  { localContext: 'author', target: 'Bob' }
+                  { role: 'comment', target: { id: 'comment_001', context: 'text' } },
+                  { role: 'text', target: 'Great explanation!' },
+                  { role: 'author', target: 'Bob' }
                 ]
               }
             ]
@@ -1816,13 +1816,13 @@ const postHyperView = constructHyperView(
 ### 11.5 Step 4: Define View Schema
 
 ```typescript
-const extractPrimitive = (localContext: string) => (delta: Delta) => {
-  const pointer = delta.pointers.find(p => p.localContext === localContext)
+const extractPrimitive = (role: string) => (delta: Delta) => {
+  const pointer = delta.pointers.find(p => p.role === role)
   return pointer?.target
 }
 
-const extractNestedHyperView = (localContext: string) => (delta: Delta) => {
-  const pointer = delta.pointers.find(p => p.localContext === localContext)
+const extractNestedHyperView = (role: string) => (delta: Delta) => {
+  const pointer = delta.pointers.find(p => p.role === role)
   return pointer?.target
 }
 
@@ -1850,7 +1850,7 @@ const BlogPostViewSchema: ViewSchema = {
     author: {
       source: 'author',
       extract: (delta) => {
-        const pointer = delta.pointers.find(p => p.localContext === 'author')
+        const pointer = delta.pointers.find(p => p.role === 'author')
         if (!pointer || typeof pointer.target !== 'object' || !('id' in pointer.target)) {
           return null
         }
@@ -1858,7 +1858,7 @@ const BlogPostViewSchema: ViewSchema = {
         const nameDeltas = authorHyperView.name || []
         if (nameDeltas.length === 0) return { id: authorHyperView.id }
         const nameDelta = nameDeltas[0]
-        const namePointer = nameDelta.pointers.find(p => p.localContext === 'name')
+        const namePointer = nameDelta.pointers.find(p => p.role === 'name')
         return {
           id: authorHyperView.id,
           name: namePointer?.target
@@ -1870,15 +1870,15 @@ const BlogPostViewSchema: ViewSchema = {
       source: 'comments',
       extract: (delta) => {
         return delta.pointers
-          .filter(p => p.localContext === 'comment')
+          .filter(p => p.role === 'comment')
           .map(p => {
             if (typeof p.target !== 'object' || !('id' in p.target)) return null
             const commentHyperView = p.target as any
             const textDeltas = commentHyperView.text || []
             if (textDeltas.length === 0) return { id: commentHyperView.id }
             const textDelta = textDeltas[0]
-            const textPointer = textDelta.pointers.find(p => p.localContext === 'text')
-            const authorPointer = textDelta.pointers.find(p => p.localContext === 'author')
+            const textPointer = textDelta.pointers.find(p => p.role === 'text')
+            const authorPointer = textDelta.pointers.find(p => p.role === 'author')
             return {
               id: commentHyperView.id,
               text: textPointer?.target,
@@ -1945,7 +1945,7 @@ These questions remain open and should be addressed through implementation exper
 
 ### 12.2 Semantic Convergence
 
-1. **Context vocabulary**: How do we achieve consistent `localContext`/Reference `context` naming across federated instances?
+1. **Context vocabulary**: How do we achieve consistent `role`/Reference `context` naming across federated instances?
 
 2. **Schema conflicts**: When two instances define incompatible HyperSchemas for the same domain, how do we merge them?
 

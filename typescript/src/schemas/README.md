@@ -32,7 +32,7 @@ const userSchema: HyperSchema = {
   transform: {
     friend: {
       schema: 'user-schema',  // Recursive reference
-      when: (pointer) => pointer.localContext === 'friend'
+      when: (pointer) => pointer.role === 'friend'
     }
   }
 };

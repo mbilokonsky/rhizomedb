@@ -196,7 +196,7 @@ const policy = createSystemTrustPolicy(['trusted-system-1']);
 
 // Custom verification
 const policy = createCustomTrustPolicy((delta) => {
-  return delta.pointers.some(p => p.localContext === 'verified');
+  return delta.pointers.some(p => p.role === 'verified');
 });
 
 // Combined policies

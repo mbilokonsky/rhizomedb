@@ -71,7 +71,7 @@ interface Delta {
   // (No null or undefined - absence is represented by lack of deltas)
   // (No array primitives - use multiple pointers instead)
   pointers: {
-    localContext: string
+    role: string
     target: Reference | HyperView | Primitive
   }[]
 }
@@ -87,7 +87,7 @@ interface Reference {
 type Primitive = string | number | boolean
 ```
 
-#### Pointer Context Fields: localContext and Reference.context
+#### Pointer Context Fields: role and Reference.context
 
 Here's a complete example delta asserting a containment relationship:
 
@@ -99,11 +99,11 @@ Here's a complete example delta asserting a containment relationship:
   system: "instance_primary",
   pointers: [
     {
-      localContext: 'parent',
+      role: 'parent',
       target: { id: 'some_container', context: 'children' }
     },
     {
-      localContext: 'child',
+      role: 'child',
       target: { id: 'some_contained_thing', context: 'parent' }
     }
   ]
@@ -112,7 +112,7 @@ Here's a complete example delta asserting a containment relationship:
 
 Each pointer has two key components that together define the semantics of the relationship:
 
-**`localContext`**: From this delta's perspective, what is this pointer targeting?
+**`role`**: From this delta's perspective, what is this pointer targeting?
 - The first pointer is targeting a **parent**
 - The second pointer is targeting a **child**
 - Together, this delta is asserting a parent/child relationship between `some_container` and `some_contained_thing`
@@ -136,11 +136,11 @@ When targeting primitive values, the `context` field doesn't apply (primitives a
   system: "instance_primary",
   pointers: [
     {
-      localContext: 'sized',
+      role: 'sized',
       target: { id: 'item_1', context: 'size' }
     },
     {
-      localContext: 'size',
+      role: 'size',
       target: 3  // primitive number - no Reference wrapper needed
     }
   ]
@@ -206,13 +206,13 @@ const deltas = [
     author,
     system,
     pointers: [{
-      localContext: 'actor',
+      role: 'actor',
       target: { id: keanu, context: 'appearedIn' }
     },{
-      localContext: 'movie',
+      role: 'movie',
       target: { id: the_matrix, context: 'cast' }
     },{
-      localContext: 'characterName',
+      role: 'characterName',
       target: 'Neo'
     }]
   }, {
@@ -221,10 +221,10 @@ const deltas = [
     author,
     system,
     pointers: [{
-      localContext: 'creator',
+      role: 'creator',
       target: { id: keanu, context: 'projects' }
     },{
-      localContext: 'creation',
+      role: 'creation',
       target: { id: brzrkr, context: 'createdBy' }
     }]
   }
@@ -462,10 +462,10 @@ const additional_deltas = [
     author,
     system,
     pointers: [{
-      localContext: 'named',
+      role: 'named',
       target: { id: keanu, context: 'name' }
     },{
-      localContext: 'name',
+      role: 'name',
       target: 'Keanu Reeves'
     }]
   },
@@ -475,10 +475,10 @@ const additional_deltas = [
     author,
     system,
     pointers: [{
-      localContext: 'named',
+      role: 'named',
       target: { id: lily, context: 'name' }
     },{
-      localContext: 'name',
+      role: 'name',
       target: 'Lily Wachowski'
     }]
   },
@@ -488,10 +488,10 @@ const additional_deltas = [
     author,
     system,
     pointers: [{
-      localContext: 'named',
+      role: 'named',
       target: { id: lana, context: 'name' }
     },{
-      localContext: 'name',
+      role: 'name',
       target: 'Lana Wachowski'
     }]
   },
@@ -501,14 +501,14 @@ const additional_deltas = [
     author,
     system,
     pointers: [{
-      localContext: 'movie',
+      role: 'movie',
       target: { id: the_matrix, context: 'directed_by' }
     },{
-      localContext: 'director',
+      role: 'director',
       target: { id: lily, context: 'films_directed' }
     },
     {
-      localContext: 'director',
+      role: 'director',
       target: { id: lana, context: 'films_directed' }
     }]
   },
@@ -522,18 +522,18 @@ There, we've added a 'name' to our `keanu` object, and we've introduced deltas t
 Now, let's identify the following `HyperSchema` objects, and let's use natural language to keep this a bit more accessible:
 
   * The `NamedEntity` HyperSchema is used to create an object `namedEntity`, and takes a domain object id `n`
-    * its job is to select each delta `d` in the system that contains a pointer where `{ localContext: "named", target: { id: n } }`.
-    * If `d` also contains a pointer such that `{ localContext: 'name', target: string }`, embed `d` under the `namedEntity.name`.
+    * its job is to select each delta `d` in the system that contains a pointer where `{ role: "named", target: { id: n } }`.
+    * If `d` also contains a pointer such that `{ role: 'name', target: string }`, embed `d` under the `namedEntity.name`.
   * The `Movie` HyperSchema is used to create an object `movie`, and takes a domain object id `m`
-    * it will identify each delta `d` in the system that contain a pointer `p` where `{ localContext: 'movie', target: { id: m, context: ... } }`
+    * it will identify each delta `d` in the system that contain a pointer `p` where `{ role: 'movie', target: { id: m, context: ... } }`
     * if `p.target.context` is 'directed_by', embed this delta under `m.directed_by` AND
-      * for each reamining pointer `p` on `d`, if `p.localContext` is 'director' then replace `p.target` with `NamedEntity(p.target)`
+      * for each reamining pointer `p` on `d`, if `p.role` is 'director' then replace `p.target` with `NamedEntity(p.target)`
     * if `p.target.context` is 'cast', embed this delta under `m.cast` AND
-      * for each remaining pointer `p` on `d`, if `p.localContext` is 'actor' then replace `p.target` with `NamedEntity(p.target)`
+      * for each remaining pointer `p` on `d`, if `p.role` is 'actor' then replace `p.target` with `NamedEntity(p.target)`
 
 #### HyperSchema Semantics
 
-The examples above use Reference `context` and `localContext` as convenient conventions, but let's be explicit about what HyperSchemas *actually* are at an abstract level.
+The examples above use Reference `context` and `role` as convenient conventions, but let's be explicit about what HyperSchemas *actually* are at an abstract level.
 
 **A HyperSchema is fundamentally two operations:**
 
@@ -545,7 +545,7 @@ The examples above use Reference `context` and `localContext` as convenient conv
 
 2. **Transformation Rules**: `(delta, pointer) → transformedPointer`
    - For each delta that passed selection, determine how to transform its pointers
-   - In our examples: "if `pointer.localContext === 'actor'`, apply `ActorSchema` to `pointer.target`"
+   - In our examples: "if `pointer.role === 'actor'`, apply `ActorSchema` to `pointer.target`"
    - But could also transform based on: Reference `context`, timestamp, author, or complex logic
    - Transformed pointers become nested HyperViews; untransformed pointers remain as References or primitives
 
@@ -563,7 +563,7 @@ The examples above use Reference `context` and `localContext` as convenient conv
   - Missing properties? Simply absent from the HyperView
   - This makes schemas resilient to incomplete or evolving data
 
-- **Conventions vs. Constraints**: The Reference `context`/`localContext` pattern is a useful convention, not a hard requirement
+- **Conventions vs. Constraints**: The Reference `context`/`role` pattern is a useful convention, not a hard requirement
   - Makes schemas readable and predictable
   - But the system supports arbitrary selection and transformation logic
   - You could filter by author trust levels, apply schemas based on temporal rules, etc.
@@ -619,10 +619,10 @@ const matrixHyperview = {
       author,
       system,
       pointers: [{
-        localContext: 'movie',
+        role: 'movie',
         target: { id: the_matrix, context: 'directed_by' }
       },{
-        localContext: 'director',
+        role: 'director',
         target: {
           id: lily,
           name: [
@@ -632,10 +632,10 @@ const matrixHyperview = {
               author,
               system,
               pointers: [{
-                localContext: 'named',
+                role: 'named',
                 target: { id: lily, context: 'name' }
               },{
-                localContext: 'name',
+                role: 'name',
                 target: 'Lily Wachowski'
               }]
             }
@@ -644,7 +644,7 @@ const matrixHyperview = {
         context: 'films_directed'
       },
       {
-        localContext: 'director',
+        role: 'director',
         target: {
           id: lana,
           name: [
@@ -654,10 +654,10 @@ const matrixHyperview = {
               author,
               system,
               pointers: [{
-                localContext: 'named',
+                role: 'named',
                 target: { id: lana, context: 'name' }
               },{
-                localContext: 'name',
+                role: 'name',
                 target: 'Lana Wachowski'
               }]
             }
@@ -674,7 +674,7 @@ const matrixHyperview = {
       author,
       system,
       pointers: [{
-        localContext: 'actor',
+        role: 'actor',
         target: {
           id: keanu,
           name: [
@@ -684,10 +684,10 @@ const matrixHyperview = {
               author,
               system,
               pointers: [{
-                localContext: 'named',
+                role: 'named',
                 target: { id: keanu, context: 'name' }
               },{
-                localContext: 'name',
+                role: 'name',
                 target: 'Keanu Reeves'
               }]
             }
@@ -695,10 +695,10 @@ const matrixHyperview = {
         },
         context: 'appearedIn'
       },{
-        localContext: 'movie',
+        role: 'movie',
         target: { id: the_matrix, context: 'cast' }
       },{
-        localContext: 'characterName',
+        role: 'characterName',
         target: 'Neo'
       }]
     }
@@ -726,10 +726,10 @@ Let's see a concrete example. Imagine two different deltas making claims about K
   author: "imdb_official",
   system,
   pointers: [{
-    localContext: 'named',
+    role: 'named',
     target: { id: keanu, context: 'name' }
   },{
-    localContext: 'name',
+    role: 'name',
     target: 'Keanu Reeves'
   }]
 }
@@ -741,10 +741,10 @@ Let's see a concrete example. Imagine two different deltas making claims about K
   author: "random_user",
   system,
   pointers: [{
-    localContext: 'named',
+    role: 'named',
     target: { id: keanu, context: 'name' }
   },{
-    localContext: 'name',
+    role: 'name',
     target: 'Keanu Reaves'  // misspelled
   }]
 }
@@ -780,19 +780,19 @@ Now when we implement a View resolver, we have multiple strategies available:
 // Strategy 1: Take the most recent
 const name = hyperView.name
   .sort((a, b) => b.timestamp - a.timestamp)[0]
-  .pointers.find(p => p.localContext === 'name').target
+  .pointers.find(p => p.role === 'name').target
 // Result: "Keanu Reaves" (most recent, but wrong!)
 
 // Strategy 2: Trust specific authors
 const trustedAuthors = ["imdb_official", "wikipedia"]
 const name = hyperView.name
   .find(delta => trustedAuthors.includes(delta.author))
-  .pointers.find(p => p.localContext === 'name').target
+  .pointers.find(p => p.role === 'name').target
 // Result: "Keanu Reeves" (correct!)
 
 // Strategy 3: Return all possibilities and let the application decide
 const names = hyperView.name
-  .map(delta => delta.pointers.find(p => p.localContext === 'name').target)
+  .map(delta => delta.pointers.find(p => p.role === 'name').target)
 // Result: ["Keanu Reeves", "Keanu Reaves"] (surface the conflict)
 
 // Strategy 4: Use an LLM to resolve semantic conflicts
@@ -823,10 +823,10 @@ const delta_alice_name = {
   author: "user_bob",
   system: "instance_primary",
   pointers: [{
-    localContext: 'named',
+    role: 'named',
     target: { id: 'alice_uuid', context: 'name' }
   }, {
-    localContext: 'name',
+    role: 'name',
     target: 'Alice Smith'
   }]
 }
@@ -854,10 +854,10 @@ const aliceHyperView = {
       author: "user_bob",
       system: "instance_primary",
       pointers: [{
-        localContext: 'named',
+        role: 'named',
         target: { id: 'alice_uuid', context: 'name' }
       }, {
-        localContext: 'name',
+        role: 'name',
         target: 'Alice Smith'
       }]
     }
@@ -880,7 +880,7 @@ function resolvePersonView(hyperView) {
     id: hyperView.id,
     name: hyperView.name
       .sort((a, b) => b.timestamp - a.timestamp)[0]  // Most recent
-      .pointers.find(p => p.localContext === 'name')
+      .pointers.find(p => p.role === 'name')
       .target
   }
 }
@@ -925,10 +925,10 @@ const delta_alice_name = {
   author: "user_bob",
   system: "instance_primary",
   pointers: [{
-    localContext: 'named',
+    role: 'named',
     target: { id: 'alice_uuid', context: 'name' }
   }, {
-    localContext: 'name',
+    role: 'name',
     target: 'Alice Smith'
   }]
 }
@@ -940,10 +940,10 @@ const delta_negation = {
   author: "user_bob",
   system: "instance_primary",
   pointers: [{
-    localContext: 'negates',
+    role: 'negates',
     target: { id: 'delta_001', context: 'negated_by' }  // Targeting the delta itself
   }, {
-    localContext: 'reason',
+    role: 'reason',
     target: 'Incorrect information'
   }]
 }

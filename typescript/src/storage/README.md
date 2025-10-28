@@ -35,7 +35,7 @@ const db = new RhizomeDB({
 
 // Create and persist delta
 const delta = db.createDelta('author-1', [
-  { localContext: 'name', target: 'Alice' }
+  { role: 'name', target: 'Alice' }
 ]);
 await db.persistDelta(delta);
 

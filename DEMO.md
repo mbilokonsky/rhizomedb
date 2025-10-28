@@ -362,7 +362,7 @@ In RhizomeDB, we don't delete data—we **negate** incorrect deltas.
 mutation {
   createDelta(
     author: "admin"
-    pointers: "[{\"localContext\":\"test\",\"target\":\"testvalue\"}]"
+    pointers: "[{\"role\":\"test\",\"target\":\"testvalue\"}]"
   )
 }
 ```
@@ -392,7 +392,7 @@ Using the delta query API:
 ```typescript
 const movies1999 = db.queryDeltas({
   predicate: (delta) => {
-    const yearPointer = delta.pointers.find(p => p.localContext === 'year');
+    const yearPointer = delta.pointers.find(p => p.role === 'year');
     return yearPointer?.target === 1999;
   }
 });
@@ -411,7 +411,7 @@ const jacksonMovies = db.queryDeltas({
 });
 
 const movieIds = jacksonMovies
-  .filter(d => d.pointers.some(p => p.localContext === 'director'))
+  .filter(d => d.pointers.some(p => p.role === 'director'))
   .map(d => extractMovieId(d));
 ```
 
@@ -424,7 +424,7 @@ const movieIds = jacksonMovies
 
 ```typescript
 const runtimeDeltas = db.queryDeltas({
-  predicate: (delta) => delta.pointers.some(p => p.localContext === 'runtime')
+  predicate: (delta) => delta.pointers.some(p => p.role === 'runtime')
 });
 
 const movieRuntimes = runtimeDeltas.map(extractRuntime).sort((a, b) => b - a);
@@ -440,8 +440,8 @@ const movieRuntimes = runtimeDeltas.map(extractRuntime).sort((a, b) => b - a);
 ```typescript
 // Add incorrect data
 const wrongDelta = db.createDelta('user', [
-  { localContext: 'budget', target: { id: 'movie_matrix', context: 'budget' } },
-  { localContext: 'budget', target: 1000000 } // Wrong!
+  { role: 'budget', target: { id: 'movie_matrix', context: 'budget' } },
+  { role: 'budget', target: 1000000 } // Wrong!
 ]);
 await db.persistDelta(wrongDelta);
 
@@ -451,8 +451,8 @@ await db.persistDelta(negation);
 
 // Add correct data
 const correctDelta = db.createDelta('user', [
-  { localContext: 'budget', target: { id: 'movie_matrix', context: 'budget' } },
-  { localContext: 'budget', target: 63000000 } // Correct!
+  { role: 'budget', target: { id: 'movie_matrix', context: 'budget' } },
+  { role: 'budget', target: 63000000 } // Correct!
 ]);
 await db.persistDelta(correctDelta);
 ```

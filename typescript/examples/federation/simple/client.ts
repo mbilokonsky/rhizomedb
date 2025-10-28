@@ -84,10 +84,10 @@ async function main() {
     console.log('Creating local delta...\n');
 
     const reviewDelta = client.createDelta('client-user-123', [
-      { localContext: 'review', target: { id: 'review_1' } },
-      { localContext: 'product', target: { id: 'prod_1' } },
-      { localContext: 'rating', target: '5' },
-      { localContext: 'comment', target: 'Great product!' }
+      { role: 'review', target: { id: 'review_1' } },
+      { role: 'product', target: { id: 'prod_1' } },
+      { role: 'rating', target: '5' },
+      { role: 'comment', target: 'Great product!' }
     ]);
 
     await client.persistDelta(reviewDelta);

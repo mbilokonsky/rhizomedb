@@ -44,7 +44,7 @@ export interface DomainNodeReference {
  */
 export interface Pointer {
   /** The semantic role of this pointer from the delta's perspective */
-  localContext: string;
+  role: string;
 
   /** The referenced entity or value */
   target: Reference | Primitive;
@@ -118,10 +118,10 @@ export interface TransformationRule {
 }
 
 /**
- * Transformation rules indexed by localContext
+ * Transformation rules indexed by role
  */
 export type TransformationRules = {
-  [localContext: string]: TransformationRule;
+  [role: string]: TransformationRule;
 };
 
 /**

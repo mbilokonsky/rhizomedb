@@ -20,7 +20,7 @@ describe('Delta Negation', () => {
 
   describe('Basic Negation', () => {
     it('should mark a delta as negated when negated', async () => {
-      const originalDelta = db.createDelta('alice', [{ localContext: 'name', target: 'Alice' }]);
+      const originalDelta = db.createDelta('alice', [{ role: 'name', target: 'Alice' }]);
       await db.persistDelta(originalDelta);
 
       const negation = db.negateDelta('bob', originalDelta.id, 'Incorrect');
@@ -32,8 +32,8 @@ describe('Delta Negation', () => {
     });
 
     it('should exclude negated deltas from queries by default', async () => {
-      const delta1 = db.createDelta('alice', [{ localContext: 'name', target: 'Alice' }]);
-      const delta2 = db.createDelta('alice', [{ localContext: 'age', target: 30 }]);
+      const delta1 = db.createDelta('alice', [{ role: 'name', target: 'Alice' }]);
+      const delta2 = db.createDelta('alice', [{ role: 'age', target: 30 }]);
       await db.persistDelta(delta1);
       await db.persistDelta(delta2);
 
@@ -49,7 +49,7 @@ describe('Delta Negation', () => {
     });
 
     it('should include negated deltas when includeNegated is true', async () => {
-      const originalDelta = db.createDelta('alice', [{ localContext: 'name', target: 'Alice' }]);
+      const originalDelta = db.createDelta('alice', [{ role: 'name', target: 'Alice' }]);
       await db.persistDelta(originalDelta);
 
       const negation = db.negateDelta('bob', originalDelta.id);
@@ -64,7 +64,7 @@ describe('Delta Negation', () => {
   describe('Double Negation', () => {
     it('should restore a delta when its negation is negated', async () => {
       // Create original delta
-      const original = db.createDelta('alice', [{ localContext: 'name', target: 'Alice' }]);
+      const original = db.createDelta('alice', [{ role: 'name', target: 'Alice' }]);
       await db.persistDelta(original);
 
       // Negate it
@@ -86,7 +86,7 @@ describe('Delta Negation', () => {
     });
 
     it('should handle triple negation correctly', async () => {
-      const original = db.createDelta('alice', [{ localContext: 'value', target: 42 }]);
+      const original = db.createDelta('alice', [{ role: 'value', target: 42 }]);
       await db.persistDelta(original);
 
       // First negation
@@ -106,8 +106,8 @@ describe('Delta Negation', () => {
     });
 
     it('should calculate negation states correctly for complex chains', () => {
-      const delta1 = db.createDelta('alice', [{ localContext: 'test', target: '1' }]);
-      const delta2 = db.createDelta('bob', [{ localContext: 'test', target: '2' }]);
+      const delta1 = db.createDelta('alice', [{ role: 'test', target: '1' }]);
+      const delta2 = db.createDelta('bob', [{ role: 'test', target: '2' }]);
       const neg1 = db.negateDelta('charlie', delta1.id); // Negates delta1
       const neg2 = db.negateDelta('dave', neg1.id); // Negates neg1 (restores delta1)
       const neg3 = db.negateDelta('eve', delta2.id); // Negates delta2
@@ -130,7 +130,7 @@ describe('Delta Negation', () => {
       const t2 = 2000;
       const t3 = 3000;
 
-      const original = db.createDelta('alice', [{ localContext: 'value', target: 'test' }]);
+      const original = db.createDelta('alice', [{ role: 'value', target: 'test' }]);
       original.timestamp = t1;
 
       const negation = db.negateDelta('bob', original.id);
@@ -154,7 +154,7 @@ describe('Delta Negation', () => {
       const t2 = 2000;
       const t3 = 3000;
 
-      const original = db.createDelta('alice', [{ localContext: 'value', target: 'test' }]);
+      const original = db.createDelta('alice', [{ role: 'value', target: 'test' }]);
       original.timestamp = t1;
 
       const neg1 = db.negateDelta('bob', original.id);
@@ -176,7 +176,7 @@ describe('Delta Negation', () => {
 
   describe('Negation State Calculation', () => {
     it('should provide detailed negation state information', () => {
-      const original = db.createDelta('alice', [{ localContext: 'test', target: 'value' }]);
+      const original = db.createDelta('alice', [{ role: 'test', target: 'value' }]);
       const negation = db.negateDelta('bob', original.id, 'Wrong value');
 
       const states = calculateNegationStates([original, negation]);
@@ -193,7 +193,7 @@ describe('Delta Negation', () => {
     });
 
     it('should detect double negation in state', () => {
-      const original = db.createDelta('alice', [{ localContext: 'test', target: 'value' }]);
+      const original = db.createDelta('alice', [{ role: 'test', target: 'value' }]);
       const neg1 = db.negateDelta('bob', original.id);
       const neg2 = db.negateDelta('charlie', neg1.id);
 
@@ -209,13 +209,13 @@ describe('Delta Negation', () => {
     it('should correctly filter negated deltas in real queries', async () => {
       // Create a user
       const user = db.createDelta('system', [
-        { localContext: 'type', target: 'user' },
-        { localContext: 'name', target: 'Alice' }
+        { role: 'type', target: 'user' },
+        { role: 'name', target: 'Alice' }
       ]);
       await db.persistDelta(user);
 
       // User changes their name
-      const nameUpdate = db.createDelta('alice', [{ localContext: 'name', target: 'Alicia' }]);
+      const nameUpdate = db.createDelta('alice', [{ role: 'name', target: 'Alicia' }]);
       await db.persistDelta(nameUpdate);
 
       // Admin negates the name update (policy violation)
@@ -223,7 +223,7 @@ describe('Delta Negation', () => {
       await db.persistDelta(negation);
 
       // User's second attempt at name change
-      const nameUpdate2 = db.createDelta('alice', [{ localContext: 'name', target: 'Ali' }]);
+      const nameUpdate2 = db.createDelta('alice', [{ role: 'name', target: 'Ali' }]);
       await db.persistDelta(nameUpdate2);
 
       // Query all deltas
@@ -238,7 +238,7 @@ describe('Delta Negation', () => {
     });
 
     it('should handle concurrent negations correctly', async () => {
-      const original = db.createDelta('alice', [{ localContext: 'value', target: 42 }]);
+      const original = db.createDelta('alice', [{ role: 'value', target: 42 }]);
       await db.persistDelta(original);
 
       // Two people try to negate at the same time (same timestamp)

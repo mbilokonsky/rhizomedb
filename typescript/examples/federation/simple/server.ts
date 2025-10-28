@@ -56,9 +56,9 @@ async function main() {
   console.log('Creating initial data...\n');
 
   const product1Delta = server.createDelta('server-admin', [
-    { localContext: 'product', target: { id: 'prod_1' } },
-    { localContext: 'name', target: 'Widget Pro' },
-    { localContext: 'price', target: '99.99' }
+    { role: 'product', target: { id: 'prod_1' } },
+    { role: 'name', target: 'Widget Pro' },
+    { role: 'price', target: '99.99' }
   ]);
 
   await server.persistDelta(product1Delta);
@@ -73,8 +73,8 @@ async function main() {
     counter++;
 
     const updateDelta = server.createDelta('server-admin', [
-      { localContext: 'product', target: { id: 'prod_1' } },
-      { localContext: 'stock', target: String(100 - counter) }
+      { role: 'product', target: { id: 'prod_1' } },
+      { role: 'stock', target: String(100 - counter) }
     ]);
 
     await server.persistDelta(updateDelta);

@@ -82,14 +82,14 @@ describe('Movie Database', () => {
       expect(personView.name).toBeDefined();
 
       const nameDelta = (personView.name as Delta[])[0];
-      const namePointer = nameDelta.pointers.find(p => p.localContext === 'name');
+      const namePointer = nameDelta.pointers.find(p => p.role === 'name');
       expect(namePointer?.target).toBe('Keanu Reeves');
     });
 
     it('should find all Matrix movies', () => {
       const matrixMovies = db.queryDeltas({
         predicate: delta => {
-          const titlePointer = delta.pointers.find(p => p.localContext === 'title');
+          const titlePointer = delta.pointers.find(p => p.role === 'title');
           if (titlePointer && typeof titlePointer.target === 'string') {
             return titlePointer.target.includes('Matrix');
           }
@@ -99,7 +99,7 @@ describe('Movie Database', () => {
 
       const movieIds = new Set(
         matrixMovies
-          .filter(d => d.pointers.some(p => p.localContext === 'title'))
+          .filter(d => d.pointers.some(p => p.role === 'title'))
           .map(d => d.pointers.find(p => typeof p.target === 'object' && 'id' in p.target && 'context' in p.target && p.target.context === 'title')?.target)
           .filter(t => typeof t === 'object' && 'id' in t)
           .map(t => (t as any).id)
@@ -117,7 +117,7 @@ describe('Movie Database', () => {
       });
 
       // Filter to just role deltas (those with actor context)
-      const roleDeltas = roles.filter(d => d.pointers.some(p => p.localContext === 'actor'));
+      const roleDeltas = roles.filter(d => d.pointers.some(p => p.role === 'actor'));
 
       // Keanu Reeves played Neo in 3 Matrix movies
       expect(roleDeltas.length).toBeGreaterThanOrEqual(3);
@@ -126,14 +126,14 @@ describe('Movie Database', () => {
     it('should find all movies from 1999', () => {
       const movies1999 = db.queryDeltas({
         predicate: delta => {
-          const yearPointer = delta.pointers.find(p => p.localContext === 'year');
+          const yearPointer = delta.pointers.find(p => p.role === 'year');
           return yearPointer?.target === 1999;
         }
       });
 
       const movieIds = new Set(
         movies1999
-          .filter(d => d.pointers.some(p => p.localContext === 'year'))
+          .filter(d => d.pointers.some(p => p.role === 'year'))
           .map(d => d.pointers.find(p => typeof p.target === 'object' && 'id' in p.target && 'context' in p.target && p.target.context === 'year')?.target)
           .filter(t => typeof t === 'object' && 'id' in t)
           .map(t => (t as any).id)
@@ -162,7 +162,7 @@ describe('Movie Database', () => {
 
       const movieIds = new Set(
         jacksonMovies
-          .filter(d => d.pointers.some(p => p.localContext === 'director'))
+          .filter(d => d.pointers.some(p => p.role === 'director'))
           .map(d => d.pointers.find(p => typeof p.target === 'object' && 'id' in p.target && 'context' in p.target && p.target.context === 'director')?.target)
           .filter(t => typeof t === 'object' && 'id' in t)
           .map(t => (t as any).id)
@@ -182,7 +182,7 @@ describe('Movie Database', () => {
       expect(trilogyView.name).toBeDefined();
 
       const nameDelta = (trilogyView.name as Delta[])[0];
-      const namePointer = nameDelta.pointers.find(p => p.localContext === 'name');
+      const namePointer = nameDelta.pointers.find(p => p.role === 'name');
       expect(namePointer?.target).toBe('The Matrix Trilogy');
 
       // Should have 3 movies
@@ -196,7 +196,7 @@ describe('Movie Database', () => {
         .queryDeltas({
           targetIds: ['person_wood_elijah']
         })
-        .filter(d => d.pointers.some(p => p.localContext === 'actor'));
+        .filter(d => d.pointers.some(p => p.role === 'actor'));
 
       // Should have roles in multiple movies
       expect(woodRoles.length).toBeGreaterThanOrEqual(3);
@@ -208,7 +208,7 @@ describe('Movie Database', () => {
       // Subscribe to new movies
       db.subscribe(
         {
-          predicate: delta => delta.pointers.some(p => p.localContext === 'title')
+          predicate: delta => delta.pointers.some(p => p.role === 'title')
         },
         async delta => {
           receivedDeltas.push(delta);
@@ -217,8 +217,8 @@ describe('Movie Database', () => {
 
       // Add a new movie
       const newMovie = db.createDelta('user', [
-        { localContext: 'titled', target: { id: 'movie_test', context: 'title' } },
-        { localContext: 'title', target: 'Test Movie' }
+        { role: 'titled', target: { id: 'movie_test', context: 'title' } },
+        { role: 'title', target: 'Test Movie' }
       ]);
       await db.persistDelta(newMovie);
 
@@ -286,7 +286,7 @@ describe('Movie Database', () => {
     it('should query across persistent storage', async () => {
       const results = await db.queryDeltas({
         predicate: delta => {
-          const namePointer = delta.pointers.find(p => p.localContext === 'name');
+          const namePointer = delta.pointers.find(p => p.role === 'name');
           return namePointer?.target === 'Keanu Reeves';
         }
       });
@@ -363,24 +363,24 @@ describe('Movie Database', () => {
         .queryDeltas({
           targetIds: ['person_wood_elijah']
         })
-        .filter(d => d.pointers.some(p => p.localContext === 'actor'));
+        .filter(d => d.pointers.some(p => p.role === 'actor'));
 
       const mckellRoles = db
         .queryDeltas({
           targetIds: ['person_mckellen_ian']
         })
-        .filter(d => d.pointers.some(p => p.localContext === 'actor'));
+        .filter(d => d.pointers.some(p => p.role === 'actor'));
 
       const woodMovies = new Set(
         woodRoles
-          .map(d => d.pointers.find(p => p.localContext === 'movie')?.target)
+          .map(d => d.pointers.find(p => p.role === 'movie')?.target)
           .filter(t => typeof t === 'object' && 'id' in t)
           .map(t => (t as any).id)
       );
 
       const mckellMovies = new Set(
         mckellRoles
-          .map(d => d.pointers.find(p => p.localContext === 'movie')?.target)
+          .map(d => d.pointers.find(p => p.role === 'movie')?.target)
           .filter(t => typeof t === 'object' && 'id' in t)
           .map(t => (t as any).id)
       );
@@ -395,13 +395,13 @@ describe('Movie Database', () => {
 
     it('should find longest running movies', () => {
       const runtimeDeltas = db.queryDeltas({
-        predicate: delta => delta.pointers.some(p => p.localContext === 'runtime')
+        predicate: delta => delta.pointers.some(p => p.role === 'runtime')
       });
 
       const movieRuntimes = runtimeDeltas
         .map(d => {
           const moviePointer = d.pointers.find(p => typeof p.target === 'object' && 'id' in p.target && 'context' in p.target && p.target.context === 'runtime');
-          const runtimePointer = d.pointers.find(p => p.localContext === 'runtime');
+          const runtimePointer = d.pointers.find(p => p.role === 'runtime');
 
           return {
             movieId:
@@ -423,7 +423,7 @@ describe('Movie Database', () => {
     it('should find movies by decade', () => {
       const movies2000s = db.queryDeltas({
         predicate: delta => {
-          const yearPointer = delta.pointers.find(p => p.localContext === 'year');
+          const yearPointer = delta.pointers.find(p => p.role === 'year');
           if (typeof yearPointer?.target === 'number') {
             return yearPointer.target >= 2000 && yearPointer.target < 2010;
           }
@@ -433,7 +433,7 @@ describe('Movie Database', () => {
 
       const movieIds = new Set(
         movies2000s
-          .filter(d => d.pointers.some(p => p.localContext === 'year'))
+          .filter(d => d.pointers.some(p => p.role === 'year'))
           .map(d => d.pointers.find(p => typeof p.target === 'object' && 'id' in p.target && 'context' in p.target && p.target.context === 'year')?.target)
           .filter(t => typeof t === 'object' && 'id' in t)
           .map(t => (t as any).id)
@@ -448,15 +448,15 @@ describe('Movie Database', () => {
     it('should demonstrate delta negation for corrections', async () => {
       // Add incorrect data
       const wrongDelta = db.createDelta('user', [
-        { localContext: 'titled', target: { id: 'movie_matrix', context: 'budget' } },
-        { localContext: 'budget', target: 1000000 } // Wrong budget
+        { role: 'titled', target: { id: 'movie_matrix', context: 'budget' } },
+        { role: 'budget', target: 1000000 } // Wrong budget
       ]);
       await db.persistDelta(wrongDelta);
 
       // Verify it's there
       let budgetDeltas = db.queryDeltas({
         targetIds: ['movie_matrix'],
-        predicate: d => d.pointers.some(p => p.localContext === 'budget')
+        predicate: d => d.pointers.some(p => p.role === 'budget')
       });
       expect(budgetDeltas.length).toBe(1);
 
@@ -466,15 +466,15 @@ describe('Movie Database', () => {
 
       // Add correct data
       const correctDelta = db.createDelta('user', [
-        { localContext: 'titled', target: { id: 'movie_matrix', context: 'budget' } },
-        { localContext: 'budget', target: 63000000 } // Correct budget
+        { role: 'titled', target: { id: 'movie_matrix', context: 'budget' } },
+        { role: 'budget', target: 63000000 } // Correct budget
       ]);
       await db.persistDelta(correctDelta);
 
       // Query again (negated deltas are excluded by default)
       budgetDeltas = db.queryDeltas({
         targetIds: ['movie_matrix'],
-        predicate: d => d.pointers.some(p => p.localContext === 'budget')
+        predicate: d => d.pointers.some(p => p.role === 'budget')
       });
 
       // Should only have the correct delta
@@ -832,7 +832,7 @@ describe('Movie Database', () => {
       // Verify old delta was negated
       // Query all deltas (including negated ones) to verify the behavior
       const negationDeltas = db.queryDeltas({
-        predicate: d => d.pointers.some(p => p.localContext === 'negates')
+        predicate: d => d.pointers.some(p => p.role === 'negates')
       });
 
       expect(negationDeltas.length).toBeGreaterThan(0); // At least one negation was created
@@ -844,7 +844,7 @@ describe('Movie Database', () => {
         mutation {
           createDelta(
             author: "admin"
-            pointers: "[{\\"localContext\\":\\"test\\",\\"target\\":\\"testvalue\\"}]"
+            pointers: "[{\\"role\\":\\"test\\",\\"target\\":\\"testvalue\\"}]"
           )
         }
       `;

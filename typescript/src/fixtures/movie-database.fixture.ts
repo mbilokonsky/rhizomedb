@@ -150,8 +150,8 @@ function createPersonDeltas(db: RhizomeDB, person: PersonData): Delta[] {
   // Name
   deltas.push(
     db.createDelta('seed', [
-      { localContext: 'named', target: { id: person.id, context: 'name' } },
-      { localContext: 'name', target: person.name }
+      { role: 'named', target: { id: person.id, context: 'name' } },
+      { role: 'name', target: person.name }
     ])
   );
 
@@ -159,8 +159,8 @@ function createPersonDeltas(db: RhizomeDB, person: PersonData): Delta[] {
   if (person.birthYear) {
     deltas.push(
       db.createDelta('seed', [
-        { localContext: 'born', target: { id: person.id, context: 'birthYear' } },
-        { localContext: 'birthYear', target: person.birthYear }
+        { role: 'born', target: { id: person.id, context: 'birthYear' } },
+        { role: 'birthYear', target: person.birthYear }
       ])
     );
   }
@@ -177,32 +177,32 @@ function createMovieDeltas(db: RhizomeDB, movie: MovieData): Delta[] {
   // Title
   deltas.push(
     db.createDelta('seed', [
-      { localContext: 'titled', target: { id: movie.id, context: 'title' } },
-      { localContext: 'title', target: movie.title }
+      { role: 'titled', target: { id: movie.id, context: 'title' } },
+      { role: 'title', target: movie.title }
     ])
   );
 
   // Year
   deltas.push(
     db.createDelta('seed', [
-      { localContext: 'released', target: { id: movie.id, context: 'year' } },
-      { localContext: 'year', target: movie.year }
+      { role: 'released', target: { id: movie.id, context: 'year' } },
+      { role: 'year', target: movie.year }
     ])
   );
 
   // Runtime
   deltas.push(
     db.createDelta('seed', [
-      { localContext: 'runs', target: { id: movie.id, context: 'runtime' } },
-      { localContext: 'runtime', target: movie.runtime }
+      { role: 'runs', target: { id: movie.id, context: 'runtime' } },
+      { role: 'runtime', target: movie.runtime }
     ])
   );
 
   // Director
   deltas.push(
     db.createDelta('seed', [
-      { localContext: 'directed_by', target: { id: movie.id, context: 'director' } },
-      { localContext: 'director', target: { id: movie.director } }
+      { role: 'directed_by', target: { id: movie.id, context: 'director' } },
+      { role: 'director', target: { id: movie.director } }
     ])
   );
 
@@ -211,8 +211,8 @@ function createMovieDeltas(db: RhizomeDB, movie: MovieData): Delta[] {
     for (const producer of movie.producers) {
       deltas.push(
         db.createDelta('seed', [
-          { localContext: 'produced_by', target: { id: movie.id, context: 'producer' } },
-          { localContext: 'producer', target: { id: producer } }
+          { role: 'produced_by', target: { id: movie.id, context: 'producer' } },
+          { role: 'producer', target: { id: producer } }
         ])
       );
     }
@@ -223,8 +223,8 @@ function createMovieDeltas(db: RhizomeDB, movie: MovieData): Delta[] {
     for (const writer of movie.writers) {
       deltas.push(
         db.createDelta('seed', [
-          { localContext: 'written_by', target: { id: movie.id, context: 'writer' } },
-          { localContext: 'writer', target: { id: writer } }
+          { role: 'written_by', target: { id: movie.id, context: 'writer' } },
+          { role: 'writer', target: { id: writer } }
         ])
       );
     }
@@ -242,24 +242,24 @@ function createRoleDeltas(db: RhizomeDB, role: RoleData): Delta[] {
   // Actor
   deltas.push(
     db.createDelta('seed', [
-      { localContext: 'performed_by', target: { id: role.id, context: 'actor' } },
-      { localContext: 'actor', target: { id: role.actor } }
+      { role: 'performed_by', target: { id: role.id, context: 'actor' } },
+      { role: 'actor', target: { id: role.actor } }
     ])
   );
 
   // Movie
   deltas.push(
     db.createDelta('seed', [
-      { localContext: 'appears_in', target: { id: role.id, context: 'movie' } },
-      { localContext: 'movie', target: { id: role.movie } }
+      { role: 'appears_in', target: { id: role.id, context: 'movie' } },
+      { role: 'movie', target: { id: role.movie } }
     ])
   );
 
   // Character name
   deltas.push(
     db.createDelta('seed', [
-      { localContext: 'portrays', target: { id: role.id, context: 'character' } },
-      { localContext: 'character', target: role.character }
+      { role: 'portrays', target: { id: role.id, context: 'character' } },
+      { role: 'character', target: role.character }
     ])
   );
 
@@ -280,8 +280,8 @@ function createTrilogyDeltas(
   // Name
   deltas.push(
     db.createDelta('seed', [
-      { localContext: 'named', target: { id: trilogyId, context: 'name' } },
-      { localContext: 'name', target: name }
+      { role: 'named', target: { id: trilogyId, context: 'name' } },
+      { role: 'name', target: name }
     ])
   );
 
@@ -289,8 +289,8 @@ function createTrilogyDeltas(
   for (const movieId of movieIds) {
     deltas.push(
       db.createDelta('seed', [
-        { localContext: 'contains', target: { id: trilogyId, context: 'movie' } },
-        { localContext: 'movie', target: { id: movieId } }
+        { role: 'contains', target: { id: trilogyId, context: 'movie' } },
+        { role: 'movie', target: { id: movieId } }
       ])
     );
   }

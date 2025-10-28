@@ -42,7 +42,7 @@ describe('Subscription Backpressure', () => {
 
       // Send 5 deltas quickly
       for (let i = 0; i < 5; i++) {
-        const delta = db.createDelta('user', [{ localContext: 'test', target: i }]);
+        const delta = db.createDelta('user', [{ role: 'test', target: i }]);
         await subscription.handleDelta(delta);
       }
 
@@ -85,7 +85,7 @@ describe('Subscription Backpressure', () => {
       // Send more deltas than buffer can hold
       const deltas: Delta[] = [];
       for (let i = 0; i < 5; i++) {
-        const delta = db.createDelta('user', [{ localContext: 'test', target: i }]);
+        const delta = db.createDelta('user', [{ role: 'test', target: i }]);
         deltas.push(delta);
         await subscription.handleDelta(delta);
       }
@@ -119,7 +119,7 @@ describe('Subscription Backpressure', () => {
       subscription.pause();
 
       for (let i = 0; i < 5; i++) {
-        const delta = db.createDelta('user', [{ localContext: 'test', target: i }]);
+        const delta = db.createDelta('user', [{ role: 'test', target: i }]);
         await subscription.handleDelta(delta);
       }
 
@@ -145,13 +145,13 @@ describe('Subscription Backpressure', () => {
       subscription.pause();
 
       // Fill buffer
-      await subscription.handleDelta(db.createDelta('user', [{ localContext: 'test', target: 1 }]));
-      await subscription.handleDelta(db.createDelta('user', [{ localContext: 'test', target: 2 }]));
+      await subscription.handleDelta(db.createDelta('user', [{ role: 'test', target: 1 }]));
+      await subscription.handleDelta(db.createDelta('user', [{ role: 'test', target: 2 }]));
 
       // This should throw
       await expect(async () => {
         await subscription.handleDelta(
-          db.createDelta('user', [{ localContext: 'test', target: 3 }])
+          db.createDelta('user', [{ role: 'test', target: 3 }])
         );
       }).rejects.toThrow('buffer overflow');
     });
@@ -180,7 +180,7 @@ describe('Subscription Backpressure', () => {
       // Fill to 80%
       for (let i = 0; i < 8; i++) {
         await subscription.handleDelta(
-          db.createDelta('user', [{ localContext: 'test', target: i }])
+          db.createDelta('user', [{ role: 'test', target: i }])
         );
       }
 
@@ -207,7 +207,7 @@ describe('Subscription Backpressure', () => {
       // Send deltas while paused
       for (let i = 0; i < 3; i++) {
         await subscription.handleDelta(
-          db.createDelta('user', [{ localContext: 'test', target: i }])
+          db.createDelta('user', [{ role: 'test', target: i }])
         );
       }
 
@@ -240,7 +240,7 @@ describe('Subscription Backpressure', () => {
       // Send some deltas
       for (let i = 0; i < 3; i++) {
         await subscription.handleDelta(
-          db.createDelta('user', [{ localContext: 'test', target: i }])
+          db.createDelta('user', [{ role: 'test', target: i }])
         );
       }
 
@@ -278,7 +278,7 @@ describe('Subscription Backpressure', () => {
       // Send 3 deltas
       for (let i = 0; i < 3; i++) {
         await subscription.handleDelta(
-          db.createDelta('user', [{ localContext: 'test', target: i }])
+          db.createDelta('user', [{ role: 'test', target: i }])
         );
       }
 

@@ -98,7 +98,7 @@ export function findNegations(allDeltas: Delta[], queryTimestamp: number): Set<s
 
     // Look for negation pointers
     for (const pointer of delta.pointers) {
-      if (pointer.localContext === 'negates' && isDomainNodeReference(pointer.target)) {
+      if (pointer.role === 'negates' && isDomainNodeReference(pointer.target)) {
         negations.add(pointer.target.id);
       }
     }
@@ -156,7 +156,7 @@ export function constructHyperView(
     const transformedDelta: Delta = {
       ...delta,
       pointers: delta.pointers.map(pointer => {
-        const rule = schema.transform[pointer.localContext];
+        const rule = schema.transform[pointer.role];
 
         // No transformation rule, or rule doesn't apply
         if (!rule || (rule.when && !rule.when(pointer, delta))) {

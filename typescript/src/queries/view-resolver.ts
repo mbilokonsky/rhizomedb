@@ -193,24 +193,24 @@ export function trustedSystem(trustedSystems: string[]): ResolutionStrategy {
 // ============================================================================
 
 /**
- * Extract a primitive value from a delta by localContext
+ * Extract a primitive value from a delta by role
  *
- * @param localContext - The localContext to search for
+ * @param role - The role to search for
  * @returns Extraction function that finds the pointer and returns its target
  */
-export function extractPrimitive(localContext: string): (delta: Delta) => any {
+export function extractPrimitive(role: string): (delta: Delta) => any {
   return (delta: Delta) => {
-    const pointer = delta.pointers.find(p => p.localContext === localContext);
+    const pointer = delta.pointers.find(p => p.role === role);
     return pointer?.target;
   };
 }
 
 /**
- * Extract a domain object reference from a delta by localContext
+ * Extract a domain object reference from a delta by role
  */
-export function extractReference(localContext: string): (delta: Delta) => any {
+export function extractReference(role: string): (delta: Delta) => any {
   return (delta: Delta) => {
-    const pointer = delta.pointers.find(p => p.localContext === localContext);
+    const pointer = delta.pointers.find(p => p.role === role);
     if (!pointer) return null;
 
     if (isDomainNodeReference(pointer.target)) {
@@ -227,20 +227,20 @@ export function extractReference(localContext: string): (delta: Delta) => any {
 }
 
 /**
- * Extract all values with a specific localContext as an array
+ * Extract all values with a specific role as an array
  */
-export function extractArray(localContext: string): (delta: Delta) => any[] {
+export function extractArray(role: string): (delta: Delta) => any[] {
   return (delta: Delta) => {
-    return delta.pointers.filter(p => p.localContext === localContext).map(p => p.target);
+    return delta.pointers.filter(p => p.role === role).map(p => p.target);
   };
 }
 
 /**
  * Extract nested HyperView from transformed pointer
  */
-export function extractNestedView(localContext: string): (delta: Delta) => any {
+export function extractNestedView(role: string): (delta: Delta) => any {
   return (delta: Delta) => {
-    const pointer = delta.pointers.find(p => p.localContext === localContext);
+    const pointer = delta.pointers.find(p => p.role === role);
     if (!pointer) return null;
 
     // If target is a HyperView (has properties beyond just 'id')
@@ -354,19 +354,19 @@ export class ViewResolver {
  *
  * Example:
  *   createSimpleViewSchema({
- *     name: { source: 'name', localContext: 'name', strategy: mostRecent },
- *     age: { source: 'age', localContext: 'age', strategy: mostRecent }
+ *     name: { source: 'name', role: 'name', strategy: mostRecent },
+ *     age: { source: 'age', role: 'age', strategy: mostRecent }
  *   })
  */
 export function createSimpleViewSchema(
-  fields: Record<string, { source: string; localContext: string; strategy: ResolutionStrategy }>
+  fields: Record<string, { source: string; role: string; strategy: ResolutionStrategy }>
 ): ViewSchema {
   const properties: ViewSchema['properties'] = {};
 
   for (const [fieldName, config] of Object.entries(fields)) {
     properties[fieldName] = {
       source: config.source,
-      extract: extractPrimitive(config.localContext),
+      extract: extractPrimitive(config.role),
       resolve: config.strategy
     };
   }
@@ -380,11 +380,11 @@ export function createSimpleViewSchema(
 export function createViewSchemaWithReferences(
   primitiveFields: Record<
     string,
-    { source: string; localContext: string; strategy: ResolutionStrategy }
+    { source: string; role: string; strategy: ResolutionStrategy }
   >,
   referenceFields: Record<
     string,
-    { source: string; localContext: string; strategy: ResolutionStrategy }
+    { source: string; role: string; strategy: ResolutionStrategy }
   >
 ): ViewSchema {
   const properties: ViewSchema['properties'] = {};
@@ -393,7 +393,7 @@ export function createViewSchemaWithReferences(
   for (const [fieldName, config] of Object.entries(primitiveFields)) {
     properties[fieldName] = {
       source: config.source,
-      extract: extractPrimitive(config.localContext),
+      extract: extractPrimitive(config.role),
       resolve: config.strategy
     };
   }
@@ -402,7 +402,7 @@ export function createViewSchemaWithReferences(
   for (const [fieldName, config] of Object.entries(referenceFields)) {
     properties[fieldName] = {
       source: config.source,
-      extract: extractNestedView(config.localContext),
+      extract: extractNestedView(config.role),
       resolve: config.strategy
     };
   }

@@ -59,15 +59,15 @@ async function main() {
   // Delta 1: User creation
   const userDelta = replica.createDelta('canonical-server-001', [
     {
-      localContext: 'user',
+      role: 'user',
       target: { id: 'user_999' }
     },
     {
-      localContext: 'name',
+      role: 'name',
       target: 'Bob'
     },
     {
-      localContext: 'email',
+      role: 'email',
       target: 'bob@example.com'
     }
   ]);
@@ -78,11 +78,11 @@ async function main() {
   // Delta 2: User update from different author
   const updateDelta = replica.createDelta('browser-client-123', [
     {
-      localContext: 'user',
+      role: 'user',
       target: { id: 'user_999' }
     },
     {
-      localContext: 'status',
+      role: 'status',
       target: 'active'
     }
   ]);

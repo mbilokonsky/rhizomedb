@@ -28,16 +28,16 @@ describe('Time-Travel Queries', () => {
 
       // Create initial name at t=1000
       const delta1 = db.createDelta('user', [
-        { localContext: 'named', target: { id: personId, context: 'name' } },
-        { localContext: 'name', target: 'Alice' }
+        { role: 'named', target: { id: personId, context: 'name' } },
+        { role: 'name', target: 'Alice' }
       ]);
       delta1.timestamp = 1000;
       await db.persistDelta(delta1);
 
       // Update name at t=2000
       const delta2 = db.createDelta('user', [
-        { localContext: 'named', target: { id: personId, context: 'name' } },
-        { localContext: 'name', target: 'Alice Smith' }
+        { role: 'named', target: { id: personId, context: 'name' } },
+        { role: 'name', target: 'Alice Smith' }
       ]);
       delta2.timestamp = 2000;
       await db.persistDelta(delta2);
@@ -59,8 +59,8 @@ describe('Time-Travel Queries', () => {
 
       // Create age at t=1000
       const delta1 = db.createDelta('user', [
-        { localContext: 'person', target: { id: personId, context: 'age' } },
-        { localContext: 'age', target: 30 }
+        { role: 'person', target: { id: personId, context: 'age' } },
+        { role: 'age', target: 30 }
       ]);
       delta1.timestamp = 1000;
       await db.persistDelta(delta1);
@@ -85,15 +85,15 @@ describe('Time-Travel Queries', () => {
   describe('getSnapshot', () => {
     it('should provide database statistics at a timestamp', async () => {
       // Create deltas at different times
-      const delta1 = db.createDelta('user1', [{ localContext: 'test', target: 'value1' }]);
+      const delta1 = db.createDelta('user1', [{ role: 'test', target: 'value1' }]);
       delta1.timestamp = 1000;
       await db.persistDelta(delta1);
 
-      const delta2 = db.createDelta('user2', [{ localContext: 'test', target: 'value2' }]);
+      const delta2 = db.createDelta('user2', [{ role: 'test', target: 'value2' }]);
       delta2.timestamp = 2000;
       await db.persistDelta(delta2);
 
-      const delta3 = db.createDelta('user3', [{ localContext: 'test', target: 'value3' }]);
+      const delta3 = db.createDelta('user3', [{ role: 'test', target: 'value3' }]);
       delta3.timestamp = 3000;
       await db.persistDelta(delta3);
 
@@ -111,7 +111,7 @@ describe('Time-Travel Queries', () => {
     });
 
     it('should count negated deltas correctly', async () => {
-      const delta1 = db.createDelta('user', [{ localContext: 'test', target: 'value' }]);
+      const delta1 = db.createDelta('user', [{ role: 'test', target: 'value' }]);
       delta1.timestamp = 1000;
       await db.persistDelta(delta1);
 
@@ -135,22 +135,22 @@ describe('Time-Travel Queries', () => {
 
       // Create multiple deltas at different times
       const delta1 = db.createDelta('user', [
-        { localContext: 'person', target: { id: personId, context: 'name' } },
-        { localContext: 'name', target: 'Charlie' }
+        { role: 'person', target: { id: personId, context: 'name' } },
+        { role: 'name', target: 'Charlie' }
       ]);
       delta1.timestamp = 1000;
       await db.persistDelta(delta1);
 
       const delta2 = db.createDelta('user', [
-        { localContext: 'person', target: { id: personId, context: 'age' } },
-        { localContext: 'age', target: 25 }
+        { role: 'person', target: { id: personId, context: 'age' } },
+        { role: 'age', target: 25 }
       ]);
       delta2.timestamp = 2000;
       await db.persistDelta(delta2);
 
       const delta3 = db.createDelta('user', [
-        { localContext: 'person', target: { id: personId, context: 'age' } },
-        { localContext: 'age', target: 26 }
+        { role: 'person', target: { id: personId, context: 'age' } },
+        { role: 'age', target: 26 }
       ]);
       delta3.timestamp = 3000;
       await db.persistDelta(delta3);
@@ -168,22 +168,22 @@ describe('Time-Travel Queries', () => {
 
       // Create history
       const delta1 = db.createDelta('user', [
-        { localContext: 'person', target: { id: personId, context: 'name' } },
-        { localContext: 'name', target: 'Dave' }
+        { role: 'person', target: { id: personId, context: 'name' } },
+        { role: 'name', target: 'Dave' }
       ]);
       delta1.timestamp = 1000;
       await db.persistDelta(delta1);
 
       const delta2 = db.createDelta('user', [
-        { localContext: 'person', target: { id: personId, context: 'age' } },
-        { localContext: 'age', target: 30 }
+        { role: 'person', target: { id: personId, context: 'age' } },
+        { role: 'age', target: 30 }
       ]);
       delta2.timestamp = 2000;
       await db.persistDelta(delta2);
 
       const delta3 = db.createDelta('user', [
-        { localContext: 'person', target: { id: personId, context: 'age' } },
-        { localContext: 'age', target: 31 }
+        { role: 'person', target: { id: personId, context: 'age' } },
+        { role: 'age', target: 31 }
       ]);
       delta3.timestamp = 3000;
       await db.persistDelta(delta3);
@@ -217,22 +217,22 @@ describe('Time-Travel Queries', () => {
 
       // Create multiple age updates
       const delta1 = db.createDelta('user', [
-        { localContext: 'person', target: { id: personId, context: 'age' } },
-        { localContext: 'age', target: 20 }
+        { role: 'person', target: { id: personId, context: 'age' } },
+        { role: 'age', target: 20 }
       ]);
       delta1.timestamp = 1000;
       await db.persistDelta(delta1);
 
       const delta2 = db.createDelta('user', [
-        { localContext: 'person', target: { id: personId, context: 'age' } },
-        { localContext: 'age', target: 21 }
+        { role: 'person', target: { id: personId, context: 'age' } },
+        { role: 'age', target: 21 }
       ]);
       delta2.timestamp = 2000;
       await db.persistDelta(delta2);
 
       const delta3 = db.createDelta('user', [
-        { localContext: 'person', target: { id: personId, context: 'age' } },
-        { localContext: 'age', target: 22 }
+        { role: 'person', target: { id: personId, context: 'age' } },
+        { role: 'age', target: 22 }
       ]);
       delta3.timestamp = 3000;
       await db.persistDelta(delta3);
@@ -253,24 +253,24 @@ describe('Time-Travel Queries', () => {
 
       // Initial state
       const delta1 = db.createDelta('user', [
-        { localContext: 'person', target: { id: personId, context: 'name' } },
-        { localContext: 'name', target: 'Frank' }
+        { role: 'person', target: { id: personId, context: 'name' } },
+        { role: 'name', target: 'Frank' }
       ]);
       delta1.timestamp = 1000;
       await db.persistDelta(delta1);
 
       // Add age
       const delta2 = db.createDelta('user', [
-        { localContext: 'person', target: { id: personId, context: 'age' } },
-        { localContext: 'age', target: 40 }
+        { role: 'person', target: { id: personId, context: 'age' } },
+        { role: 'age', target: 40 }
       ]);
       delta2.timestamp = 2000;
       await db.persistDelta(delta2);
 
       // Add email
       const delta3 = db.createDelta('user', [
-        { localContext: 'person', target: { id: personId, context: 'email' } },
-        { localContext: 'email', target: 'frank@example.com' }
+        { role: 'person', target: { id: personId, context: 'email' } },
+        { role: 'email', target: 'frank@example.com' }
       ]);
       delta3.timestamp = 3000;
       await db.persistDelta(delta3);
@@ -294,22 +294,22 @@ describe('Time-Travel Queries', () => {
 
       // Create deltas at different times
       const delta2 = db.createDelta('user', [
-        { localContext: 'person', target: { id: personId, context: 'age' } },
-        { localContext: 'age', target: 50 }
+        { role: 'person', target: { id: personId, context: 'age' } },
+        { role: 'age', target: 50 }
       ]);
       delta2.timestamp = 2000;
       await db.persistDelta(delta2);
 
       const delta1 = db.createDelta('user', [
-        { localContext: 'person', target: { id: personId, context: 'name' } },
-        { localContext: 'name', target: 'George' }
+        { role: 'person', target: { id: personId, context: 'name' } },
+        { role: 'name', target: 'George' }
       ]);
       delta1.timestamp = 1000;
       await db.persistDelta(delta1);
 
       const delta3 = db.createDelta('user', [
-        { localContext: 'person', target: { id: personId, context: 'email' } },
-        { localContext: 'email', target: 'george@example.com' }
+        { role: 'person', target: { id: personId, context: 'email' } },
+        { role: 'email', target: 'george@example.com' }
       ]);
       delta3.timestamp = 3000;
       await db.persistDelta(delta3);
@@ -324,11 +324,11 @@ describe('Time-Travel Queries', () => {
   describe('getStatsAt', () => {
     it('should provide database statistics at a specific time', async () => {
       // Create deltas from different authors/systems
-      const delta1 = db.createDelta('user1', [{ localContext: 'test', target: 'value1' }]);
+      const delta1 = db.createDelta('user1', [{ role: 'test', target: 'value1' }]);
       delta1.timestamp = 1000;
       await db.persistDelta(delta1);
 
-      const delta2 = db.createDelta('user2', [{ localContext: 'test', target: 'value2' }]);
+      const delta2 = db.createDelta('user2', [{ role: 'test', target: 'value2' }]);
       delta2.timestamp = 2000;
       await db.persistDelta(delta2);
 

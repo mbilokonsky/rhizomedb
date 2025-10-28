@@ -310,7 +310,7 @@ describe('Schema Versioning', () => {
 
       db.registerSchema(schema);
 
-      const delta = db.createDelta('system', [{ localContext: 'name', target: 'Alice' }]);
+      const delta = db.createDelta('system', [{ role: 'name', target: 'Alice' }]);
       db.persistDelta(delta);
 
       const view = db.materializeHyperView('user-1', schema);

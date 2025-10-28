@@ -40,15 +40,15 @@ async function main() {
   console.log('User action: Updating profile...');
   const profileDelta = client.createDelta(userId, [
     {
-      localContext: 'profile',
+      role: 'profile',
       target: { id: 'profile_456' }
     },
     {
-      localContext: 'bio',
+      role: 'bio',
       target: 'Software engineer interested in distributed systems'
     },
     {
-      localContext: 'theme',
+      role: 'theme',
       target: 'dark'
     }
   ]);
@@ -88,15 +88,15 @@ async function main() {
   console.log('\n--- Simulating server sync ---');
   const serverDelta = client.createDelta('another-user-789', [
     {
-      localContext: 'comment',
+      role: 'comment',
       target: { id: 'comment_101' }
     },
     {
-      localContext: 'text',
+      role: 'text',
       target: 'Great profile!'
     },
     {
-      localContext: 'comment',
+      role: 'comment',
       target: { id: 'profile_456', context: 'comments' }
     }
   ]);

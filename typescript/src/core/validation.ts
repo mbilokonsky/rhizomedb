@@ -65,9 +65,9 @@ export function isPrimitive(value: unknown): boolean {
  * @throws ValidationError if pointer is invalid
  */
 export function validatePointer(pointer: Pointer): void {
-  // Non-empty localContext
-  if (!pointer.localContext || typeof pointer.localContext !== 'string') {
-    throw new ValidationError('Pointer must have non-empty localContext string');
+  // Non-empty role
+  if (!pointer.role || typeof pointer.role !== 'string') {
+    throw new ValidationError('Pointer must have non-empty role string');
   }
 
   // Valid target (either Reference or Primitive)

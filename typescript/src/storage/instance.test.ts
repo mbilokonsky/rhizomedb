@@ -22,11 +22,11 @@ describe('RhizomeDB', () => {
     it('should create a delta with valid structure', () => {
       const pointers: Pointer[] = [
         {
-          localContext: 'named',
+          role: 'named',
           target: { id: 'person_1', context: 'name' }
         },
         {
-          localContext: 'name',
+          role: 'name',
           target: 'Alice'
         }
       ];
@@ -45,9 +45,9 @@ describe('RhizomeDB', () => {
       const negation = db.negateDelta('author_1', targetDeltaId, 'Test reason');
 
       expect(negation.pointers).toHaveLength(2);
-      expect(negation.pointers[0].localContext).toBe('negates');
+      expect(negation.pointers[0].role).toBe('negates');
       expect(negation.pointers[0].target).toEqual({ id: targetDeltaId, context: 'negated_by' });
-      expect(negation.pointers[1].localContext).toBe('reason');
+      expect(negation.pointers[1].role).toBe('reason');
       expect(negation.pointers[1].target).toBe('Test reason');
     });
   });
@@ -56,7 +56,7 @@ describe('RhizomeDB', () => {
     it('should persist and retrieve deltas', async () => {
       const delta = db.createDelta('author_1', [
         {
-          localContext: 'test',
+          role: 'test',
           target: 'value'
         }
       ]);
@@ -70,10 +70,10 @@ describe('RhizomeDB', () => {
 
     it('should query deltas by filter', async () => {
       const delta1 = db.createDelta('author_1', [
-        { localContext: 'test', target: { id: 'obj_1', context: 'prop' } }
+        { role: 'test', target: { id: 'obj_1', context: 'prop' } }
       ]);
       const delta2 = db.createDelta('author_2', [
-        { localContext: 'test', target: { id: 'obj_2', context: 'prop' } }
+        { role: 'test', target: { id: 'obj_2', context: 'prop' } }
       ]);
 
       await db.persistDelta(delta1);
@@ -93,7 +93,7 @@ describe('RhizomeDB', () => {
         received.push(delta);
       });
 
-      const delta = db.createDelta('author_1', [{ localContext: 'test', target: 'value' }]);
+      const delta = db.createDelta('author_1', [{ role: 'test', target: 'value' }]);
       await db.persistDelta(delta);
 
       // Wait for async handler
@@ -110,8 +110,8 @@ describe('RhizomeDB', () => {
         received.push(delta);
       });
 
-      const delta1 = db.createDelta('author_1', [{ localContext: 'test', target: 'value' }]);
-      const delta2 = db.createDelta('author_2', [{ localContext: 'test', target: 'value' }]);
+      const delta1 = db.createDelta('author_1', [{ role: 'test', target: 'value' }]);
+      const delta2 = db.createDelta('author_2', [{ role: 'test', target: 'value' }]);
 
       await db.persistDelta(delta1);
       await db.persistDelta(delta2);
@@ -129,12 +129,12 @@ describe('RhizomeDB', () => {
         received.push(delta);
       });
 
-      const delta1 = db.createDelta('author_1', [{ localContext: 'test', target: 'value' }]);
+      const delta1 = db.createDelta('author_1', [{ role: 'test', target: 'value' }]);
       await db.persistDelta(delta1);
 
       sub.pause();
 
-      const delta2 = db.createDelta('author_1', [{ localContext: 'test', target: 'value' }]);
+      const delta2 = db.createDelta('author_1', [{ role: 'test', target: 'value' }]);
       await db.persistDelta(delta2);
 
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -143,7 +143,7 @@ describe('RhizomeDB', () => {
 
       sub.resume();
 
-      const delta3 = db.createDelta('author_1', [{ localContext: 'test', target: 'value' }]);
+      const delta3 = db.createDelta('author_1', [{ role: 'test', target: 'value' }]);
       await db.persistDelta(delta3);
 
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -158,11 +158,11 @@ describe('RhizomeDB', () => {
       const personId = 'person_alice';
       const nameDelta = db.createDelta('author_1', [
         {
-          localContext: 'named',
+          role: 'named',
           target: { id: personId, context: 'name' }
         },
         {
-          localContext: 'name',
+          role: 'name',
           target: 'Alice Johnson'
         }
       ]);
@@ -188,11 +188,11 @@ describe('RhizomeDB', () => {
       // Create author name
       const authorNameDelta = db.createDelta('system', [
         {
-          localContext: 'named',
+          role: 'named',
           target: { id: authorId, context: 'name' }
         },
         {
-          localContext: 'name',
+          role: 'name',
           target: 'Alice Johnson'
         }
       ]);
@@ -200,11 +200,11 @@ describe('RhizomeDB', () => {
       // Create post
       const postDelta = db.createDelta('system', [
         {
-          localContext: 'post',
+          role: 'post',
           target: { id: postId, context: 'title' }
         },
         {
-          localContext: 'title',
+          role: 'title',
           target: 'Test Post'
         }
       ]);
@@ -212,11 +212,11 @@ describe('RhizomeDB', () => {
       // Link author to post
       const authorshipDelta = db.createDelta('system', [
         {
-          localContext: 'post',
+          role: 'post',
           target: { id: postId, context: 'author' }
         },
         {
-          localContext: 'author',
+          role: 'author',
           target: { id: authorId, context: 'posts' }
         }
       ]);
@@ -246,7 +246,7 @@ describe('RhizomeDB', () => {
       const authorDeltas = hyperView.author as Delta[];
       expect(authorDeltas.length).toBe(1);
 
-      const authorPointer = authorDeltas[0].pointers.find(p => p.localContext === 'author');
+      const authorPointer = authorDeltas[0].pointers.find(p => p.role === 'author');
       expect(authorPointer).toBeDefined();
 
       // The author target should be a nested HyperView
@@ -261,11 +261,11 @@ describe('RhizomeDB', () => {
       // Create a name
       const nameDelta = db.createDelta('author_1', [
         {
-          localContext: 'named',
+          role: 'named',
           target: { id: personId, context: 'name' }
         },
         {
-          localContext: 'name',
+          role: 'name',
           target: 'Bob'
         }
       ]);
@@ -289,11 +289,11 @@ describe('RhizomeDB', () => {
       const personId = 'person_charlie';
       const nameDelta = db.createDelta('author_1', [
         {
-          localContext: 'named',
+          role: 'named',
           target: { id: personId, context: 'name' }
         },
         {
-          localContext: 'name',
+          role: 'name',
           target: 'Charlie'
         }
       ]);
@@ -316,8 +316,8 @@ describe('RhizomeDB', () => {
 
   describe('Statistics', () => {
     it('should track instance statistics', async () => {
-      const delta1 = db.createDelta('author_1', [{ localContext: 'test', target: 'value' }]);
-      const delta2 = db.createDelta('author_1', [{ localContext: 'test', target: 'value' }]);
+      const delta1 = db.createDelta('author_1', [{ role: 'test', target: 'value' }]);
+      const delta2 = db.createDelta('author_1', [{ role: 'test', target: 'value' }]);
 
       await db.persistDelta(delta1);
       await db.persistDelta(delta2);

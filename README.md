@@ -149,7 +149,7 @@ When targeting primitive values, the `context` field doesn't apply (primitives a
 
 **Semantics and interpretation:**
 
-These context fields define **what the delta means**. They are the core semantics of the assertion being made. While a given HyperSchema may choose to interpret or organize these semantics differently when constructing a HyperView, the delta's meaning is established by its contexts and targets.
+The `role` and `context` fields define **what the delta means**. They are the core semantics of the assertion being made. While a given HyperSchema may choose to interpret or organize these semantics differently when constructing a HyperView, the delta's meaning is established by its contexts and targets.
 
 **Naming divergence:**
 

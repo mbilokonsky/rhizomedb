@@ -13,12 +13,6 @@ A [Model Context Protocol](https://modelcontextprotocol.io) server that exposes 
 
 ## Installation
 
-### From npm (when published)
-
-```bash
-npm install -g rhizomedb-mcp-server
-```
-
 ### From source
 
 ```bash
@@ -37,15 +31,19 @@ Add to your Claude Desktop configuration file:
 **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 
+You have to create the .rhizomedb folder specified by `RHIZOME_PATH`.
+
 ```json
 {
   "mcpServers": {
     "rhizomedb": {
-      "command": "npx",
-      "args": ["-y", "rhizomedb-mcp-server"],
+      "command": "/Users/YOURNAME/.asdf/shims/node",
+      "args": [
+        "RHIZOME_CODE_ROOT/typescript/mcp-server/dist/index.js"
+      ],
       "env": {
         "RHIZOME_STORAGE": "leveldb",
-        "RHIZOME_PATH": "/Users/yourname/.rhizomedb"
+        "RHIZOME_PATH": "/Users/mykola/.rhizomedb"
       }
     }
   }

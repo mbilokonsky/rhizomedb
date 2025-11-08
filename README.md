@@ -6,6 +6,31 @@ A rhizomatic database using immutable delta-CRDTs as hyperedges in a hypergraph 
 >
 > For a detailed and formal specification (in progress), see [spec/spec.md](spec/spec.md).
 
+## Quick Start: MCP Server for AI Agents
+
+**New!** RhizomeDB now includes a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that allows AI agents like Claude to use it as a persistent knowledge graph.
+
+```bash
+# Install and run
+cd typescript/mcp-server
+npm install && npm run build
+
+# Configure in Claude Desktop (see typescript/mcp-server/README.md for details)
+# Then use from Claude:
+# "Store this information about project X..."
+# "What did you know about X yesterday?"
+# "Show me all relationships involving Y..."
+```
+
+**Features:**
+- 🧠 Persistent memory across conversations
+- ⏱️ Time-travel queries ("what did you know yesterday?")
+- 🔗 Rich relationships between entities
+- 📝 Full audit trail with provenance
+- 🔄 Conflict resolution for multi-agent scenarios
+
+See [typescript/mcp-server/README.md](typescript/mcp-server/README.md) for complete setup instructions and examples.
+
 ## A rhizowhat now?
 A _rhizome_ is a plant whose root structure expands horizontally, not vertically. The result is that a rhizomatic plant - like grass, or bamboo - may have many different "shoots" that appear to those of us above the ground to be individual different plants. Just under the surface, though, all of those many different blades of grass are just different _views_ of the same complex invisible structure. Philosophers Deleuze and Guattari borrowed this concept when developing their radical process-oriented philosophy - but you don't need to read _A Thousand Plateaus_ to understand the point that a rhizome is a single unified structure that to an observer appears as many distinct structures.
 

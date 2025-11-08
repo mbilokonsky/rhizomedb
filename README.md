@@ -10,24 +10,7 @@ A rhizomatic database using immutable delta-CRDTs as hyperedges in a hypergraph 
 
 **New!** RhizomeDB now includes a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that allows AI agents like Claude to use it as a persistent knowledge graph.
 
-```bash
-# Install and run
-cd typescript/mcp-server
-npm install && npm run build
-
-# Configure in Claude Desktop (see typescript/mcp-server/README.md for details)
-# Then use from Claude:
-# "Store this information about project X..."
-# "What did you know about X yesterday?"
-# "Show me all relationships involving Y..."
-```
-
-**Features:**
-- 🧠 Persistent memory across conversations
-- ⏱️ Time-travel queries ("what did you know yesterday?")
-- 🔗 Rich relationships between entities
-- 📝 Full audit trail with provenance
-- 🔄 Conflict resolution for multi-agent scenarios
+THIS IS STILL EARLY AND EXPERIMENTAL but gosh it seems to be doing *something*.
 
 See [typescript/mcp-server/README.md](typescript/mcp-server/README.md) for complete setup instructions and examples.
 

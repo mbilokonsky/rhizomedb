@@ -1,0 +1,42 @@
+{
+  "name": "rhizomedb-mcp-server",
+  "version": "0.1.0",
+  "description": "Model Context Protocol server for RhizomeDB - persistent knowledge graph for AI agents",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "rhizomedb-mcp-server": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "clean": "rm -rf dist",
+    "dev": "npm run build && node dist/index.js",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "rhizomedb",
+    "knowledge-graph",
+    "ai",
+    "database",
+    "crdt"
+  ],
+  "author": "mykola bilokonsky",
+  "license": "ISC",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "rhizomedb": "file:../",
+    "commander": "^12.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mbilokonsky/rhizomedb.git",
+    "directory": "typescript/mcp-server"
+  }
+}

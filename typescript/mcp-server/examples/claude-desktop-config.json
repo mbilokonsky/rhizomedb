@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "rhizomedb": {
+      "command": "npx",
+      "args": ["-y", "rhizomedb-mcp-server"],
+      "env": {
+        "RHIZOME_STORAGE": "leveldb",
+        "RHIZOME_PATH": "/Users/yourname/.rhizomedb",
+        "RHIZOME_CACHE_SIZE": "10000",
+        "RHIZOME_ENABLE_INDEXING": "true"
+      }
+    }
+  }
+}

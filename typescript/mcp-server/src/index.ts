@@ -281,6 +281,50 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         },
         required: ['objectId', 'schemaId']
       }
+    },
+    {
+      name: 'load_schema',
+      description:
+        'Load a schema from deltas. Queries schema-defining deltas and resolves them into an executable HyperSchema.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          schemaId: { type: 'string', description: 'ID of the schema to load from deltas' }
+        },
+        required: ['schemaId']
+      }
+    },
+    {
+      name: 'load_all_schemas',
+      description:
+        'Load all schemas from deltas. Scans for all schema-defining deltas and loads them.',
+      inputSchema: {
+        type: 'object',
+        properties: {}
+      }
+    },
+    {
+      name: 'check_schema_changed',
+      description:
+        'Check if a schema has changed since last snapshot. Returns version information.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          schemaId: { type: 'string', description: 'ID of the schema to check' }
+        },
+        required: ['schemaId']
+      }
+    },
+    {
+      name: 'reload_schema',
+      description: 'Reload a schema if it has changed. Returns the updated schema if reloaded.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          schemaId: { type: 'string', description: 'ID of the schema to reload' }
+        },
+        required: ['schemaId']
+      }
     }
   ]
 }));
@@ -321,6 +365,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         break;
       case 'materialize_view':
         result = await tools.materializeView(toolContext, args as any);
+        break;
+      case 'load_schema':
+        result = await tools.loadSchema(toolContext, args as any);
+        break;
+      case 'load_all_schemas':
+        result = await tools.loadAllSchemas(toolContext);
+        break;
+      case 'check_schema_changed':
+        result = await tools.checkSchemaChanged(toolContext, args as any);
+        break;
+      case 'reload_schema':
+        result = await tools.reloadSchema(toolContext, args as any);
         break;
       default:
         throw new Error(`Unknown tool: ${name}`);

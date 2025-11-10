@@ -28,6 +28,11 @@ import { constructHyperView, SchemaRegistry } from '../schemas/hyperview';
 import { DeltaIndexes } from './delta-indexes';
 import { getNegatedDeltaIds } from '../queries/negation';
 import { calculateSchemaHash, VersionedHyperSchema } from '../schemas/schema-versioning';
+import {
+  createMetaHyperSchema,
+  resolveHyperSchemaView,
+  getAllSchemaIds
+} from '../schemas/schemas-as-deltas';
 
 /**
  * In-memory subscription implementation
@@ -145,6 +150,11 @@ export class RhizomeDB
   private startTime: number = Date.now();
   private config: Required<RhizomeConfig>;
 
+  // Schema snapshot tracking
+  private schemaSnapshots: Map<string, { schema: HyperSchema; version: string; timestamp: number }> =
+    new Map();
+  private metaSchema: HyperSchema;
+
   constructor(config: RhizomeConfig) {
     this.systemId = config.systemId || uuidv4();
     this.config = {
@@ -170,6 +180,9 @@ export class RhizomeDB
     this.schemaRegistry = new SchemaRegistry({
       validateOnRegister: this.config.validateSchemas
     });
+
+    // Initialize meta-schema for querying schema deltas
+    this.metaSchema = createMetaHyperSchema();
   }
 
   // =========================================================================
@@ -446,6 +459,122 @@ export class RhizomeDB
    */
   registerSchema(schema: HyperSchema): void {
     this.schemaRegistry.register(schema);
+  }
+
+  /**
+   * Load a schema from deltas and register it
+   *
+   * This queries schema-defining deltas using the meta-schema,
+   * resolves them into an executable HyperSchema, and registers it.
+   *
+   * @param schemaId - ID of the schema to load
+   * @returns The loaded and registered schema, or undefined if not found
+   */
+  loadSchemaFromDeltas(schemaId: string): HyperSchema | undefined {
+    // Query schema deltas using meta-schema
+    const schemaHyperView = this.applyHyperSchema(schemaId, this.metaSchema);
+
+    // Check if we found any schema deltas
+    const hasData = Object.keys(schemaHyperView).some(
+      key => key !== 'id' && key !== '_metadata'
+    );
+
+    if (!hasData) {
+      return undefined; // No schema deltas found
+    }
+
+    // Resolve HyperView to executable schema
+    const executableSchema = resolveHyperSchemaView(schemaHyperView, this);
+
+    // Calculate version hash
+    const version = calculateSchemaHash(executableSchema);
+
+    // Check if we already have this version
+    const snapshot = this.schemaSnapshots.get(schemaId);
+    if (snapshot && snapshot.version === version) {
+      return snapshot.schema; // Already have this version
+    }
+
+    // Register the schema
+    this.registerSchema(executableSchema);
+
+    // Snapshot it
+    this.schemaSnapshots.set(schemaId, {
+      schema: executableSchema,
+      version,
+      timestamp: Date.now()
+    });
+
+    return executableSchema;
+  }
+
+  /**
+   * Load all schemas from deltas
+   *
+   * Scans for all schema-defining deltas and loads them.
+   *
+   * @returns Array of loaded schemas
+   */
+  loadAllSchemasFromDeltas(): HyperSchema[] {
+    const schemaIds = getAllSchemaIds(this);
+    const schemas: HyperSchema[] = [];
+
+    for (const schemaId of schemaIds) {
+      const schema = this.loadSchemaFromDeltas(schemaId);
+      if (schema) {
+        schemas.push(schema);
+      }
+    }
+
+    return schemas;
+  }
+
+  /**
+   * Get a schema snapshot
+   *
+   * @param schemaId - ID of the schema
+   * @returns Snapshot info or undefined
+   */
+  getSchemaSnapshot(
+    schemaId: string
+  ): { schema: HyperSchema; version: string; timestamp: number } | undefined {
+    return this.schemaSnapshots.get(schemaId);
+  }
+
+  /**
+   * Check if a schema has been modified (new deltas since snapshot)
+   *
+   * @param schemaId - ID of the schema to check
+   * @returns true if schema deltas have changed
+   */
+  hasSchemaChanged(schemaId: string): boolean {
+    const snapshot = this.schemaSnapshots.get(schemaId);
+    if (!snapshot) {
+      // No snapshot - check if schema exists in deltas
+      const schemaHyperView = this.applyHyperSchema(schemaId, this.metaSchema);
+      return Object.keys(schemaHyperView).some(key => key !== 'id' && key !== '_metadata');
+    }
+
+    // Recalculate current version
+    const schemaHyperView = this.applyHyperSchema(schemaId, this.metaSchema);
+    const currentSchema = resolveHyperSchemaView(schemaHyperView, this);
+    const currentVersion = calculateSchemaHash(currentSchema);
+
+    return currentVersion !== snapshot.version;
+  }
+
+  /**
+   * Reload a schema if it has changed
+   *
+   * @param schemaId - ID of the schema to reload
+   * @returns The reloaded schema, or undefined if unchanged or not found
+   */
+  reloadSchemaIfChanged(schemaId: string): HyperSchema | undefined {
+    if (!this.hasSchemaChanged(schemaId)) {
+      return undefined;
+    }
+
+    return this.loadSchemaFromDeltas(schemaId);
   }
 
   /**

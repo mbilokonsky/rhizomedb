@@ -270,3 +270,132 @@ export async function getObjectDeltas(
     count: deltas.length
   };
 }
+
+/**
+ * Load a schema from deltas
+ *
+ * Queries schema-defining deltas and resolves them into an executable HyperSchema.
+ */
+export async function loadSchema(
+  context: ToolContext,
+  args: { schemaId: string }
+): Promise<{
+  schema?: { id: string; name: string; version: string; timestamp: number };
+  message: string;
+}> {
+  const schema = context.db.loadSchemaFromDeltas(args.schemaId);
+
+  if (!schema) {
+    return {
+      message: `No schema found with ID '${args.schemaId}'`
+    };
+  }
+
+  const snapshot = context.db.getSchemaSnapshot(args.schemaId);
+
+  return {
+    schema: {
+      id: schema.id,
+      name: schema.name,
+      version: snapshot?.version || 'unknown',
+      timestamp: snapshot?.timestamp || Date.now()
+    },
+    message: `Schema '${schema.name}' loaded successfully`
+  };
+}
+
+/**
+ * Load all schemas from deltas
+ */
+export async function loadAllSchemas(
+  context: ToolContext
+): Promise<{
+  schemas: Array<{ id: string; name: string; version: string; timestamp: number }>;
+  count: number;
+}> {
+  const schemas = context.db.loadAllSchemasFromDeltas();
+
+  return {
+    schemas: schemas.map(schema => {
+      const snapshot = context.db.getSchemaSnapshot(schema.id);
+      return {
+        id: schema.id,
+        name: schema.name,
+        version: snapshot?.version || 'unknown',
+        timestamp: snapshot?.timestamp || Date.now()
+      };
+    }),
+    count: schemas.length
+  };
+}
+
+/**
+ * Check if a schema has changed since last snapshot
+ */
+export async function checkSchemaChanged(
+  context: ToolContext,
+  args: { schemaId: string }
+): Promise<{
+  changed: boolean;
+  currentVersion?: string;
+  snapshotVersion?: string;
+}> {
+  const snapshot = context.db.getSchemaSnapshot(args.schemaId);
+  const changed = context.db.hasSchemaChanged(args.schemaId);
+
+  if (!snapshot) {
+    return {
+      changed,
+      currentVersion: changed ? 'exists' : undefined,
+      snapshotVersion: undefined
+    };
+  }
+
+  // Calculate current version if changed
+  let currentVersion = snapshot.version;
+  if (changed) {
+    const reloaded = context.db.loadSchemaFromDeltas(args.schemaId);
+    const newSnapshot = context.db.getSchemaSnapshot(args.schemaId);
+    currentVersion = newSnapshot?.version || 'unknown';
+  }
+
+  return {
+    changed,
+    currentVersion,
+    snapshotVersion: snapshot.version
+  };
+}
+
+/**
+ * Reload schema if it has changed
+ */
+export async function reloadSchema(
+  context: ToolContext,
+  args: { schemaId: string }
+): Promise<{
+  reloaded: boolean;
+  schema?: { id: string; name: string; version: string; timestamp: number };
+  message: string;
+}> {
+  const schema = context.db.reloadSchemaIfChanged(args.schemaId);
+
+  if (!schema) {
+    return {
+      reloaded: false,
+      message: `Schema '${args.schemaId}' has not changed or does not exist`
+    };
+  }
+
+  const snapshot = context.db.getSchemaSnapshot(args.schemaId);
+
+  return {
+    reloaded: true,
+    schema: {
+      id: schema.id,
+      name: schema.name,
+      version: snapshot?.version || 'unknown',
+      timestamp: snapshot?.timestamp || Date.now()
+    },
+    message: `Schema '${schema.name}' reloaded successfully`
+  };
+}

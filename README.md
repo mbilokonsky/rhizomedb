@@ -14,6 +14,20 @@ THIS IS STILL EARLY AND EXPERIMENTAL but gosh it seems to be doing *something*.
 
 See [typescript/mcp-server/README.md](typescript/mcp-server/README.md) for complete setup instructions and examples.
 
+### NEW: Delta-Defined Schemas & Dynamic GraphQL
+
+**Schemas as Data!** HyperSchemas can now be defined as deltas (data) rather than code, enabling:
+
+- **Dynamic Schema Evolution**: Modify schemas at runtime by creating new deltas
+- **Full Provenance**: Track who created/modified each schema and when
+- **Automatic Versioning**: Content-based hashing tracks schema versions
+- **GraphQL Auto-Generation**: Generate GraphQL schemas directly from delta-defined HyperSchemas
+- **MCP Schema Tools**: Load, query, and reload schemas via MCP for AI agent interaction
+
+This means AI agents can not only query and mutate data, but also **query and evolve the schema itself** - a truly self-modifying knowledge graph.
+
+See [typescript/docs/DELTA_SCHEMAS.md](typescript/docs/DELTA_SCHEMAS.md) for complete documentation and examples.
+
 ## A rhizowhat now?
 A _rhizome_ is a plant whose root structure expands horizontally, not vertically. The result is that a rhizomatic plant - like grass, or bamboo - may have many different "shoots" that appear to those of us above the ground to be individual different plants. Just under the surface, though, all of those many different blades of grass are just different _views_ of the same complex invisible structure. Philosophers Deleuze and Guattari borrowed this concept when developing their radical process-oriented philosophy - but you don't need to read _A Thousand Plateaus_ to understand the point that a rhizome is a single unified structure that to an observer appears as many distinct structures.
 

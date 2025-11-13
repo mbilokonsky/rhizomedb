@@ -593,3 +593,108 @@ function createSimpleViewSchema(fields: string[]): ViewSchema {
 
   return { properties };
 }
+
+/**
+ * Create a GraphQL schema from delta-defined HyperSchemas
+ *
+ * This function loads all schemas from deltas and creates a GraphQL schema.
+ * It can be called to regenerate the schema when schema deltas change.
+ *
+ * @param config - GraphQL config (schemas will be loaded from deltas)
+ * @returns GraphQL schema
+ */
+export function createGraphQLSchemaFromDeltas(
+  config: Omit<GraphQLConfig, 'schemas'> & { schemas?: Map<string, HyperSchema> }
+): GraphQLSchema {
+  const { db } = config;
+
+  // Load all schemas from deltas
+  const loadedSchemas = db.loadAllSchemasFromDeltas();
+
+  // Build schemas map
+  const schemasMap = new Map<string, HyperSchema>();
+  for (const schema of loadedSchemas) {
+    schemasMap.set(schema.id, schema);
+  }
+
+  // Merge with any programmatically provided schemas
+  if (config.schemas) {
+    for (const [id, schema] of config.schemas) {
+      schemasMap.set(id, schema);
+    }
+  }
+
+  // Create GraphQL schema
+  return createGraphQLSchema({
+    ...config,
+    schemas: schemasMap
+  });
+}
+
+/**
+ * Watch for schema changes and regenerate GraphQL schema
+ *
+ * Returns a function that can be called to check if schemas have changed
+ * and regenerate the GraphQL schema if needed.
+ *
+ * @param config - GraphQL config
+ * @returns Object with current schema and regenerate function
+ */
+export function createDynamicGraphQLSchema(
+  config: Omit<GraphQLConfig, 'schemas'> & { schemas?: Map<string, HyperSchema> }
+): {
+  getSchema: () => GraphQLSchema;
+  regenerate: () => { changed: boolean; schema: GraphQLSchema };
+  checkForChanges: () => boolean;
+} {
+  let currentSchema = createGraphQLSchemaFromDeltas(config);
+  const schemaVersions = new Map<string, string>();
+
+  // Track current versions
+  const allSchemaIds = config.db.loadAllSchemasFromDeltas().map(s => s.id);
+  for (const schemaId of allSchemaIds) {
+    const snapshot = config.db.getSchemaSnapshot(schemaId);
+    if (snapshot) {
+      schemaVersions.set(schemaId, snapshot.version);
+    }
+  }
+
+  return {
+    getSchema: () => currentSchema,
+
+    checkForChanges: () => {
+      // Check if any schema has changed
+      for (const schemaId of allSchemaIds) {
+        if (config.db.hasSchemaChanged(schemaId)) {
+          return true;
+        }
+      }
+      return false;
+    },
+
+    regenerate: () => {
+      // Check for changes
+      let hasChanges = false;
+
+      for (const schemaId of allSchemaIds) {
+        if (config.db.hasSchemaChanged(schemaId)) {
+          hasChanges = true;
+          config.db.reloadSchemaIfChanged(schemaId);
+          const snapshot = config.db.getSchemaSnapshot(schemaId);
+          if (snapshot) {
+            schemaVersions.set(schemaId, snapshot.version);
+          }
+        }
+      }
+
+      if (hasChanges) {
+        currentSchema = createGraphQLSchemaFromDeltas(config);
+      }
+
+      return {
+        changed: hasChanges,
+        schema: currentSchema
+      };
+    }
+  };
+}

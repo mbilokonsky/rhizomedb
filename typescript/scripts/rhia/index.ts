@@ -5,6 +5,12 @@
  * RhizomeDB using RhizomeDB itself. She documents concepts, questions,
  * decisions, observations, and the connections between them.
  *
+ * Architecture:
+ * - HyperSchemas (hyperschemas.ts): Define how to construct HyperViews from deltas
+ * - ViewSchemas (viewschemas.ts): Define how to resolve HyperViews to Views
+ * - Queries (queries.ts): Use the formal HyperView/View system for all queries
+ * - Schema (schema.ts): Delta creation functions for entities
+ *
  * @example
  * ```typescript
  * import { createConcept, createDecision, getConceptView } from './rhia';
@@ -18,3 +24,5 @@
 
 export * from './schema';
 export * from './queries';
+export * from './hyperschemas';
+export * from './viewschemas';

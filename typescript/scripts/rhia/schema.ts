@@ -14,12 +14,19 @@
  * - question: An open question about the project
  * - decision: A decision that was made
  * - observation: A notable observation about patterns/evolution
+ * - meeting: A team meeting with participants and outcomes
+ *
+ * Team Attribution:
+ * - Questions track who asked them (askedBy)
+ * - Decisions track who proposed and who decided (proposedBy, decidedBy)
+ * - Observations track who made them (observedBy)
+ * - Answers track who answered (answeredBy)
  */
 
 import { LevelDBStore } from '../../src/storage/leveldb-store';
 import { Delta } from '../../src/core/types';
 
-// Rhia's author ID
+// Rhia's author ID (she records everything, but attribution goes to team members)
 export const RHIA_AUTHOR = 'rhia';
 
 // Entity type prefixes
@@ -27,7 +34,8 @@ export const EntityType = {
   CONCEPT: 'concept',
   QUESTION: 'question',
   DECISION: 'decision',
-  OBSERVATION: 'observation'
+  OBSERVATION: 'observation',
+  MEETING: 'meeting'
 } as const;
 
 type EntityTypeValue = (typeof EntityType)[keyof typeof EntityType];
@@ -111,13 +119,17 @@ export async function updateConceptDescription(
  * - type: 'question'
  * - text: the question being asked
  * - status: 'open' (initial state)
+ * - askedBy: team member who asked (optional)
  * - Relationship to concept(s) it relates to
  */
 export async function createQuestion(
   db: LevelDBStore,
   text: string,
   conceptIds: string[],
-  context?: string
+  options?: {
+    context?: string;
+    askedBy?: string;  // team member ID
+  }
 ): Promise<string> {
   const questionId = generateEntityId(EntityType.QUESTION);
 
@@ -143,11 +155,20 @@ export async function createQuestion(
   await db.persistDelta(textDelta);
   await db.persistDelta(statusDelta);
 
+  // Attribution: who asked this question
+  if (options?.askedBy) {
+    const askedByDelta = db.createDelta(RHIA_AUTHOR, [
+      { role: 'attributed', target: { id: questionId, context: 'askedBy' } },
+      { role: 'askedBy', target: options.askedBy }
+    ]);
+    await db.persistDelta(askedByDelta);
+  }
+
   // Optional context for why this question came up
-  if (context) {
+  if (options?.context) {
     const contextDelta = db.createDelta(RHIA_AUTHOR, [
       { role: 'contextualized', target: { id: questionId, context: 'context' } },
-      { role: 'context', target: context }
+      { role: 'context', target: options.context }
     ]);
     await db.persistDelta(contextDelta);
   }
@@ -171,15 +192,18 @@ export async function answerQuestion(
   db: LevelDBStore,
   questionId: string,
   answer: string,
-  source?: string
+  options?: {
+    source?: string;
+    answeredBy?: string;  // team member ID
+  }
 ): Promise<string> {
   const pointers: Delta['pointers'] = [
     { role: 'answered', target: { id: questionId, context: 'answer' } },
     { role: 'answer', target: answer }
   ];
 
-  if (source) {
-    pointers.push({ role: 'source', target: source });
+  if (options?.source) {
+    pointers.push({ role: 'source', target: options.source });
   }
 
   const answerDelta = db.createDelta(RHIA_AUTHOR, pointers);
@@ -192,6 +216,15 @@ export async function answerQuestion(
 
   await db.persistDelta(answerDelta);
   await db.persistDelta(statusDelta);
+
+  // Attribution: who answered this question
+  if (options?.answeredBy) {
+    const answeredByDelta = db.createDelta(RHIA_AUTHOR, [
+      { role: 'attributed', target: { id: questionId, context: 'answeredBy' } },
+      { role: 'answeredBy', target: options.answeredBy }
+    ]);
+    await db.persistDelta(answeredByDelta);
+  }
 
   return answerDelta.id;
 }
@@ -231,6 +264,8 @@ export async function dissolveQuestion(
  * - type: 'decision'
  * - summary: what was decided
  * - rationale: why it was decided
+ * - proposedBy: team member who proposed (optional)
+ * - decidedBy: team member who made the decision (optional, usually Percy or Myk)
  * - Relationship to concept(s) it relates to
  * - Optional: resolves a question, supersedes another decision
  */
@@ -242,6 +277,8 @@ export async function createDecision(
   options?: {
     resolvesQuestionId?: string;
     supersedesDecisionId?: string;
+    proposedBy?: string;  // team member ID
+    decidedBy?: string;   // team member ID (who approved/made the decision)
   }
 ): Promise<string> {
   const decisionId = generateEntityId(EntityType.DECISION);
@@ -268,6 +305,24 @@ export async function createDecision(
   await db.persistDelta(summaryDelta);
   await db.persistDelta(rationaleDelta);
 
+  // Attribution: who proposed this decision
+  if (options?.proposedBy) {
+    const proposedByDelta = db.createDelta(RHIA_AUTHOR, [
+      { role: 'attributed', target: { id: decisionId, context: 'proposedBy' } },
+      { role: 'proposedBy', target: options.proposedBy }
+    ]);
+    await db.persistDelta(proposedByDelta);
+  }
+
+  // Attribution: who made/approved this decision
+  if (options?.decidedBy) {
+    const decidedByDelta = db.createDelta(RHIA_AUTHOR, [
+      { role: 'attributed', target: { id: decisionId, context: 'decidedBy' } },
+      { role: 'decidedBy', target: options.decidedBy }
+    ]);
+    await db.persistDelta(decidedByDelta);
+  }
+
   // Relate to concepts
   for (const conceptId of conceptIds) {
     const relationDelta = db.createDelta(RHIA_AUTHOR, [
@@ -290,7 +345,7 @@ export async function createDecision(
       db,
       options.resolvesQuestionId,
       `Resolved by decision: ${summary}`,
-      decisionId
+      { source: decisionId, answeredBy: options.decidedBy }
     );
   }
 
@@ -317,15 +372,20 @@ export async function createDecision(
  * - type: 'observation'
  * - content: what was observed
  * - significance: how important this observation is
+ * - observedBy: team member who made this observation (optional)
  * - Relationship to concept(s) it relates to
  */
 export async function createObservation(
   db: LevelDBStore,
   content: string,
   conceptIds: string[],
-  significance: 'minor' | 'notable' | 'pivotal' = 'notable'
+  options?: {
+    significance?: 'minor' | 'notable' | 'pivotal';
+    observedBy?: string;  // team member ID
+  }
 ): Promise<string> {
   const observationId = generateEntityId(EntityType.OBSERVATION);
+  const significance = options?.significance ?? 'notable';
 
   // Type assertion
   const typeDelta = db.createDelta(RHIA_AUTHOR, [
@@ -348,6 +408,15 @@ export async function createObservation(
   await db.persistDelta(typeDelta);
   await db.persistDelta(contentDelta);
   await db.persistDelta(sigDelta);
+
+  // Attribution: who made this observation
+  if (options?.observedBy) {
+    const observedByDelta = db.createDelta(RHIA_AUTHOR, [
+      { role: 'attributed', target: { id: observationId, context: 'observedBy' } },
+      { role: 'observedBy', target: options.observedBy }
+    ]);
+    await db.persistDelta(observedByDelta);
+  }
 
   // Relate to concepts
   for (const conceptId of conceptIds) {
@@ -392,5 +461,150 @@ export async function connectConcepts(
   const delta = db.createDelta(RHIA_AUTHOR, pointers);
   await db.persistDelta(delta);
 
+  return delta.id;
+}
+
+// =============================================================================
+// MEETING - A team meeting with participants and outcomes
+// =============================================================================
+
+/**
+ * Create a new meeting entity
+ *
+ * Creates an entity with:
+ * - type: 'meeting'
+ * - title: meeting name/topic
+ * - date: when it occurred
+ * - participants: team members who attended
+ * - summary: what was discussed (optional)
+ * - facilitatedBy: who ran the meeting (optional)
+ * - Relationships to concepts discussed
+ */
+export async function createMeeting(
+  db: LevelDBStore,
+  title: string,
+  date: string,
+  participants: string[],
+  conceptIds: string[],
+  options?: {
+    summary?: string;
+    facilitatedBy?: string;  // team member ID
+  }
+): Promise<string> {
+  const meetingId = generateEntityId(EntityType.MEETING);
+
+  // Type assertion
+  const typeDelta = db.createDelta(RHIA_AUTHOR, [
+    { role: 'typed', target: { id: meetingId, context: 'type' } },
+    { role: 'type', target: 'meeting' }
+  ]);
+
+  // Title
+  const titleDelta = db.createDelta(RHIA_AUTHOR, [
+    { role: 'titled', target: { id: meetingId, context: 'title' } },
+    { role: 'title', target: title }
+  ]);
+
+  // Date
+  const dateDelta = db.createDelta(RHIA_AUTHOR, [
+    { role: 'dated', target: { id: meetingId, context: 'date' } },
+    { role: 'date', target: date }
+  ]);
+
+  await db.persistDelta(typeDelta);
+  await db.persistDelta(titleDelta);
+  await db.persistDelta(dateDelta);
+
+  // Participants (each as a separate delta for the relationship)
+  for (const participantId of participants) {
+    const participantDelta = db.createDelta(RHIA_AUTHOR, [
+      { role: 'meeting', target: { id: meetingId, context: 'participants' } },
+      { role: 'participant', target: { id: participantId, context: 'meetings' } }
+    ]);
+    await db.persistDelta(participantDelta);
+  }
+
+  // Optional summary
+  if (options?.summary) {
+    const summaryDelta = db.createDelta(RHIA_AUTHOR, [
+      { role: 'summarized', target: { id: meetingId, context: 'summary' } },
+      { role: 'summary', target: options.summary }
+    ]);
+    await db.persistDelta(summaryDelta);
+  }
+
+  // Facilitator
+  if (options?.facilitatedBy) {
+    const facilitatorDelta = db.createDelta(RHIA_AUTHOR, [
+      { role: 'attributed', target: { id: meetingId, context: 'facilitatedBy' } },
+      { role: 'facilitatedBy', target: options.facilitatedBy }
+    ]);
+    await db.persistDelta(facilitatorDelta);
+  }
+
+  // Relate to concepts discussed
+  for (const conceptId of conceptIds) {
+    const relationDelta = db.createDelta(RHIA_AUTHOR, [
+      { role: 'meeting', target: { id: meetingId, context: 'concepts' } },
+      { role: 'concept', target: { id: conceptId, context: 'meetings' } }
+    ]);
+    await db.persistDelta(relationDelta);
+  }
+
+  return meetingId;
+}
+
+/**
+ * Add a decision to a meeting
+ *
+ * Links an existing decision to a meeting where it was made.
+ */
+export async function addMeetingDecision(
+  db: LevelDBStore,
+  meetingId: string,
+  decisionId: string
+): Promise<string> {
+  const delta = db.createDelta(RHIA_AUTHOR, [
+    { role: 'meeting', target: { id: meetingId, context: 'decisions' } },
+    { role: 'decision', target: { id: decisionId, context: 'meetings' } }
+  ]);
+  await db.persistDelta(delta);
+  return delta.id;
+}
+
+/**
+ * Add action items from a meeting
+ */
+export async function addMeetingActionItem(
+  db: LevelDBStore,
+  meetingId: string,
+  task: string,
+  assigneeId: string,
+  status: 'pending' | 'in-progress' | 'done' = 'pending'
+): Promise<string> {
+  // Action items are annotations on the meeting
+  const delta = db.createDelta(RHIA_AUTHOR, [
+    { role: 'meeting', target: { id: meetingId, context: 'action_items' } },
+    { role: 'task', target: task },
+    { role: 'assignee', target: assigneeId },
+    { role: 'status', target: status }
+  ]);
+  await db.persistDelta(delta);
+  return delta.id;
+}
+
+/**
+ * Update a meeting's summary
+ */
+export async function updateMeetingSummary(
+  db: LevelDBStore,
+  meetingId: string,
+  summary: string
+): Promise<string> {
+  const delta = db.createDelta(RHIA_AUTHOR, [
+    { role: 'summarized', target: { id: meetingId, context: 'summary' } },
+    { role: 'summary', target: summary }
+  ]);
+  await db.persistDelta(delta);
   return delta.id;
 }

@@ -84,15 +84,44 @@ We use RhizomeDB to track development context. The database persists to `.rhizom
 
 ### Delta Semantics
 
-Pointers follow a `{past-participle}` / `{noun}` pattern:
+#### Role Naming Conventions
+
+**Annotation Pattern (Object + Primitive)**
+
+When annotating a domain object with a primitive value, use `{past-participle}` / `{noun}`:
 - `named` / `name` - asserting something's name
 - `typed` / `type` - asserting something's type
 - `described` / `content` - asserting something's content
+- `titled` / `title`, `valued` / `value`, etc.
 
-Each pointer has a `role` (what it represents) and a `target` (domain object reference or primitive).
-When targeting a domain object, include `context` to specify where this delta appears when querying that object.
+```typescript
+{ role: 'named', target: { id: personId, context: 'name' } },
+{ role: 'name', target: 'Alice Smith' }
+```
+
+**Relationship Pattern (Object + Object)**
+
+When relating two domain objects, both roles are nouns - neither is privileged:
+- `parent` / `child`
+- `author` / `work`
+- `actor` / `movie`
+- `creator` / `creation`
+
+```typescript
+{ role: 'parent', target: { id: folderId, context: 'children' } },
+{ role: 'child', target: { id: fileId, context: 'parent' } }
+```
+
+The delta is readable from either direction. The `context` on each target determines where the delta appears when querying that object.
+
+#### Atomicity
 
 **Independent facts should be separate deltas** (each can be negated independently).
+**Inseparable facts** belong in one delta (e.g., a transaction's buyer/seller/price).
+
+#### Ordering
+
+The data layer is fundamentally unordered - deltas exist in superposition. **Ordering is a property of View-level reduction**, not data-level structure. Timestamps, position hints, and sequence annotations are just more facts in the rhizome - they inform ordering but don't determine it. The View resolver collapses superposition into sequence.
 
 ### Quick Usage
 

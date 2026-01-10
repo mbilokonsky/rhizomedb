@@ -26,6 +26,7 @@ RhizomeDB diverges from traditional database architecture in several key ways:
 3. **Schemas as Data**: Everything except the Delta schema is represented as deltas
 4. **Provenance First**: Every assertion carries full authorship and temporal metadata
 5. **Conflict Preservation**: Multiple competing values coexist; resolution happens at query-time
+6. **Ordering as Reduction**: The data layer is fundamentally unordered; ordering emerges at View resolution time
 
 ### 1.3 Terminology
 
@@ -179,6 +180,73 @@ When targeting primitive values, the `context` field doesn't apply (as primitive
   ]
 }
 ```
+
+### 2.2.6 Role Naming Conventions
+
+Pointer roles follow consistent naming patterns based on the type of assertion being made:
+
+#### Annotation Pattern (Object + Primitive)
+
+When a delta annotates a domain object with a primitive value, roles follow a `{past-participle}` / `{noun}` pattern:
+
+```typescript
+// Asserting a name
+{ role: 'named', target: { id: 'person_1', context: 'name' } },
+{ role: 'name', target: 'Alice Smith' }
+
+// Asserting a type
+{ role: 'typed', target: { id: 'entry_1', context: 'type' } },
+{ role: 'type', target: 'task' }
+
+// Asserting content
+{ role: 'described', target: { id: 'note_1', context: 'content' } },
+{ role: 'content', target: 'Meeting notes from Monday' }
+```
+
+The past-participle (`named`, `typed`, `described`) points to the domain object being annotated. The noun (`name`, `type`, `content`) points to the primitive value.
+
+**Common annotation pairs:**
+- `named` / `name`
+- `typed` / `type`
+- `described` / `content` (or `description`)
+- `titled` / `title`
+- `valued` / `value`
+
+#### Relationship Pattern (Object + Object)
+
+When a delta relates two domain objects, both roles are nouns describing what each target *is* in the relationship:
+
+```typescript
+// Parent-child containment
+{ role: 'parent', target: { id: 'folder_1', context: 'children' } },
+{ role: 'child', target: { id: 'file_1', context: 'parent' } }
+
+// Authorship
+{ role: 'author', target: { id: 'person_1', context: 'works' } },
+{ role: 'work', target: { id: 'book_1', context: 'author' } }
+
+// Movie cast
+{ role: 'actor', target: { id: 'person_1', context: 'filmography' } },
+{ role: 'movie', target: { id: 'film_1', context: 'cast' } }
+```
+
+Neither object is privileged - the delta is readable from either direction as the subject. The `context` on each target determines where the delta appears when querying that object.
+
+**Common relationship pairs:**
+- `parent` / `child`
+- `container` / `contained`
+- `author` / `work`
+- `creator` / `creation`
+- `owner` / `owned`
+- `actor` / `movie`
+
+#### Why This Matters
+
+Consistent role naming enables:
+1. **Interoperability**: Federated instances can understand each other's deltas
+2. **Tooling**: Linters and validators can check for consistent vocabulary
+3. **Query patterns**: Standard roles enable reusable HyperSchemas
+4. **Documentation**: Self-describing deltas are easier to debug and audit
 
 ### 2.3 Delta Identity
 
@@ -971,6 +1039,83 @@ function resolveView(hyperView: HyperView, schema: ViewSchema): View {
   return view
 }
 ```
+
+### 6.5 Ordering and Sequence
+
+The data layer is fundamentally unordered. Deltas exist in superposition - multiple concurrent values coexist without inherent sequence. **Ordering is a property of reduction**, emerging only at View resolution time.
+
+#### Why Ordering is View-Level
+
+Traditional ordering mechanisms conflict with RhizomeDB's distributed, conflict-preserving nature:
+
+1. **Index-based ordering** (`position: 3`):
+   - Two authors independently assign different positions → conflict
+   - Insertions require renumbering → coordination problem
+   - Fractional indexing helps but adds complexity
+
+2. **Linked-list ordering** (`predecessor`/`successor`):
+   - Two authors both say "X comes after Y" with different X → fork
+   - No single linear order emerges without resolution
+
+Both approaches require consensus or coordination that contradicts the system's design.
+
+#### Partial Ordering Hints
+
+Deltas MAY include ordering hints as regular assertions:
+
+```typescript
+// Position hint (advisory, not authoritative)
+{ role: 'positioned', target: { id: 'item_1', context: 'position' } },
+{ role: 'position', target: 3 }
+
+// Sequence hint
+{ role: 'after', target: { id: 'item_1', context: 'predecessors' } },
+{ role: 'before', target: { id: 'item_2', context: 'successors' } }
+```
+
+These are just more facts in the rhizome - they inform ordering but don't determine it. Multiple conflicting ordering hints may coexist.
+
+#### Resolution Strategies for Ordering
+
+View resolvers choose how to linearize:
+
+```typescript
+// Order by timestamp
+const byTimestamp: ResolutionStrategy = (deltas) => {
+  return deltas.sort((a, b) => a.timestamp - b.timestamp)
+}
+
+// Order by explicit position hints
+const byPosition: ResolutionStrategy = (deltas) => {
+  return deltas.sort((a, b) => {
+    const posA = extractPosition(a) ?? Infinity
+    const posB = extractPosition(b) ?? Infinity
+    return posA - posB
+  })
+}
+
+// Order by author trust, then timestamp
+const byTrustThenTime = (trustedAuthors: string[]): ResolutionStrategy => {
+  return (deltas) => {
+    return deltas.sort((a, b) => {
+      const trustA = trustedAuthors.indexOf(a.author)
+      const trustB = trustedAuthors.indexOf(b.author)
+      if (trustA !== trustB) return trustA - trustB
+      return a.timestamp - b.timestamp
+    })
+  }
+}
+```
+
+#### Authoritative Ordering
+
+When canonical ordering is required, delegate to a single authority:
+
+1. Define a "sequence" domain object with a designated author
+2. Only that author's ordering deltas are trusted for that sequence
+3. Other authors' ordering hints are ignored or surfaced as conflicts
+
+This acknowledges that distributed systems cannot have distributed ordering without consensus - ordering authority must be delegated.
 
 ## 7. Streaming Model
 

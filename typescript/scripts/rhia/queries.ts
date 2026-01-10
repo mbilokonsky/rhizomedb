@@ -16,6 +16,7 @@ import {
   QuestionHyperSchema,
   DecisionHyperSchema,
   ObservationHyperSchema,
+  MeetingHyperSchema,
   selectEntitiesByType
 } from './hyperschemas';
 
@@ -23,7 +24,8 @@ import {
   ConceptViewSchema,
   QuestionViewSchema,
   DecisionViewSchema,
-  ObservationViewSchema
+  ObservationViewSchema,
+  MeetingViewSchema
 } from './viewschemas';
 
 // =============================================================================
@@ -46,6 +48,8 @@ export interface QuestionSummary {
   status: 'open' | 'resolved' | 'dissolved';
   answer?: string;
   context?: string;
+  askedBy?: string;      // team member who asked
+  answeredBy?: string;   // team member who answered
 }
 
 export interface DecisionSummary {
@@ -55,12 +59,26 @@ export interface DecisionSummary {
   timestamp: number;
   supersedes?: string;
   resolves?: string;
+  proposedBy?: string;   // team member who proposed
+  decidedBy?: string;    // team member who made the decision
 }
 
 export interface ObservationSummary {
   id: string;
   content: string;
   significance: 'minor' | 'notable' | 'pivotal';
+  timestamp: number;
+  observedBy?: string;   // team member who made the observation
+}
+
+export interface MeetingSummary {
+  id: string;
+  title: string;
+  date: string;
+  summary?: string;
+  facilitatedBy?: string;  // team member who ran the meeting
+  participantIds: string[];
+  decisionIds: string[];
   timestamp: number;
 }
 
@@ -274,7 +292,9 @@ export async function getQuestionSummary(
     text: (view.text as string) || '',
     status: ((view.status as string) || 'open') as QuestionSummary['status'],
     answer: view.answer as string | undefined,
-    context: view.context as string | undefined
+    context: view.context as string | undefined,
+    askedBy: view.askedBy as string | undefined,
+    answeredBy: view.answeredBy as string | undefined
   };
 }
 
@@ -312,7 +332,9 @@ export async function getDecisionSummary(
     rationale: (view.rationale as string) || '',
     timestamp,
     supersedes,
-    resolves
+    resolves,
+    proposedBy: view.proposedBy as string | undefined,
+    decidedBy: view.decidedBy as string | undefined
   };
 }
 
@@ -344,7 +366,8 @@ export async function getObservationSummary(
     id: observationId,
     content: (view.content as string) || '',
     significance: ((view.significance as string) || 'notable') as ObservationSummary['significance'],
-    timestamp
+    timestamp,
+    observedBy: view.observedBy as string | undefined
   };
 }
 
@@ -586,4 +609,96 @@ export async function getConceptHistory(
   }
 
   return history.sort((a, b) => a.timestamp - b.timestamp);
+}
+
+// =============================================================================
+// Meeting queries
+// =============================================================================
+
+/**
+ * Get summary of a meeting using HyperView/View
+ */
+export async function getMeetingSummary(
+  db: LevelDBStore,
+  meetingId: string
+): Promise<MeetingSummary | null> {
+  const allDeltas = await loadAllDeltas(db);
+
+  const hyperView = constructHyperView(
+    meetingId,
+    MeetingHyperSchema,
+    allDeltas,
+    rhiaSchemaRegistry
+  );
+
+  const hasDeltas = Object.keys(hyperView).some(
+    (k) => k !== 'id' && k !== '_metadata' && Array.isArray(hyperView[k]) && (hyperView[k] as Delta[]).length > 0
+  );
+  if (!hasDeltas) return null;
+
+  const view = resolver.resolveView(hyperView, MeetingViewSchema);
+  const timestamp = getCreationTimestamp(hyperView);
+
+  // Get participant IDs
+  const participantIds = getRelatedIds(hyperView, 'participants', meetingId);
+
+  // Get decision IDs
+  const decisionIds = getRelatedIds(hyperView, 'decisions', meetingId);
+
+  return {
+    id: meetingId,
+    title: (view.title as string) || '',
+    date: (view.date as string) || '',
+    summary: view.summary as string | undefined,
+    facilitatedBy: view.facilitatedBy as string | undefined,
+    participantIds,
+    decisionIds,
+    timestamp
+  };
+}
+
+/**
+ * List all meetings
+ */
+export async function listMeetings(db: LevelDBStore): Promise<MeetingSummary[]> {
+  const allDeltas = await loadAllDeltas(db);
+  const meetingIds = selectEntitiesByType(allDeltas, 'meeting');
+
+  const meetings: MeetingSummary[] = [];
+
+  for (const meetingId of meetingIds) {
+    const m = await getMeetingSummary(db, meetingId);
+    if (m) meetings.push(m);
+  }
+
+  // Sort by date descending
+  return meetings.sort((a, b) => {
+    const dateA = new Date(a.date).getTime() || 0;
+    const dateB = new Date(b.date).getTime() || 0;
+    return dateB - dateA;
+  });
+}
+
+/**
+ * List recent meetings
+ */
+export async function listRecentMeetings(
+  db: LevelDBStore,
+  limit: number = 10
+): Promise<MeetingSummary[]> {
+  const meetings = await listMeetings(db);
+  return meetings.slice(0, limit);
+}
+
+/**
+ * Get meetings for a specific team member
+ */
+export async function getMeetingsForMember(
+  db: LevelDBStore,
+  memberId: string
+): Promise<MeetingSummary[]> {
+  const allMeetings = await listMeetings(db);
+  return allMeetings.filter(
+    (m) => m.participantIds.includes(memberId) || m.facilitatedBy === memberId
+  );
 }

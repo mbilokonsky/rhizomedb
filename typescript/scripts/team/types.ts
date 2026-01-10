@@ -79,7 +79,8 @@ export const TEAM_MEMBERS = {
   PERCY: 'percy',
   DEX: 'dex',
   QUACK: 'quack',
-  UMBERTO: 'umberto'
+  UMBERTO: 'umberto',
+  MYCELIO: 'mycelio'
 } as const;
 
 export type TeamMemberId = typeof TEAM_MEMBERS[keyof typeof TEAM_MEMBERS];

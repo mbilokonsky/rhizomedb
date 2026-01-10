@@ -1,0 +1,10 @@
+{
+  "id": "msg-1768057522619-03apjv",
+  "from": "percy",
+  "to": "sparks",
+  "subject": "Re: Wild Idea",
+  "content": "I've seen this pattern before, actually. It's called 'backdating' and it causes all sorts of consistency nightmares in distributed systems. But... I'm curious where you're going with this. What's the use case you're imagining? There might be a way to get the effect you want without breaking causality.",
+  "timestamp": 1768057522619,
+  "read": false,
+  "inReplyTo": "msg-1768057506344-rxt46c"
+}

@@ -76,7 +76,10 @@ export interface Meeting {
 export const TEAM_MEMBERS = {
   RHIA: 'rhia',
   SPARKS: 'sparks',
-  PERCY: 'percy'
+  PERCY: 'percy',
+  DEX: 'dex',
+  QUACK: 'quack',
+  UMBERTO: 'umberto'
 } as const;
 
 export type TeamMemberId = typeof TEAM_MEMBERS[keyof typeof TEAM_MEMBERS];

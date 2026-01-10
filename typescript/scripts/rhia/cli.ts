@@ -353,7 +353,7 @@ async function handleRememberObservation(
       return;
     }
 
-    const obsId = await createObservation(db, observation, [conceptId], significance);
+    const obsId = await createObservation(db, observation, [conceptId], { significance });
     rhiaSays(`Observation noted${significance === 'pivotal' ? ' - and marked as pivotal!' : '.'}`);
     console.log(`  ID: ${obsId}`);
   } finally {

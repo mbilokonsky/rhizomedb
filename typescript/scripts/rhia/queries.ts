@@ -1,33 +1,16 @@
 /**
- * Rhia's Query Functions - Using formal HyperView/View system
+ * Rhia's Query Functions - Retrieve and organize knowledge from the rhizome
  *
- * These functions query the rhizome using the spec-compliant HyperView
- * construction (§5) and View resolution (§6) algorithms.
+ * These functions query the rhizome for entities and their relationships,
+ * returning structured views suitable for Rhia's responses.
  */
 
 import { LevelDBStore } from '../../src/storage/leveldb-store';
-import { Delta, HyperView, View } from '../../src/core/types';
-import { constructHyperView } from '../../src/schemas/hyperview';
-import { ViewResolver, mostRecent, allValues } from '../../src/queries/view-resolver';
-
-import {
-  rhiaSchemaRegistry,
-  ConceptHyperSchema,
-  QuestionHyperSchema,
-  DecisionHyperSchema,
-  ObservationHyperSchema,
-  selectEntitiesByType
-} from './hyperschemas';
-
-import {
-  ConceptViewSchema,
-  QuestionViewSchema,
-  DecisionViewSchema,
-  ObservationViewSchema
-} from './viewschemas';
+import { Delta } from '../../src/core/types';
+import { EntityType, RHIA_AUTHOR } from './schema';
 
 // =============================================================================
-// Types for query results (unchanged for backward compatibility)
+// Types for query results
 // =============================================================================
 
 export interface ConceptView {
@@ -72,92 +55,123 @@ export interface ConnectionSummary {
 }
 
 // =============================================================================
-// Resolver instance
+// Helper functions
 // =============================================================================
 
-const resolver = new ViewResolver();
-
-// =============================================================================
-// Helper: Load all deltas from storage
-// =============================================================================
-
-async function loadAllDeltas(db: LevelDBStore): Promise<Delta[]> {
-  const deltas: Delta[] = [];
-  for await (const delta of db.scanDeltas()) {
-    deltas.push(delta);
-  }
+/**
+ * Get all deltas targeting a specific entity
+ */
+async function getDeltasForEntity(db: LevelDBStore, entityId: string): Promise<Delta[]> {
+  const deltas = await db.queryDeltas({
+    targetIds: [entityId]
+  });
   return deltas;
 }
 
-// =============================================================================
-// Helper: Get related entity IDs from a HyperView property
-// =============================================================================
+/**
+ * Extract the latest primitive value for a given context from deltas
+ */
+function getLatestValue(deltas: Delta[], context: string): string | undefined {
+  const relevant = deltas
+    .filter(d => d.pointers.some(p =>
+      typeof p.target === 'object' &&
+      'context' in p.target &&
+      p.target.context === context
+    ))
+    .sort((a, b) => b.timestamp - a.timestamp);
 
-function getRelatedIds(hyperView: HyperView, property: string, excludeId: string): string[] {
-  const deltas = hyperView[property] as Delta[] | undefined;
-  if (!deltas) return [];
+  if (relevant.length === 0) return undefined;
 
-  const ids = new Set<string>();
-  for (const delta of deltas) {
-    for (const pointer of delta.pointers) {
-      if (
-        typeof pointer.target === 'object' &&
-        'id' in pointer.target &&
-        pointer.target.id !== excludeId
-      ) {
-        ids.add(pointer.target.id);
-      }
+  // Find the primitive value in the delta (the non-reference pointer)
+  for (const pointer of relevant[0].pointers) {
+    if (typeof pointer.target === 'string' || typeof pointer.target === 'number') {
+      return String(pointer.target);
     }
   }
-  return [...ids];
+  return undefined;
 }
 
-// =============================================================================
-// Helper: Get timestamp from HyperView (earliest delta = creation time)
-// =============================================================================
+/**
+ * Extract all values for a given context (for multi-valued properties)
+ */
+function getAllValues(deltas: Delta[], context: string): Array<{ value: string; timestamp: number }> {
+  const results: Array<{ value: string; timestamp: number }> = [];
 
-function getCreationTimestamp(hyperView: HyperView): number {
-  let earliest = Date.now();
-  for (const key of Object.keys(hyperView)) {
-    if (key === 'id' || key === '_metadata') continue;
-    const deltas = hyperView[key] as Delta[] | undefined;
-    if (deltas) {
-      for (const delta of deltas) {
-        if (delta.timestamp < earliest) {
-          earliest = delta.timestamp;
+  for (const delta of deltas) {
+    const hasContext = delta.pointers.some(p =>
+      typeof p.target === 'object' &&
+      'context' in p.target &&
+      p.target.context === context
+    );
+
+    if (hasContext) {
+      for (const pointer of delta.pointers) {
+        if (typeof pointer.target === 'string') {
+          results.push({ value: pointer.target, timestamp: delta.timestamp });
         }
       }
     }
   }
-  return earliest;
+
+  return results.sort((a, b) => b.timestamp - a.timestamp);
+}
+
+/**
+ * Extract related entity IDs from relationship deltas
+ */
+function getRelatedEntityIds(deltas: Delta[], context: string, entityId: string): string[] {
+  const ids: string[] = [];
+
+  for (const delta of deltas) {
+    const hasContext = delta.pointers.some(p =>
+      typeof p.target === 'object' &&
+      'context' in p.target &&
+      p.target.context === context
+    );
+
+    if (hasContext) {
+      for (const pointer of delta.pointers) {
+        if (
+          typeof pointer.target === 'object' &&
+          'id' in pointer.target &&
+          pointer.target.id !== entityId
+        ) {
+          ids.push(pointer.target.id);
+        }
+      }
+    }
+  }
+
+  return [...new Set(ids)]; // Deduplicate
 }
 
 // =============================================================================
-// Query functions using HyperView/View system
+// Query functions
 // =============================================================================
 
 /**
- * List all concepts using HyperView construction
+ * List all concepts
  */
 export async function listConcepts(db: LevelDBStore): Promise<Array<{ id: string; name: string }>> {
-  const allDeltas = await loadAllDeltas(db);
-  const conceptIds = selectEntitiesByType(allDeltas, 'concept');
-
   const concepts: Array<{ id: string; name: string }> = [];
+  const seenIds = new Set<string>();
 
-  for (const conceptId of conceptIds) {
-    const hyperView = constructHyperView(
-      conceptId,
-      ConceptHyperSchema,
-      allDeltas,
-      rhiaSchemaRegistry
-    );
-
-    const view = resolver.resolveView(hyperView, ConceptViewSchema);
-    concepts.push({
-      id: conceptId,
-      name: (view.name as string) || conceptId
-    });
+  for await (const delta of db.scanDeltas()) {
+    // Look for type='concept' deltas
+    const typePointer = delta.pointers.find(p => p.role === 'type' && p.target === 'concept');
+    if (typePointer) {
+      const typedPointer = delta.pointers.find(p => p.role === 'typed');
+      if (typedPointer && typeof typedPointer.target === 'object' && 'id' in typedPointer.target) {
+        const conceptId = typedPointer.target.id;
+        if (!seenIds.has(conceptId)) {
+          seenIds.add(conceptId);
+          // Get the name
+          const conceptDeltas = await getDeltasForEntity(db, conceptId);
+          const name = getLatestValue(conceptDeltas, 'name') || conceptId;
+          concepts.push({ id: conceptId, name });
+        }
+      }
+    }
   }
 
   return concepts;
@@ -174,71 +188,55 @@ export async function findConceptByName(
   const lowerSearch = searchName.toLowerCase();
 
   // Exact match first
-  const exact = concepts.find((c) => c.name.toLowerCase() === lowerSearch);
+  const exact = concepts.find(c => c.name.toLowerCase() === lowerSearch);
   if (exact) return exact.id;
 
   // Partial match
-  const partial = concepts.find((c) => c.name.toLowerCase().includes(lowerSearch));
+  const partial = concepts.find(c => c.name.toLowerCase().includes(lowerSearch));
   return partial?.id;
 }
 
 /**
  * Get full view of a concept with all related entities
  */
-export async function getConceptView(
-  db: LevelDBStore,
-  conceptId: string
-): Promise<ConceptView | null> {
-  const allDeltas = await loadAllDeltas(db);
+export async function getConceptView(db: LevelDBStore, conceptId: string): Promise<ConceptView | null> {
+  const deltas = await getDeltasForEntity(db, conceptId);
+  if (deltas.length === 0) return null;
 
-  // Construct HyperView for the concept
-  const hyperView = constructHyperView(
-    conceptId,
-    ConceptHyperSchema,
-    allDeltas,
-    rhiaSchemaRegistry
-  );
+  const name = getLatestValue(deltas, 'name') || conceptId;
+  const description = getLatestValue(deltas, 'description') || '';
 
-  // Check if we found any deltas for this concept
-  const hasDeltas = Object.keys(hyperView).some(
-    (k) => k !== 'id' && k !== '_metadata' && Array.isArray(hyperView[k]) && (hyperView[k] as Delta[]).length > 0
-  );
-  if (!hasDeltas) return null;
-
-  // Resolve to View
-  const view = resolver.resolveView(hyperView, ConceptViewSchema);
-
-  // Get related entities
-  const questionIds = getRelatedIds(hyperView, 'questions', conceptId);
-  const decisionIds = getRelatedIds(hyperView, 'decisions', conceptId);
-  const observationIds = getRelatedIds(hyperView, 'observations', conceptId);
-
-  // Fetch related entity summaries
+  // Get related questions
+  const questionIds = getRelatedEntityIds(deltas, 'questions', conceptId);
   const questions: QuestionSummary[] = [];
   for (const qId of questionIds) {
     const q = await getQuestionSummary(db, qId);
     if (q) questions.push(q);
   }
 
+  // Get related decisions
+  const decisionIds = getRelatedEntityIds(deltas, 'decisions', conceptId);
   const decisions: DecisionSummary[] = [];
   for (const dId of decisionIds) {
     const d = await getDecisionSummary(db, dId);
     if (d) decisions.push(d);
   }
 
+  // Get related observations
+  const observationIds = getRelatedEntityIds(deltas, 'observations', conceptId);
   const observations: ObservationSummary[] = [];
   for (const oId of observationIds) {
     const o = await getObservationSummary(db, oId);
     if (o) observations.push(o);
   }
 
-  // Get connections
+  // Get connections to other concepts
   const connections = await getConceptConnections(db, conceptId);
 
   return {
     id: conceptId,
-    name: (view.name as string) || conceptId,
-    description: (view.description as string) || '',
+    name,
+    description,
     questions,
     decisions,
     observations,
@@ -247,105 +245,61 @@ export async function getConceptView(
 }
 
 /**
- * Get summary of a question using HyperView/View
+ * Get summary of a question
  */
 export async function getQuestionSummary(
   db: LevelDBStore,
   questionId: string
 ): Promise<QuestionSummary | null> {
-  const allDeltas = await loadAllDeltas(db);
+  const deltas = await getDeltasForEntity(db, questionId);
+  if (deltas.length === 0) return null;
 
-  const hyperView = constructHyperView(
-    questionId,
-    QuestionHyperSchema,
-    allDeltas,
-    rhiaSchemaRegistry
-  );
+  const text = getLatestValue(deltas, 'text') || '';
+  const status = (getLatestValue(deltas, 'status') || 'open') as QuestionSummary['status'];
+  const answer = getLatestValue(deltas, 'answer');
+  const context = getLatestValue(deltas, 'context');
 
-  const hasDeltas = Object.keys(hyperView).some(
-    (k) => k !== 'id' && k !== '_metadata' && Array.isArray(hyperView[k]) && (hyperView[k] as Delta[]).length > 0
-  );
-  if (!hasDeltas) return null;
-
-  const view = resolver.resolveView(hyperView, QuestionViewSchema);
-
-  return {
-    id: questionId,
-    text: (view.text as string) || '',
-    status: ((view.status as string) || 'open') as QuestionSummary['status'],
-    answer: view.answer as string | undefined,
-    context: view.context as string | undefined
-  };
+  return { id: questionId, text, status, answer, context };
 }
 
 /**
- * Get summary of a decision using HyperView/View
+ * Get summary of a decision
  */
 export async function getDecisionSummary(
   db: LevelDBStore,
   decisionId: string
 ): Promise<DecisionSummary | null> {
-  const allDeltas = await loadAllDeltas(db);
+  const deltas = await getDeltasForEntity(db, decisionId);
+  if (deltas.length === 0) return null;
 
-  const hyperView = constructHyperView(
-    decisionId,
-    DecisionHyperSchema,
-    allDeltas,
-    rhiaSchemaRegistry
-  );
+  const summary = getLatestValue(deltas, 'summary') || '';
+  const rationale = getLatestValue(deltas, 'rationale') || '';
 
-  const hasDeltas = Object.keys(hyperView).some(
-    (k) => k !== 'id' && k !== '_metadata' && Array.isArray(hyperView[k]) && (hyperView[k] as Delta[]).length > 0
-  );
-  if (!hasDeltas) return null;
+  // Get timestamp from the earliest delta (creation time)
+  const timestamp = Math.min(...deltas.map(d => d.timestamp));
 
-  const view = resolver.resolveView(hyperView, DecisionViewSchema);
-  const timestamp = getCreationTimestamp(hyperView);
+  // Check for supersedes relationship
+  const supersedes = getRelatedEntityIds(deltas, 'supersedes', decisionId)[0];
+  const resolves = getRelatedEntityIds(deltas, 'resolves', decisionId)[0];
 
-  // Get relationship IDs
-  const supersedes = getRelatedIds(hyperView, 'supersedes', decisionId)[0];
-  const resolves = getRelatedIds(hyperView, 'resolves', decisionId)[0];
-
-  return {
-    id: decisionId,
-    summary: (view.summary as string) || '',
-    rationale: (view.rationale as string) || '',
-    timestamp,
-    supersedes,
-    resolves
-  };
+  return { id: decisionId, summary, rationale, timestamp, supersedes, resolves };
 }
 
 /**
- * Get summary of an observation using HyperView/View
+ * Get summary of an observation
  */
 export async function getObservationSummary(
   db: LevelDBStore,
   observationId: string
 ): Promise<ObservationSummary | null> {
-  const allDeltas = await loadAllDeltas(db);
+  const deltas = await getDeltasForEntity(db, observationId);
+  if (deltas.length === 0) return null;
 
-  const hyperView = constructHyperView(
-    observationId,
-    ObservationHyperSchema,
-    allDeltas,
-    rhiaSchemaRegistry
-  );
+  const content = getLatestValue(deltas, 'content') || '';
+  const significance = (getLatestValue(deltas, 'significance') || 'notable') as ObservationSummary['significance'];
+  const timestamp = Math.min(...deltas.map(d => d.timestamp));
 
-  const hasDeltas = Object.keys(hyperView).some(
-    (k) => k !== 'id' && k !== '_metadata' && Array.isArray(hyperView[k]) && (hyperView[k] as Delta[]).length > 0
-  );
-  if (!hasDeltas) return null;
-
-  const view = resolver.resolveView(hyperView, ObservationViewSchema);
-  const timestamp = getCreationTimestamp(hyperView);
-
-  return {
-    id: observationId,
-    content: (view.content as string) || '',
-    significance: ((view.significance as string) || 'notable') as ObservationSummary['significance'],
-    timestamp
-  };
+  return { id: observationId, content, significance, timestamp };
 }
 
 /**
@@ -355,23 +309,12 @@ export async function getConceptConnections(
   db: LevelDBStore,
   conceptId: string
 ): Promise<ConnectionSummary[]> {
-  const allDeltas = await loadAllDeltas(db);
   const connections: ConnectionSummary[] = [];
+  const deltas = await getDeltasForEntity(db, conceptId);
 
-  // Build concept's HyperView to find connection deltas
-  const hyperView = constructHyperView(
-    conceptId,
-    ConceptHyperSchema,
-    allDeltas,
-    rhiaSchemaRegistry
-  );
-
-  const connectionDeltas = hyperView['connections'] as Delta[] | undefined;
-  if (!connectionDeltas) return [];
-
-  for (const delta of connectionDeltas) {
-    // Find nature and other concept
-    const naturePointer = delta.pointers.find((p) => p.role === 'nature');
+  for (const delta of deltas) {
+    // Look for connection deltas (have 'nature' role)
+    const naturePointer = delta.pointers.find(p => p.role === 'nature');
     if (!naturePointer || typeof naturePointer.target !== 'string') continue;
 
     // Find the other concept in this connection
@@ -384,17 +327,11 @@ export async function getConceptConnections(
       ) {
         const otherConceptId = pointer.target.id;
 
-        // Get other concept's name via HyperView/View
-        const otherHyperView = constructHyperView(
-          otherConceptId,
-          ConceptHyperSchema,
-          allDeltas,
-          rhiaSchemaRegistry
-        );
-        const otherView = resolver.resolveView(otherHyperView, ConceptViewSchema);
-        const otherName = otherView.name as string | undefined;
+        // Try to get the other concept's name
+        const otherDeltas = await getDeltasForEntity(db, otherConceptId);
+        const otherName = getLatestValue(otherDeltas, 'name');
 
-        const notePointer = delta.pointers.find((p) => p.role === 'note');
+        const notePointer = delta.pointers.find(p => p.role === 'note');
         const note = typeof notePointer?.target === 'string' ? notePointer.target : undefined;
 
         connections.push({
@@ -414,15 +351,24 @@ export async function getConceptConnections(
  * List all open questions
  */
 export async function listOpenQuestions(db: LevelDBStore): Promise<QuestionSummary[]> {
-  const allDeltas = await loadAllDeltas(db);
-  const questionIds = selectEntitiesByType(allDeltas, 'question');
-
   const questions: QuestionSummary[] = [];
+  const seenIds = new Set<string>();
 
-  for (const questionId of questionIds) {
-    const q = await getQuestionSummary(db, questionId);
-    if (q && q.status === 'open') {
-      questions.push(q);
+  for await (const delta of db.scanDeltas()) {
+    // Look for type='question' deltas
+    const typePointer = delta.pointers.find(p => p.role === 'type' && p.target === 'question');
+    if (typePointer) {
+      const typedPointer = delta.pointers.find(p => p.role === 'typed');
+      if (typedPointer && typeof typedPointer.target === 'object' && 'id' in typedPointer.target) {
+        const questionId = typedPointer.target.id;
+        if (!seenIds.has(questionId)) {
+          seenIds.add(questionId);
+          const q = await getQuestionSummary(db, questionId);
+          if (q && q.status === 'open') {
+            questions.push(q);
+          }
+        }
+      }
     }
   }
 
@@ -436,18 +382,29 @@ export async function listRecentDecisions(
   db: LevelDBStore,
   limit: number = 10
 ): Promise<DecisionSummary[]> {
-  const allDeltas = await loadAllDeltas(db);
-  const decisionIds = selectEntitiesByType(allDeltas, 'decision');
-
   const decisions: DecisionSummary[] = [];
+  const seenIds = new Set<string>();
 
-  for (const decisionId of decisionIds) {
-    const d = await getDecisionSummary(db, decisionId);
-    if (d) decisions.push(d);
+  for await (const delta of db.scanDeltas()) {
+    // Look for type='decision' deltas
+    const typePointer = delta.pointers.find(p => p.role === 'type' && p.target === 'decision');
+    if (typePointer) {
+      const typedPointer = delta.pointers.find(p => p.role === 'typed');
+      if (typedPointer && typeof typedPointer.target === 'object' && 'id' in typedPointer.target) {
+        const decisionId = typedPointer.target.id;
+        if (!seenIds.has(decisionId)) {
+          seenIds.add(decisionId);
+          const d = await getDecisionSummary(db, decisionId);
+          if (d) decisions.push(d);
+        }
+      }
+    }
   }
 
   // Sort by timestamp descending and limit
-  return decisions.sort((a, b) => b.timestamp - a.timestamp).slice(0, limit);
+  return decisions
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, limit);
 }
 
 /**
@@ -463,127 +420,45 @@ export async function search(
   observations: ObservationSummary[];
 }> {
   const lowerTerm = term.toLowerCase();
-  const allDeltas = await loadAllDeltas(db);
 
-  // Get all concepts and filter by name
   const allConcepts = await listConcepts(db);
-  const concepts = allConcepts.filter((c) => c.name.toLowerCase().includes(lowerTerm));
+  const concepts = allConcepts.filter(c => c.name.toLowerCase().includes(lowerTerm));
 
-  // Search questions
-  const questionIds = selectEntitiesByType(allDeltas, 'question');
   const questions: QuestionSummary[] = [];
-  for (const qId of questionIds) {
-    const q = await getQuestionSummary(db, qId);
-    if (q && (q.text.toLowerCase().includes(lowerTerm) || q.answer?.toLowerCase().includes(lowerTerm))) {
-      questions.push(q);
-    }
-  }
-
-  // Search decisions
-  const decisionIds = selectEntitiesByType(allDeltas, 'decision');
   const decisions: DecisionSummary[] = [];
-  for (const dId of decisionIds) {
-    const d = await getDecisionSummary(db, dId);
-    if (
-      d &&
-      (d.summary.toLowerCase().includes(lowerTerm) || d.rationale.toLowerCase().includes(lowerTerm))
-    ) {
-      decisions.push(d);
-    }
-  }
-
-  // Search observations
-  const observationIds = selectEntitiesByType(allDeltas, 'observation');
   const observations: ObservationSummary[] = [];
-  for (const oId of observationIds) {
-    const o = await getObservationSummary(db, oId);
-    if (o && o.content.toLowerCase().includes(lowerTerm)) {
-      observations.push(o);
-    }
-  }
 
-  return { concepts, questions, decisions, observations };
-}
+  // Scan for matching questions, decisions, observations
+  const seenIds = new Set<string>();
 
-// =============================================================================
-// Advanced queries using time-travel
-// =============================================================================
+  for await (const delta of db.scanDeltas()) {
+    // Check for text content matching the term
+    for (const pointer of delta.pointers) {
+      if (typeof pointer.target === 'string' && pointer.target.toLowerCase().includes(lowerTerm)) {
+        // Find what entity this delta belongs to
+        for (const p of delta.pointers) {
+          if (typeof p.target === 'object' && 'id' in p.target) {
+            const entityId = p.target.id;
+            if (seenIds.has(entityId)) continue;
+            seenIds.add(entityId);
 
-/**
- * Get concept view at a specific point in time
- */
-export async function getConceptViewAtTime(
-  db: LevelDBStore,
-  conceptId: string,
-  timestamp: number
-): Promise<ConceptView | null> {
-  const allDeltas = await loadAllDeltas(db);
-
-  // Construct HyperView with time-travel
-  const hyperView = constructHyperView(
-    conceptId,
-    ConceptHyperSchema,
-    allDeltas,
-    rhiaSchemaRegistry,
-    timestamp // Time-travel query!
-  );
-
-  const hasDeltas = Object.keys(hyperView).some(
-    (k) => k !== 'id' && k !== '_metadata' && Array.isArray(hyperView[k]) && (hyperView[k] as Delta[]).length > 0
-  );
-  if (!hasDeltas) return null;
-
-  const view = resolver.resolveView(hyperView, ConceptViewSchema);
-
-  // For time-travel, we'd need to also filter related entities by timestamp
-  // For now, just return the basic concept view
-  return {
-    id: conceptId,
-    name: (view.name as string) || conceptId,
-    description: (view.description as string) || '',
-    questions: [],
-    decisions: [],
-    observations: [],
-    connections: []
-  };
-}
-
-/**
- * Get the history of changes to a concept
- */
-export async function getConceptHistory(
-  db: LevelDBStore,
-  conceptId: string
-): Promise<Array<{ timestamp: number; property: string; value: string }>> {
-  const allDeltas = await loadAllDeltas(db);
-
-  const hyperView = constructHyperView(
-    conceptId,
-    ConceptHyperSchema,
-    allDeltas,
-    rhiaSchemaRegistry
-  );
-
-  const history: Array<{ timestamp: number; property: string; value: string }> = [];
-
-  for (const [property, value] of Object.entries(hyperView)) {
-    if (property === 'id' || property === '_metadata') continue;
-    const deltas = value as Delta[];
-    if (!Array.isArray(deltas)) continue;
-
-    for (const delta of deltas) {
-      // Extract the value from this delta
-      for (const pointer of delta.pointers) {
-        if (typeof pointer.target === 'string' || typeof pointer.target === 'number') {
-          history.push({
-            timestamp: delta.timestamp,
-            property,
-            value: String(pointer.target)
-          });
+            if (entityId.startsWith('question-')) {
+              const q = await getQuestionSummary(db, entityId);
+              if (q) questions.push(q);
+            } else if (entityId.startsWith('decision-')) {
+              const d = await getDecisionSummary(db, entityId);
+              if (d) decisions.push(d);
+            } else if (entityId.startsWith('observation-')) {
+              const o = await getObservationSummary(db, entityId);
+              if (o) observations.push(o);
+            }
+            break;
+          }
         }
+        break;
       }
     }
   }
 
-  return history.sort((a, b) => a.timestamp - b.timestamp);
+  return { concepts, questions, decisions, observations };
 }

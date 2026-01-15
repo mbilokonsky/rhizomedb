@@ -74,7 +74,6 @@ export interface Meeting {
 // =============================================================================
 
 export const TEAM_MEMBERS = {
-  MYK: 'myk',
   RHIA: 'rhia',
   SPARKS: 'sparks',
   PERCY: 'percy',

@@ -84,33 +84,12 @@ export const DecisionHyperSchema: HyperSchema = createStandardSchema(
  * - type: entity type
  * - content: what was observed
  * - significance: minor/notable/pivotal
- * - observedBy: team member who made the observation
  * - concepts: related concepts (not expanded to avoid cycles)
  */
 export const ObservationHyperSchema: HyperSchema = createStandardSchema(
   'rhia:observation',
   'Observation',
   {}  // Don't expand concept references - would cause cycles
-);
-
-/**
- * Meeting HyperSchema
- *
- * Selects deltas targeting a meeting entity:
- * - type: entity type
- * - title: meeting title
- * - date: when it occurred
- * - summary: meeting summary
- * - facilitatedBy: who ran the meeting
- * - participants: team members who attended (relationship)
- * - concepts: concepts discussed (relationship)
- * - decisions: decisions made at the meeting (relationship)
- * - action_items: tasks assigned during the meeting
- */
-export const MeetingHyperSchema: HyperSchema = createStandardSchema(
-  'rhia:meeting',
-  'Meeting',
-  {}  // Don't expand references - would cause cycles
 );
 
 // =============================================================================
@@ -121,7 +100,6 @@ rhiaSchemaRegistry.register(ConceptHyperSchema);
 rhiaSchemaRegistry.register(QuestionHyperSchema);
 rhiaSchemaRegistry.register(DecisionHyperSchema);
 rhiaSchemaRegistry.register(ObservationHyperSchema);
-rhiaSchemaRegistry.register(MeetingHyperSchema);
 
 // =============================================================================
 // Type-specific selection functions

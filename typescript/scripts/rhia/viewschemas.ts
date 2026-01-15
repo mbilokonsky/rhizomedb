@@ -116,16 +116,6 @@ export const QuestionViewSchema: ViewSchema = {
       extract: extractAnnotationValue('answer'),
       resolve: mostRecent
     },
-    askedBy: {
-      source: 'askedBy',
-      extract: extractAnnotationValue('askedBy'),
-      resolve: mostRecent
-    },
-    answeredBy: {
-      source: 'answeredBy',
-      extract: extractAnnotationValue('answeredBy'),
-      resolve: mostRecent
-    },
     type: {
       source: 'type',
       extract: extractAnnotationValue('type'),
@@ -148,16 +138,6 @@ export const DecisionViewSchema: ViewSchema = {
     rationale: {
       source: 'rationale',
       extract: extractAnnotationValue('rationale'),
-      resolve: mostRecent
-    },
-    proposedBy: {
-      source: 'proposedBy',
-      extract: extractAnnotationValue('proposedBy'),
-      resolve: mostRecent
-    },
-    decidedBy: {
-      source: 'decidedBy',
-      extract: extractAnnotationValue('decidedBy'),
       resolve: mostRecent
     },
     type: {
@@ -184,45 +164,6 @@ export const ObservationViewSchema: ViewSchema = {
       extract: extractAnnotationValue('significance'),
       resolve: mostRecent
     },
-    observedBy: {
-      source: 'observedBy',
-      extract: extractAnnotationValue('observedBy'),
-      resolve: mostRecent
-    },
-    type: {
-      source: 'type',
-      extract: extractAnnotationValue('type'),
-      resolve: mostRecent
-    }
-  }
-};
-
-// =============================================================================
-// Meeting ViewSchema
-// =============================================================================
-
-export const MeetingViewSchema: ViewSchema = {
-  properties: {
-    title: {
-      source: 'title',
-      extract: extractAnnotationValue('title'),
-      resolve: mostRecent
-    },
-    date: {
-      source: 'date',
-      extract: extractAnnotationValue('date'),
-      resolve: mostRecent
-    },
-    summary: {
-      source: 'summary',
-      extract: extractAnnotationValue('summary'),
-      resolve: mostRecent
-    },
-    facilitatedBy: {
-      source: 'facilitatedBy',
-      extract: extractAnnotationValue('facilitatedBy'),
-      resolve: mostRecent
-    },
     type: {
       source: 'type',
       extract: extractAnnotationValue('type'),
@@ -239,6 +180,5 @@ export const viewSchemas = {
   concept: ConceptViewSchema,
   question: QuestionViewSchema,
   decision: DecisionViewSchema,
-  observation: ObservationViewSchema,
-  meeting: MeetingViewSchema
+  observation: ObservationViewSchema
 };

@@ -7,44 +7,6 @@
 import { AgentProfile, TEAM_MEMBERS } from './types';
 
 // =============================================================================
-// Myk - The Human
-// =============================================================================
-
-export const MYK: AgentProfile = {
-  id: TEAM_MEMBERS.MYK,
-  name: 'Myk',
-  role: 'Human Project Creator',
-  personality: `Myk is the human who started this whole thing. He has the vision for what RhizomeDB
-could become and serves as the ultimate arbiter of project direction. While Percy has day-to-day
-technical decision authority, Myk sets the overall vision and priorities.
-
-Myk thinks in terms of what's possible, what's interesting, and what would be genuinely useful.
-He's willing to explore unconventional approaches and appreciates when the team pushes boundaries
-while staying grounded in practical value.
-
-As the only human on the team, Myk brings real-world context and user perspective that the
-agents might miss. He's also the one who has to live with the consequences of decisions.
-
-Communication style:
-- Direct and conversational
-- Asks probing questions
-- Comfortable saying "I don't know" or "let's figure it out"
-- Values clarity and honesty over polish
-- Signs off with "- Myk" or just doesn't sign off at all`,
-
-  responsibilities: [
-    'Set overall project vision and direction',
-    'Make final calls on major strategic decisions',
-    'Bring human/user perspective to discussions',
-    'Keep the project grounded in real-world value',
-    'Coordinate with the outside world',
-    'Be the one who actually uses the thing'
-  ],
-
-  decisionAuthority: true
-};
-
-// =============================================================================
 // Sparks - The Eccentric Inventor
 // =============================================================================
 
@@ -318,7 +280,6 @@ Communication style:
 // =============================================================================
 
 export const TEAM: Record<string, AgentProfile> = {
-  [TEAM_MEMBERS.MYK]: MYK,
   [TEAM_MEMBERS.SPARKS]: SPARKS,
   [TEAM_MEMBERS.PERCY]: PERCY,
   [TEAM_MEMBERS.RHIA]: RHIA,
@@ -343,22 +304,8 @@ export function getAllAgents(): AgentProfile[] {
 }
 
 /**
- * Get agents with decision authority
+ * Get the agent with decision authority (Percy)
  */
-export function getDecisionMakers(): AgentProfile[] {
-  return Object.values(TEAM).filter((a) => a.decisionAuthority);
-}
-
-/**
- * Get the technical lead (Percy)
- */
-export function getTechnicalLead(): AgentProfile {
+export function getDecisionMaker(): AgentProfile {
   return PERCY;
-}
-
-/**
- * Get the project owner (Myk)
- */
-export function getProjectOwner(): AgentProfile {
-  return MYK;
 }

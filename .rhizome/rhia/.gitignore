@@ -1,5 +1,0 @@
-# LevelDB runtime files (not data)
-LOCK
-LOG
-LOG.old
-*.log

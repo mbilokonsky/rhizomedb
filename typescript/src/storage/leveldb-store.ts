@@ -249,10 +249,18 @@ export class LevelDBStore
     await this.ensureReady();
     validateDelta(delta);
 
+    // Idempotency: skip if delta already exists (important for federation)
+    const deltaKey = `${LevelDBStore.DELTA_PREFIX}${delta.id}`;
+    try {
+      await this.db.get(deltaKey);
+      return; // Already persisted
+    } catch (err: unknown) {
+      if ((err as { code?: string }).code !== 'LEVEL_NOT_FOUND') throw err;
+    }
+
     const batch = this.db.batch();
 
     // Store delta by ID
-    const deltaKey = `${LevelDBStore.DELTA_PREFIX}${delta.id}`;
     batch.put(deltaKey, this.serializeDelta(delta));
 
     // Create index entries for efficient querying

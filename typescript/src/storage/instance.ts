@@ -214,6 +214,11 @@ export class RhizomeDB
   async persistDelta(delta: Delta): Promise<void> {
     validateDelta(delta);
 
+    // Idempotency: skip if delta already exists (important for federation)
+    if (this.deltaIndex.has(delta.id)) {
+      return;
+    }
+
     // Store in array and index
     this.deltas.push(delta);
     this.deltaIndex.set(delta.id, delta);

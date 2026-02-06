@@ -390,6 +390,19 @@ export interface StreamProducer extends RhizomeInstance {
 }
 
 /**
+ * Minimal interface for federation: what FederationManager needs from a store
+ *
+ * Both RhizomeDB (in-memory) and LevelDBStore satisfy this interface,
+ * allowing FederationManager to work with either storage backend.
+ */
+export interface FederableStore {
+  readonly systemId: string;
+  persistDelta(delta: Delta): Promise<void>;
+  subscribe(filter: DeltaFilter, handler: DeltaHandler): Subscription;
+  scanDeltas(filter?: DeltaFilter, cursor?: string): AsyncIterable<Delta>;
+}
+
+/**
  * Index maintenance capability
  */
 export interface IndexMaintainer extends RhizomeInstance {

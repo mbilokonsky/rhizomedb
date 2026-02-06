@@ -7,6 +7,7 @@
 import WebSocket, { WebSocketServer } from 'ws';
 import { Server as HTTPServer } from 'http';
 import { Delta, DeltaFilter } from '../../core/types';
+import { deltaMatchesFilter } from '../../core/filter-matcher';
 import {
   MessageType,
   ProtocolMessage,
@@ -419,8 +420,9 @@ export class FederationServer {
 
       // Apply pull filter if present
       if (client.config.pullFilter) {
-        // TODO: Implement filter matching
-        // For now, send to all
+        if (!deltaMatchesFilter(delta, client.config.pullFilter)) {
+          continue;
+        }
       }
 
       // Verify trust policy

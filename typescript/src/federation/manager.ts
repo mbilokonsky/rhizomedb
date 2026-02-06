@@ -4,8 +4,8 @@
  * Manages both incoming and outgoing federation connections for a RhizomeDB instance.
  */
 
-import { Delta, DeltaFilter } from '../core/types';
-import { RhizomeDB } from '../storage/instance';
+import { Delta, DeltaFilter, FederableStore } from '../core/types';
+import { deltaMatchesFilter } from '../core/filter-matcher';
 import { FederationServer, FederationServerConfig } from './server/server';
 import { FederationConnection } from './client/connection';
 import {
@@ -40,7 +40,7 @@ export class FederationManager implements FederatedInstance {
   private unsubscribe?: () => void;
 
   constructor(
-    private instance: RhizomeDB,
+    private instance: FederableStore,
     private config: FederationManagerConfig = {}
   ) {
     // Initialize server if enabled
@@ -121,8 +121,9 @@ export class FederationManager implements FederatedInstance {
         ) {
           // Apply push filter if present
           if (connection.config.pushFilter) {
-            // TODO: Implement filter matching
-            // For now, send all
+            if (!deltaMatchesFilter(delta, connection.config.pushFilter)) {
+              continue;
+            }
           }
 
           await connection.sendDelta(delta);

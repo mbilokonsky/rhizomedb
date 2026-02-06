@@ -141,21 +141,18 @@ export class FederationConnection implements FederationLink {
           reject(new Error('Connection timeout'));
         }, 10000);
 
-        const onConnected = () => {
+        const originalOnConnected = this.eventHandlers.onConnected;
+        this.eventHandlers.onConnected = (remoteSystemId: string) => {
           clearTimeout(timeout);
+          originalOnConnected?.(remoteSystemId);
           resolve();
         };
 
-        const onError = (error: Error) => {
-          clearTimeout(timeout);
-          reject(error);
-        };
-
-        this.eventHandlers.onConnected = onConnected;
         const originalOnError = this.eventHandlers.onError;
         this.eventHandlers.onError = (error) => {
-          onError(error);
+          clearTimeout(timeout);
           originalOnError?.(error);
+          reject(error);
         };
       });
     } catch (error) {

@@ -22,7 +22,11 @@
     "rhizome:negate": "ts-node cli/negate.ts",
     "rhizome:claim": "ts-node cli/claim.ts",
     "rhizome:retract": "ts-node cli/retract.ts",
-    "rhizome:relate": "ts-node cli/relate.ts"
+    "rhizome:relate": "ts-node cli/relate.ts",
+    "rhizome:help": "ts-node cli/help.ts",
+    "rhizome:federation-serve": "ts-node cli/federation-serve.ts",
+    "rhizome:federation-connect": "ts-node cli/federation-connect.ts",
+    "rhizome:federation-status": "ts-node cli/federation-status.ts"
   },
   "repository": {
     "type": "git",

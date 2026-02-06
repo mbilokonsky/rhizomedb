@@ -20,6 +20,7 @@ import {
   isPrimitiveHyperSchema
 } from '../core/types';
 import { isDomainNodeReference, isReference } from '../core/validation';
+import { getNegatedDeltaIds } from '../queries/negation';
 
 /**
  * Schema registry for lazy resolution of schema references
@@ -88,23 +89,11 @@ export class SchemaRegistry {
  * @returns Set of delta IDs that have been negated
  */
 export function findNegations(allDeltas: Delta[], queryTimestamp: number): Set<string> {
-  const negations = new Set<string>();
+  // Filter to only deltas within the query timestamp
+  const relevantDeltas = allDeltas.filter((d) => d.timestamp <= queryTimestamp);
 
-  for (const delta of allDeltas) {
-    // Skip deltas created after query timestamp
-    if (delta.timestamp > queryTimestamp) {
-      continue;
-    }
-
-    // Look for negation pointers
-    for (const pointer of delta.pointers) {
-      if (pointer.role === 'negates' && isDomainNodeReference(pointer.target)) {
-        negations.add(pointer.target.id);
-      }
-    }
-  }
-
-  return negations;
+  // Use the full negation algorithm which handles double negation
+  return getNegatedDeltaIds(relevantDeltas, queryTimestamp);
 }
 
 /**

@@ -46,7 +46,7 @@ export async function openStore(): Promise<LevelDBStore> {
   const dataDir = getDataDir();
 
   if (!fs.existsSync(dataDir)) {
-    fail('Not initialized. Run: npx ts-node cli/init.ts');
+    fail('Not initialized. Run: npm run rhizome:init');
   }
 
   const systemId = getSystemId();
@@ -130,6 +130,20 @@ export async function closeAndFail(store: LevelDBStore, message: string): Promis
   process.stderr.write(JSON.stringify({ error: message }) + '\n');
   await store.close();
   process.exit(1);
+}
+
+/** Require a field from input, failing with a clear message if missing */
+export function requireField(input: Record<string, unknown>, field: string): unknown {
+  if (input[field] === undefined || input[field] === null) {
+    fail(`Missing required field: ${field}`);
+  }
+  return input[field];
+}
+
+/** Get the .rhizome directory path */
+export function getRhizomeDir(): string {
+  const dataDir = getDataDir();
+  return path.dirname(dataDir);
 }
 
 /** Run an async main function with error handling */

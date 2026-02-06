@@ -56,19 +56,32 @@ export async function openStore(): Promise<LevelDBStore> {
     ...(systemId ? { systemId } : {})
   });
 
-  // Wait for LevelDB to be ready
-  await (store as any).ready;
+  await store.waitForReady();
 
   return store;
 }
 
+/**
+ * Run a function with a store, ensuring the store is always closed.
+ * Handles errors by closing the store and writing error JSON to stderr.
+ */
+export async function withStore(fn: (store: LevelDBStore) => Promise<void>): Promise<void> {
+  const store = await openStore();
+  try {
+    await fn(store);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    await closeAndFail(store, message);
+  }
+}
+
 /** Parse JSON input from argv[2] or stdin */
-export async function parseInput(): Promise<any> {
+export async function parseInput(): Promise<Record<string, unknown>> {
   const arg = process.argv[2];
 
   if (arg) {
     try {
-      return JSON.parse(arg);
+      return JSON.parse(arg) as Record<string, unknown>;
     } catch {
       fail(`Invalid JSON argument: ${arg}`);
     }
@@ -83,7 +96,7 @@ export async function parseInput(): Promise<any> {
     const raw = Buffer.concat(chunks).toString('utf-8').trim();
     if (raw) {
       try {
-        return JSON.parse(raw);
+        return JSON.parse(raw) as Record<string, unknown>;
       } catch {
         fail(`Invalid JSON on stdin: ${raw.slice(0, 100)}`);
       }

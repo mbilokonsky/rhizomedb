@@ -4,10 +4,11 @@
  * Output: {"systemId", "dataDir", "totalDeltas", "storageType", ...}
  */
 
-import { getDataDir, openStore, closeAndExit, run } from './common';
+import { getDataDir, withStore, closeAndExit, run } from './common';
 
 run(async () => {
-  const store = await openStore();
-  const stats = await store.getStats();
-  await closeAndExit(store, { ...stats, dataDir: getDataDir() });
+  await withStore(async (store) => {
+    const stats = await store.getStats();
+    await closeAndExit(store, { ...stats, dataDir: getDataDir() });
+  });
 });

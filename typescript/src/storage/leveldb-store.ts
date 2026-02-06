@@ -171,6 +171,14 @@ export class LevelDBStore
   }
 
   /**
+   * Wait for the database to be ready.
+   * Available for external callers that need to await readiness.
+   */
+  async waitForReady(): Promise<void> {
+    await this.ready;
+  }
+
+  /**
    * Ensure database is ready before operations
    */
   private async ensureReady(): Promise<void> {

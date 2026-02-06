@@ -5,20 +5,37 @@
  * Output: the full persisted delta as JSON
  */
 
-import { openStore, parseInput, closeAndExit, closeAndFail, run } from './common';
+import { Pointer } from '../src/core/types';
+import { validatePointer, ValidationError } from '../src/core/validation';
+import { parseInput, withStore, closeAndExit, closeAndFail, fail, run } from './common';
 
 run(async () => {
   const input = await parseInput();
-  const store = await openStore();
 
   if (!input.author) {
-    await closeAndFail(store, 'Missing required field: author');
+    fail('Missing required field: author');
   }
   if (!input.pointers || !Array.isArray(input.pointers)) {
-    await closeAndFail(store, 'Missing required field: pointers (array)');
+    fail('Missing required field: pointers (array)');
   }
 
-  const delta = store.createDelta(input.author, input.pointers);
-  await store.persistDelta(delta);
-  await closeAndExit(store, delta);
+  const pointers = input.pointers as Pointer[];
+
+  // Validate each pointer before creating the delta
+  for (let i = 0; i < pointers.length; i++) {
+    try {
+      validatePointer(pointers[i]);
+    } catch (err) {
+      if (err instanceof ValidationError) {
+        fail(`Invalid pointer at index ${i}: ${err.message}`);
+      }
+      throw err;
+    }
+  }
+
+  await withStore(async (store) => {
+    const delta = store.createDelta(input.author as string, pointers);
+    await store.persistDelta(delta);
+    await closeAndExit(store, delta);
+  });
 });

@@ -11,44 +11,49 @@
  * Output: {"schemaId": "...", "deltaId": "...", "name": "..."}
  */
 
-import { openStore, parseInput, closeAndExit, closeAndFail, run } from './common';
+import { Pointer } from '../src/core/types';
+import { parseInput, withStore, closeAndExit, closeAndFail, fail, run } from './common';
 
 run(async () => {
   const input = await parseInput();
-  const store = await openStore();
 
   if (!input.id) {
-    await closeAndFail(store, 'Missing required field: id');
+    fail('Missing required field: id');
   }
   if (!input.name) {
-    await closeAndFail(store, 'Missing required field: name');
+    fail('Missing required field: name');
   }
 
-  // Store schema definition as a delta (schemas are data)
-  const pointers: any[] = [
-    { role: 'typed', target: { id: input.id, context: 'type' } },
-    { role: 'type', target: 'HyperSchema' },
-    { role: 'named', target: { id: input.id, context: 'name' } },
-    { role: 'name', target: input.name }
-  ];
+  await withStore(async (store) => {
+    const schemaId = input.id as string;
+    const schemaName = input.name as string;
 
-  // Store declared properties as additional pointers
-  if (input.properties && Array.isArray(input.properties)) {
-    for (const prop of input.properties) {
-      pointers.push(
-        { role: 'declares', target: { id: input.id, context: 'properties' } },
-        { role: 'property', target: prop }
-      );
+    // Store schema definition as a delta (schemas are data)
+    const pointers: Pointer[] = [
+      { role: 'typed', target: { id: schemaId, context: 'type' } },
+      { role: 'type', target: 'HyperSchema' },
+      { role: 'named', target: { id: schemaId, context: 'name' } },
+      { role: 'name', target: schemaName }
+    ];
+
+    // Store declared properties as additional pointers
+    if (input.properties && Array.isArray(input.properties)) {
+      for (const prop of input.properties as string[]) {
+        pointers.push(
+          { role: 'declares', target: { id: schemaId, context: 'properties' } },
+          { role: 'property', target: prop }
+        );
+      }
     }
-  }
 
-  const delta = store.createDelta(input.author || 'system', pointers);
-  await store.persistDelta(delta);
+    const delta = store.createDelta((input.author as string) || 'system', pointers);
+    await store.persistDelta(delta);
 
-  await closeAndExit(store, {
-    schemaId: input.id,
-    deltaId: delta.id,
-    name: input.name,
-    properties: input.properties || []
+    await closeAndExit(store, {
+      schemaId,
+      deltaId: delta.id,
+      name: schemaName,
+      properties: input.properties || []
+    });
   });
 });

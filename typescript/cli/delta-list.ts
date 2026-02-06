@@ -5,36 +5,37 @@
  * Output: {"deltas": [...]}
  */
 
-import { DeltaFilter } from '../src/core/types';
-import { openStore, parseInput, closeAndExit, run } from './common';
+import { Delta, DeltaFilter } from '../src/core/types';
+import { parseInput, withStore, closeAndExit, run } from './common';
 
 run(async () => {
   const input = await parseInput();
-  const store = await openStore();
 
-  const filter: DeltaFilter = {
-    includeNegated: input.includeNegated || false
-  };
+  await withStore(async (store) => {
+    const filter: DeltaFilter = {
+      includeNegated: (input.includeNegated as boolean) || false
+    };
 
-  if (input.author) {
-    filter.authors = [input.author];
-  }
-  if (input.targetId) {
-    filter.targetIds = [input.targetId];
-  }
-  if (input.after || input.before) {
-    filter.timestampRange = {};
-    if (input.after) filter.timestampRange.start = input.after;
-    if (input.before) filter.timestampRange.end = input.before;
-  }
+    if (input.author) {
+      filter.authors = [input.author as string];
+    }
+    if (input.targetId) {
+      filter.targetIds = [input.targetId as string];
+    }
+    if (input.after || input.before) {
+      filter.timestampRange = {};
+      if (input.after) filter.timestampRange.start = input.after as number;
+      if (input.before) filter.timestampRange.end = input.before as number;
+    }
 
-  const deltas: any[] = [];
-  const limit = input.limit || Infinity;
+    const deltas: Delta[] = [];
+    const limit = (input.limit as number) || Infinity;
 
-  for await (const delta of store.scanDeltas(filter)) {
-    deltas.push(delta);
-    if (deltas.length >= limit) break;
-  }
+    for await (const delta of store.scanDeltas(filter)) {
+      deltas.push(delta);
+      if (deltas.length >= limit) break;
+    }
 
-  await closeAndExit(store, { deltas, count: deltas.length });
+    await closeAndExit(store, { deltas, count: deltas.length });
+  });
 });

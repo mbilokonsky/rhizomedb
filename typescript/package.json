@@ -19,7 +19,10 @@
     "rhizome:status": "ts-node cli/status.ts",
     "rhizome:delta": "ts-node cli/delta-create.ts",
     "rhizome:query": "ts-node cli/query.ts",
-    "rhizome:negate": "ts-node cli/negate.ts"
+    "rhizome:negate": "ts-node cli/negate.ts",
+    "rhizome:claim": "ts-node cli/claim.ts",
+    "rhizome:retract": "ts-node cli/retract.ts",
+    "rhizome:relate": "ts-node cli/relate.ts"
   },
   "repository": {
     "type": "git",

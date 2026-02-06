@@ -145,6 +145,10 @@ export class RhizomeDB
   private materializedViews: LRUCache<string, MaterializedHyperView>;
   /** Reverse index: objectId → Set of cache keys for views that reference this object */
   private viewsByObjectId: Map<string, Set<string>> = new Map();
+  /** Type index: type string → Set of entity IDs with that type annotation */
+  private typeIndex: Map<string, Set<string>> = new Map();
+  /** Reverse type index: delta ID → {entityId, type} for negation cleanup */
+  private typeDeltaIndex: Map<string, { entityId: string; type: string }> = new Map();
   private cacheStats = { hits: 0, misses: 0, evictions: 0 };
   private schemaRegistry: SchemaRegistry;
   private startTime: number = Date.now();
@@ -231,6 +235,9 @@ export class RhizomeDB
 
     // Add to secondary indexes
     this.deltaIndexes.addDelta(delta);
+
+    // Maintain type index
+    this.updateTypeIndex(delta);
 
     // Publish to subscribers
     await this.publishDelta(delta);
@@ -934,35 +941,47 @@ export class RhizomeDB
    * @param type - The type value to search for (e.g., 'paper', 'bacterium')
    * @returns Array of entity IDs
    */
-  entitiesOfType(type: string): string[] {
-    const entityIds: string[] = [];
-    const seen = new Set<string>();
+  /**
+   * Maintain type index when a delta is persisted.
+   * Detects type-annotation deltas and negation deltas.
+   */
+  private updateTypeIndex(delta: Delta): void {
+    // Check if this is a type annotation delta
+    let entityId: string | null = null;
+    let typeValue: string | null = null;
 
-    for (const delta of this.deltas) {
-      // Look for deltas that annotate type: pointers with context='type' + a primitive value
-      let entityId: string | null = null;
-      let typeValue: string | null = null;
-
-      for (const pointer of delta.pointers) {
-        if (isDomainNodeReference(pointer.target) && pointer.target.context === 'type') {
-          entityId = pointer.target.id;
-        }
-        if (typeof pointer.target === 'string' && pointer.role === 'type') {
-          typeValue = pointer.target;
-        }
+    for (const pointer of delta.pointers) {
+      if (isDomainNodeReference(pointer.target) && pointer.target.context === 'type') {
+        entityId = pointer.target.id;
       }
-
-      if (entityId && typeValue === type && !seen.has(entityId)) {
-        // Check this delta isn't negated
-        const negatedIds = getNegatedDeltaIds(this.deltas);
-        if (!negatedIds.has(delta.id)) {
-          seen.add(entityId);
-          entityIds.push(entityId);
-        }
+      if (typeof pointer.target === 'string' && pointer.role === 'type') {
+        typeValue = pointer.target;
       }
     }
 
-    return entityIds;
+    if (entityId && typeValue) {
+      if (!this.typeIndex.has(typeValue)) {
+        this.typeIndex.set(typeValue, new Set());
+      }
+      this.typeIndex.get(typeValue)!.add(entityId);
+      this.typeDeltaIndex.set(delta.id, { entityId, type: typeValue });
+    }
+
+    // Check if this is a negation of a type delta
+    for (const pointer of delta.pointers) {
+      if (pointer.role === 'negates' && isDomainNodeReference(pointer.target)) {
+        const negatedEntry = this.typeDeltaIndex.get(pointer.target.id);
+        if (negatedEntry) {
+          const typeSet = this.typeIndex.get(negatedEntry.type);
+          if (typeSet) typeSet.delete(negatedEntry.entityId);
+        }
+      }
+    }
+  }
+
+  entitiesOfType(type: string): string[] {
+    const typeSet = this.typeIndex.get(type);
+    return typeSet ? Array.from(typeSet) : [];
   }
 
   /**

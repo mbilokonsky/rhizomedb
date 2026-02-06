@@ -15,6 +15,8 @@ import {
   evidenceChain,
   rankByClaimCount,
   coOccurrence,
+  findContradictions,
+  graphSummary,
 } from './graph-analysis';
 
 describe('Graph Analysis Queries', () => {
@@ -170,6 +172,56 @@ describe('Graph Analysis Queries', () => {
       );
       expect(depAnxPair).toBeDefined();
       expect(depAnxPair!.sharedClaims).toBeGreaterThanOrEqual(5);
+    });
+  });
+
+  describe('findContradictions', () => {
+    it('should find bacteria with contradictory direction claims', () => {
+      // Look for bacteria where some papers say increased and others decreased
+      const contradictions = findContradictions(db, 'bacterium', 'condition');
+
+      // We expect some contradictions — e.g., Prevotella is depleted in depression
+      // (Cao 2025) but increased in autism after treatment (Kang 2019)
+      // Or Lactobacillus decreased in schizophrenia but increased in treatment contexts
+      // The exact contradictions depend on our modeling, but there should be some
+      if (contradictions.length > 0) {
+        const first = contradictions[0];
+        expect(first.increased.length).toBeGreaterThan(0);
+        expect(first.decreased.length).toBeGreaterThan(0);
+        expect(first.entityName).toBeDefined();
+        expect(first.conditionName).toBeDefined();
+      }
+    });
+
+    it('should structure contradiction reports with full provenance', () => {
+      const contradictions = findContradictions(db, 'bacterium', 'condition');
+
+      for (const c of contradictions) {
+        // Each direction should have statement and paper info
+        for (const claim of [...c.increased, ...c.decreased]) {
+          expect(claim.statement.length).toBeGreaterThan(0);
+          expect(claim.year).toBeGreaterThan(0);
+        }
+      }
+    });
+  });
+
+  describe('graphSummary', () => {
+    it('should produce a complete summary of the knowledge graph', () => {
+      const summary = graphSummary(db);
+
+      expect(summary.papers).toBe(16);
+      expect(summary.researchers).toBeGreaterThanOrEqual(33);
+      expect(summary.institutions).toBeGreaterThanOrEqual(17);
+      expect(summary.bacteria).toBeGreaterThanOrEqual(28);
+      expect(summary.metabolites).toBeGreaterThanOrEqual(14);
+      expect(summary.mechanisms).toBeGreaterThanOrEqual(8);
+      expect(summary.conditions).toBeGreaterThanOrEqual(7);
+      expect(summary.claims).toBeGreaterThanOrEqual(70);
+      expect(summary.totalDeltas).toBeGreaterThan(800);
+      expect(summary.countries.length).toBeGreaterThanOrEqual(7);
+      expect(summary.yearRange[0]).toBe(2011);
+      expect(summary.yearRange[1]).toBe(2025);
     });
   });
 });

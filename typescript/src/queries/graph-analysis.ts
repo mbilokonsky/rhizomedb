@@ -214,3 +214,119 @@ export function coOccurrence(
   pairs.sort((a, b) => b.sharedClaims - a.sharedClaims);
   return pairs;
 }
+
+/**
+ * Find contradictions: cases where different papers make opposing claims
+ * about the same entity-condition pair. Looks for direction annotations
+ * (e.g., 'increased_in_disease' vs 'decreased_in_disease').
+ */
+export function findContradictions(
+  db: RhizomeDB,
+  entityType: string,
+  conditionType: string
+): {
+  entity: string;
+  entityName: string;
+  condition: string;
+  conditionName: string;
+  increased: { claim: string; statement: string; paper: string; year: number }[];
+  decreased: { claim: string; statement: string; paper: string; year: number }[];
+}[] {
+  const entities = db.entitiesOfType(entityType);
+  const conditions = db.entitiesOfType(conditionType);
+  const contradictions: ReturnType<typeof findContradictions> = [];
+
+  for (const entityId of entities) {
+    const entityClaims = db.relatedIds(entityId, 'claims_about', 'claim');
+    if (entityClaims.length === 0) continue;
+
+    for (const condId of conditions) {
+      const condClaims = new Set(db.relatedIds(condId, 'claims_about', 'claim'));
+
+      // Find claims that mention BOTH this entity and this condition
+      const sharedClaims = entityClaims.filter(c => condClaims.has(c));
+      if (sharedClaims.length < 2) continue;
+
+      const increased: { claim: string; statement: string; paper: string; year: number }[] = [];
+      const decreased: { claim: string; statement: string; paper: string; year: number }[] = [];
+
+      for (const claimId of sharedClaims) {
+        const resolved = db.resolve(claimId);
+        const direction = resolved.direction as string | undefined;
+        if (!direction) continue;
+
+        const papers = db.relatedIds(claimId, 'source_paper', 'source');
+        const paper = papers.length > 0 ? db.resolve(papers[0]) : { title: '', year: 0 };
+
+        const entry = {
+          claim: claimId,
+          statement: (resolved.statement as string) || '',
+          paper: (paper.title as string) || '',
+          year: (paper.year as number) || 0,
+        };
+
+        if (direction === 'increased_in_disease' || direction === 'increased_in_treatment') {
+          increased.push(entry);
+        } else if (direction === 'decreased_in_disease') {
+          decreased.push(entry);
+        }
+      }
+
+      // Only report if there are claims in BOTH directions (that's a contradiction)
+      if (increased.length > 0 && decreased.length > 0) {
+        contradictions.push({
+          entity: entityId,
+          entityName: (db.resolve(entityId).name as string) || entityId,
+          condition: condId,
+          conditionName: (db.resolve(condId).name as string) || condId,
+          increased,
+          decreased,
+        });
+      }
+    }
+  }
+
+  return contradictions;
+}
+
+/**
+ * Generate a summary report of the knowledge graph's contents.
+ */
+export function graphSummary(db: RhizomeDB): {
+  papers: number;
+  researchers: number;
+  institutions: number;
+  bacteria: number;
+  metabolites: number;
+  mechanisms: number;
+  conditions: number;
+  claims: number;
+  totalDeltas: number;
+  countries: string[];
+  yearRange: [number, number];
+} {
+  const papers = db.entitiesOfType('paper');
+  const allConditions = db.entitiesOfType('condition');
+
+  const countries = new Set<string>();
+  for (const instId of db.entitiesOfType('institution')) {
+    const resolved = db.resolve(instId);
+    if (resolved.country) countries.add(resolved.country as string);
+  }
+
+  const years = papers.map(p => db.resolve(p).year as number).filter(y => y > 0).sort();
+
+  return {
+    papers: papers.length,
+    researchers: db.entitiesOfType('researcher').length,
+    institutions: db.entitiesOfType('institution').length,
+    bacteria: db.entitiesOfType('bacterium').length,
+    metabolites: db.entitiesOfType('metabolite').length,
+    mechanisms: db.entitiesOfType('mechanism').length,
+    conditions: allConditions.length,
+    claims: db.entitiesOfType('claim').length,
+    totalDeltas: db.getStats().totalDeltas,
+    countries: Array.from(countries),
+    yearRange: [years[0] || 0, years[years.length - 1] || 0],
+  };
+}

@@ -621,6 +621,16 @@ async function seedRelationships(db: RhizomeDB, author: string): Promise<number>
   await rel('producer', ids.bact_l_helveticus, 'produces', 'product', ids.metab_gaba, 'produced_by');
   await rel('producer', ids.bact_b_infantis, 'produces', 'product', ids.metab_tryptophan, 'produced_by');
 
+  // ===== Taxonomic hierarchy: species → genus =====
+  // This allows genus-level queries to discover species-level claims
+  await rel('species', ids.bact_b_longum, 'genus', 'genus', ids.bact_bifidobacterium, 'species');
+  await rel('species', ids.bact_b_infantis, 'genus', 'genus', ids.bact_bifidobacterium, 'species');
+  await rel('species', ids.bact_l_rhamnosus, 'genus', 'genus', ids.bact_lactobacillus, 'species');
+  await rel('species', ids.bact_l_helveticus, 'genus', 'genus', ids.bact_lactobacillus, 'species');
+  await rel('species', ids.bact_l_acidophilus, 'genus', 'genus', ids.bact_lactobacillus, 'species');
+  await rel('species', ids.bact_l_casei, 'genus', 'genus', ids.bact_lactobacillus, 'species');
+  await rel('species', ids.bact_eubacterium_rectale, 'genus', 'genus', ids.bact_firmicutes, 'species');
+
   return count;
 }
 

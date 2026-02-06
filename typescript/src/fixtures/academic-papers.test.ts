@@ -586,7 +586,157 @@ describe('Academic Paper Knowledge Graph', () => {
 
       // Depression is the most studied condition
       expect(conditionSources[0].name).toBe('Major Depressive Disorder');
-      expect(conditionSources[0].paperCount).toBeGreaterThanOrEqual(5);
+      expect(conditionSources[0].paperCount).toBeGreaterThanOrEqual(10);
+    });
+  });
+
+  describe('Taxonomic hierarchy traversal', () => {
+    it('should link Lactobacillus species to the genus', () => {
+      const species = db.relatedIds(ids.bact_lactobacillus, 'species', 'species');
+      expect(species).toContain(ids.bact_l_rhamnosus);
+      expect(species).toContain(ids.bact_l_helveticus);
+      expect(species).toContain(ids.bact_l_acidophilus);
+      expect(species).toContain(ids.bact_l_casei);
+    });
+
+    it('should link Bifidobacterium species to the genus', () => {
+      const species = db.relatedIds(ids.bact_bifidobacterium, 'species', 'species');
+      expect(species).toContain(ids.bact_b_longum);
+      expect(species).toContain(ids.bact_b_infantis);
+    });
+
+    it('should find ALL claims about Lactobacillus (genus + all species)', () => {
+      // Direct genus-level claims
+      const genusClaims = db.relatedIds(ids.bact_lactobacillus, 'claims_about', 'claim');
+
+      // Species-level claims (traverse genus → species → claims)
+      const species = db.relatedIds(ids.bact_lactobacillus, 'species', 'species');
+      const allSpeciesClaims = new Set<string>();
+      for (const sp of species) {
+        const spClaims = db.relatedIds(sp, 'claims_about', 'claim');
+        for (const c of spClaims) allSpeciesClaims.add(c);
+      }
+
+      // Combined: genus-level + all species-level claims
+      const totalClaims = new Set([...genusClaims, ...allSpeciesClaims]);
+
+      // Should be more than just genus-level (species add claims from Slykerman, Messaoudi, Akkasheh, etc.)
+      expect(totalClaims.size).toBeGreaterThan(genusClaims.length);
+      expect(totalClaims.size).toBeGreaterThanOrEqual(6);
+    });
+
+    it('should find Bifidobacterium longum cited by multiple papers through species traversal', () => {
+      const blongumClaims = db.relatedIds(ids.bact_b_longum, 'claims_about', 'claim');
+      const papers = new Set<string>();
+      for (const claim of blongumClaims) {
+        const claimPapers = db.relatedIds(claim, 'source_paper', 'source');
+        for (const p of claimPapers) papers.add(p);
+      }
+      // Pinto-Sanchez 2017 and Messaoudi 2011 both use B. longum
+      expect(papers.size).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  describe('Evidence quality analysis', () => {
+    it('should score claims by study type of source paper', () => {
+      const evidenceWeights: Record<string, number> = {
+        'clinical_trial': 3,
+        'cohort': 2,
+        'review': 1,
+        'unspecified': 1,
+      };
+
+      // Find all depression claims and score by evidence quality
+      const depressionClaims = db.relatedIds(ids.cond_depression, 'claims_about', 'claim');
+
+      let totalScore = 0;
+      let clinicalTrialClaims = 0;
+
+      for (const claimEntityId of depressionClaims) {
+        const papers = db.relatedIds(claimEntityId, 'source_paper', 'source');
+        for (const paperId of papers) {
+          const paper = db.resolve(paperId);
+          const studyType = (paper.study_type as string) || 'unspecified';
+          const weight = evidenceWeights[studyType] || 1;
+          totalScore += weight;
+          if (studyType === 'clinical_trial') clinicalTrialClaims++;
+        }
+      }
+
+      // Should have multiple clinical trial-backed claims about depression
+      expect(clinicalTrialClaims).toBeGreaterThanOrEqual(3);
+      expect(totalScore).toBeGreaterThan(depressionClaims.length); // weighted > count
+    });
+
+    it('should find bacteria with clinical trial evidence vs review-only evidence', () => {
+      const allBacteria = db.entitiesOfType('bacterium');
+
+      const clinicalTrialBacteria: string[] = [];
+      const reviewOnlyBacteria: string[] = [];
+
+      for (const bacteriumId of allBacteria) {
+        const claims = db.relatedIds(bacteriumId, 'claims_about', 'claim');
+        if (claims.length === 0) continue;
+
+        let hasClinicalTrial = false;
+        let hasAnyEvidence = false;
+
+        for (const claim of claims) {
+          const papers = db.relatedIds(claim, 'source_paper', 'source');
+          for (const paperId of papers) {
+            const paper = db.resolve(paperId);
+            hasAnyEvidence = true;
+            if (paper.study_type === 'clinical_trial') hasClinicalTrial = true;
+          }
+        }
+
+        if (!hasAnyEvidence) continue;
+        if (hasClinicalTrial) {
+          clinicalTrialBacteria.push(bacteriumId);
+        } else {
+          reviewOnlyBacteria.push(bacteriumId);
+        }
+      }
+
+      // Some bacteria (B. longum, L. rhamnosus) have clinical trial backing
+      expect(clinicalTrialBacteria.length).toBeGreaterThanOrEqual(3);
+      // Some bacteria only appear in reviews
+      expect(reviewOnlyBacteria.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('should answer: "what is the strongest evidence for the butyrate-depression connection?"', () => {
+      const butyrateClaims = db.relatedIds(ids.metab_butyrate, 'claims_about', 'claim');
+
+      const evidenceChain: {
+        statement: string;
+        paper: string;
+        journal: string;
+        studyType: string;
+        year: number;
+      }[] = [];
+
+      for (const claim of butyrateClaims) {
+        const claimResolved = db.resolve(claim);
+        const papers = db.relatedIds(claim, 'source_paper', 'source');
+        for (const paperId of papers) {
+          const paper = db.resolve(paperId);
+          evidenceChain.push({
+            statement: (claimResolved.statement as string) || '',
+            paper: paper.title as string,
+            journal: paper.journal as string,
+            studyType: (paper.study_type as string) || 'unspecified',
+            year: paper.year as number,
+          });
+        }
+      }
+
+      // Should have evidence from multiple study types
+      const types = new Set(evidenceChain.map(e => e.studyType));
+      expect(types.size).toBeGreaterThanOrEqual(2);
+
+      // Should span multiple years
+      const years = evidenceChain.map(e => e.year);
+      expect(Math.max(...years) - Math.min(...years)).toBeGreaterThanOrEqual(3);
     });
   });
 });

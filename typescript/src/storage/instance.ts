@@ -926,6 +926,74 @@ export class RhizomeDB
   }
 
   /**
+   * Find all entity IDs that have been annotated with a given type value.
+   *
+   * Scans deltas for annotations where context='type' and the primitive value
+   * matches the given type string.
+   *
+   * @param type - The type value to search for (e.g., 'paper', 'bacterium')
+   * @returns Array of entity IDs
+   */
+  entitiesOfType(type: string): string[] {
+    const entityIds: string[] = [];
+    const seen = new Set<string>();
+
+    for (const delta of this.deltas) {
+      // Look for deltas that annotate type: pointers with context='type' + a primitive value
+      let entityId: string | null = null;
+      let typeValue: string | null = null;
+
+      for (const pointer of delta.pointers) {
+        if (isDomainNodeReference(pointer.target) && pointer.target.context === 'type') {
+          entityId = pointer.target.id;
+        }
+        if (typeof pointer.target === 'string' && pointer.role === 'type') {
+          typeValue = pointer.target;
+        }
+      }
+
+      if (entityId && typeValue === type && !seen.has(entityId)) {
+        // Check this delta isn't negated
+        const negatedIds = getNegatedDeltaIds(this.deltas);
+        if (!negatedIds.has(delta.id)) {
+          seen.add(entityId);
+          entityIds.push(entityId);
+        }
+      }
+    }
+
+    return entityIds;
+  }
+
+  /**
+   * Discover what properties (contexts) an entity has deltas for.
+   *
+   * Returns the set of context names found across all non-negated deltas
+   * that reference this entity ID.
+   *
+   * @param entityId - The entity to inspect
+   * @returns Array of property/context names
+   */
+  entityProperties(entityId: string): string[] {
+    const contexts = new Set<string>();
+    const negatedIds = getNegatedDeltaIds(this.deltas);
+
+    for (const delta of this.deltas) {
+      if (negatedIds.has(delta.id)) continue;
+
+      for (const pointer of delta.pointers) {
+        if (isDomainNodeReference(pointer.target) &&
+            pointer.target.id === entityId &&
+            pointer.target.context) {
+          contexts.add(pointer.target.context);
+        }
+      }
+    }
+
+    return Array.from(contexts);
+  }
+
+  /**
    * Clear all data (useful for testing)
    */
   clear(): void {

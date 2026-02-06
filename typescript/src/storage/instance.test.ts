@@ -427,6 +427,45 @@ describe('RhizomeDB', () => {
     });
   });
 
+  describe('Collection Queries', () => {
+    it('entitiesOfType() should find entities annotated with a given type', async () => {
+      const freshDb = new RhizomeDB({ storage: 'memory' });
+      await freshDb.annotate('person_1', 'type', 'person', 'author_1');
+      await freshDb.annotate('person_1', 'name', 'Alice', 'author_1');
+      await freshDb.annotate('person_2', 'type', 'person', 'author_1');
+      await freshDb.annotate('post_1', 'type', 'post', 'author_1');
+
+      const people = freshDb.entitiesOfType('person');
+      expect(people).toHaveLength(2);
+      expect(people).toContain('person_1');
+      expect(people).toContain('person_2');
+
+      const posts = freshDb.entitiesOfType('post');
+      expect(posts).toHaveLength(1);
+      expect(posts).toContain('post_1');
+    });
+
+    it('entitiesOfType() should return empty for unknown type', () => {
+      expect(db.entitiesOfType('nonexistent')).toEqual([]);
+    });
+
+    it('entityProperties() should return all contexts for an entity', async () => {
+      const freshDb = new RhizomeDB({ storage: 'memory' });
+      await freshDb.annotate('entity_1', 'name', 'Alice', 'author_1');
+      await freshDb.annotate('entity_1', 'age', 30, 'author_1');
+      await freshDb.relate('parent', 'entity_1', 'children', 'child', 'entity_2', 'parent', 'author_1');
+
+      const props = freshDb.entityProperties('entity_1');
+      expect(props).toContain('name');
+      expect(props).toContain('age');
+      expect(props).toContain('children');
+    });
+
+    it('entityProperties() should return empty for unknown entity', () => {
+      expect(db.entityProperties('nonexistent')).toEqual([]);
+    });
+  });
+
   describe('Statistics', () => {
     it('should track instance statistics', async () => {
       const delta1 = db.createDelta('author_1', [{ role: 'test', target: 'value' }]);

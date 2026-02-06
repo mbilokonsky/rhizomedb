@@ -25,6 +25,7 @@ import {
   conditionSimilarity,
   studyTypeBreakdown,
   entityProfile,
+  researchFrontier,
 } from './graph-analysis';
 
 describe('Graph Analysis Queries', () => {
@@ -555,6 +556,79 @@ describe('Graph Analysis Queries', () => {
 
       const produces = profile.metabolites.filter(m => m.relationship === 'produces');
       expect(produces.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe('researchFrontier', () => {
+    it('should identify under-studied conditions', () => {
+      const frontier = researchFrontier(db);
+
+      // All conditions should be listed, sorted by fewest papers first
+      expect(frontier.understudiedConditions.length).toBeGreaterThanOrEqual(10);
+      // First entry should have the fewest papers
+      expect(frontier.understudiedConditions[0].paperCount)
+        .toBeLessThanOrEqual(frontier.understudiedConditions[frontier.understudiedConditions.length - 1].paperCount);
+    });
+
+    it('should find translational gaps (animal-only bacteria)', () => {
+      const frontier = researchFrontier(db);
+
+      // There should be some bacteria with only animal evidence
+      if (frontier.translationalGaps.length > 0) {
+        for (const gap of frontier.translationalGaps) {
+          expect(gap.animalStudies).toBeGreaterThan(0);
+          expect(gap.humanStudies).toBe(0);
+        }
+      }
+    });
+
+    it('should detect temporal gaps (5-year windows with few papers)', () => {
+      const frontier = researchFrontier(db);
+
+      expect(frontier.temporalGaps.length).toBeGreaterThan(0);
+      // Sorted by fewest papers first
+      expect(frontier.temporalGaps[0].paperCount)
+        .toBeLessThanOrEqual(frontier.temporalGaps[frontier.temporalGaps.length - 1].paperCount);
+    });
+
+    it('should find geographic blind spots per condition', () => {
+      const frontier = researchFrontier(db);
+
+      expect(frontier.geographicBlindSpots.length).toBeGreaterThan(0);
+      // Each blind spot should list missing regions
+      for (const spot of frontier.geographicBlindSpots) {
+        expect(spot.missingRegions.length).toBeGreaterThan(0);
+      }
+    });
+
+    it('should map causal evidence (FMT/RCT/animal) per condition', () => {
+      const frontier = researchFrontier(db);
+
+      // Depression should have RCT and animal model evidence
+      const depression = frontier.causalEvidenceMap.find(c => c.condition.includes('depressive'));
+      expect(depression).toBeDefined();
+      expect(depression!.hasRCT).toBe(true);
+      expect(depression!.hasAnimalModel).toBe(true);
+
+      // ADHD should have FMT evidence (Tengeler 2020)
+      const adhd = frontier.causalEvidenceMap.find(c => c.condition.includes('attention'));
+      expect(adhd).toBeDefined();
+      expect(adhd!.hasFMT).toBe(true);
+
+      // PD should have animal model evidence (Sampson 2016)
+      const pd = frontier.causalEvidenceMap.find(c => c.condition.includes('parkinsons'));
+      expect(pd).toBeDefined();
+      expect(pd!.hasAnimalModel).toBe(true);
+    });
+
+    it('should identify high-leverage mechanisms (high convergence, few papers)', () => {
+      const frontier = researchFrontier(db);
+
+      // These are mechanisms with high convergence score but studied by few papers
+      for (const mech of frontier.highLeverageMechanisms) {
+        expect(mech.paperCount).toBeLessThanOrEqual(3);
+        expect(mech.convergenceScore).toBeGreaterThanOrEqual(4);
+      }
     });
   });
 

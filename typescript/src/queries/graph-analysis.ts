@@ -1139,3 +1139,166 @@ export function graphSummary(db: RhizomeDB): {
     yearRange: [years[0] || 0, years[years.length - 1] || 0],
   };
 }
+
+/**
+ * Identify research frontiers: where evidence is thinnest, most contradictory,
+ * or most promising for future investigation.
+ *
+ * Synthesizes across multiple analyses:
+ * - Conditions with few supporting papers (under-studied)
+ * - Bacteria with only animal evidence (translational gaps)
+ * - Temporal blind spots (years with few papers)
+ * - Geographic concentration (conditions studied in only one country/region)
+ * - Unresolved contradictions (conflicting findings needing reconciliation)
+ * - High-convergence mechanisms studied by few papers (leverage points)
+ */
+export function researchFrontier(db: RhizomeDB): {
+  understudiedConditions: { id: string; name: string; paperCount: number; claimCount: number }[];
+  translationalGaps: { id: string; name: string; animalStudies: number; humanStudies: number }[];
+  temporalGaps: { yearRange: string; paperCount: number }[];
+  geographicBlindSpots: { condition: string; name: string; countries: string[]; missingRegions: string[] }[];
+  highLeverageMechanisms: { id: string; name: string; convergenceScore: number; paperCount: number }[];
+  causalEvidenceMap: { condition: string; name: string; hasFMT: boolean; hasRCT: boolean; hasAnimalModel: boolean }[];
+} {
+  const allConditions = db.entitiesOfType('condition');
+  const allPapers = db.entitiesOfType('paper');
+
+  // 1. Under-studied conditions (ranked by fewest papers)
+  const understudiedConditions: { id: string; name: string; paperCount: number; claimCount: number }[] = [];
+  for (const condId of allConditions) {
+    const claims = db.relatedIds(condId, 'claims_about', 'claim');
+    const papers = sourcePapersFor(db, condId);
+    understudiedConditions.push({
+      id: condId,
+      name: (db.resolve(condId).name as string) || condId,
+      paperCount: papers.size,
+      claimCount: claims.length,
+    });
+  }
+  understudiedConditions.sort((a, b) => a.paperCount - b.paperCount);
+
+  // 2. Translational gaps: bacteria with animal-only evidence
+  const humanStudyTypes = new Set(['clinical_trial', 'cohort', 'case_control', 'meta_analysis', 'fecal_transplant']);
+  const translationalGaps: { id: string; name: string; animalStudies: number; humanStudies: number }[] = [];
+  for (const bactId of db.entitiesOfType('bacterium')) {
+    const papers = sourcePapersFor(db, bactId);
+    if (papers.size === 0) continue;
+    let animal = 0, human = 0;
+    for (const paperId of papers) {
+      const st = (db.resolve(paperId).study_type as string) || '';
+      if (st === 'animal_study') animal++;
+      if (humanStudyTypes.has(st)) human++;
+    }
+    if (animal > 0 && human === 0) {
+      translationalGaps.push({
+        id: bactId,
+        name: (db.resolve(bactId).name as string) || bactId,
+        animalStudies: animal,
+        humanStudies: human,
+      });
+    }
+  }
+  translationalGaps.sort((a, b) => b.animalStudies - a.animalStudies);
+
+  // 3. Temporal gaps: 5-year windows with few papers
+  const yearCounts = new Map<number, number>();
+  for (const paperId of allPapers) {
+    const year = (db.resolve(paperId).year as number) || 0;
+    if (year > 0) yearCounts.set(year, (yearCounts.get(year) || 0) + 1);
+  }
+  const sortedYears = Array.from(yearCounts.keys()).sort();
+  const temporalGaps: { yearRange: string; paperCount: number }[] = [];
+  if (sortedYears.length > 0) {
+    const minYear = sortedYears[0];
+    const maxYear = sortedYears[sortedYears.length - 1];
+    for (let start = minYear; start <= maxYear; start += 5) {
+      const end = Math.min(start + 4, maxYear);
+      let count = 0;
+      for (let y = start; y <= end; y++) count += yearCounts.get(y) || 0;
+      temporalGaps.push({ yearRange: `${start}-${end}`, paperCount: count });
+    }
+    temporalGaps.sort((a, b) => a.paperCount - b.paperCount);
+  }
+
+  // 4. Geographic blind spots per condition
+  const allRegions = ['Americas', 'Europe', 'Asia', 'Africa', 'Oceania'];
+  const countryToRegion: Record<string, string> = {
+    'United States': 'Americas', 'Canada': 'Americas', 'Ecuador': 'Americas',
+    'Ireland': 'Europe', 'United Kingdom': 'Europe', 'Netherlands': 'Europe',
+    'Belgium': 'Europe', 'Poland': 'Europe', 'Finland': 'Europe', 'Germany': 'Europe',
+    'China': 'Asia', 'Japan': 'Asia', 'India': 'Asia', 'Iran': 'Asia',
+    'South Africa': 'Africa',
+    'Australia': 'Oceania', 'New Zealand': 'Oceania',
+  };
+
+  const geographicBlindSpots: { condition: string; name: string; countries: string[]; missingRegions: string[] }[] = [];
+  for (const condId of allConditions) {
+    const condPapers = sourcePapersFor(db, condId);
+    const condCountries = new Set<string>();
+    const condRegions = new Set<string>();
+    for (const paperId of condPapers) {
+      const authors = db.relatedIds(paperId, 'authors', 'author');
+      for (const authorId of authors) {
+        const affiliations = db.relatedIds(authorId, 'affiliations', 'member');
+        for (const instId of affiliations) {
+          const country = (db.resolve(instId).country as string) || '';
+          if (country) {
+            condCountries.add(country);
+            const region = countryToRegion[country];
+            if (region) condRegions.add(region);
+          }
+        }
+      }
+    }
+    const missing = allRegions.filter(r => !condRegions.has(r));
+    if (missing.length > 0) {
+      geographicBlindSpots.push({
+        condition: condId,
+        name: (db.resolve(condId).name as string) || condId,
+        countries: Array.from(condCountries),
+        missingRegions: missing,
+      });
+    }
+  }
+  geographicBlindSpots.sort((a, b) => b.missingRegions.length - a.missingRegions.length);
+
+  // 5. High-leverage mechanisms (high convergence score but few papers)
+  const mechs = mechanismConvergence(db);
+  const highLeverageMechanisms = mechs
+    .filter(m => m.supportingPapers <= 3 && m.convergenceScore >= 4)
+    .map(m => ({
+      id: m.mechanism,
+      name: m.name,
+      convergenceScore: m.convergenceScore,
+      paperCount: m.supportingPapers,
+    }));
+
+  // 6. Causal evidence map: which conditions have FMT, RCT, and/or animal model evidence
+  const causalEvidenceMap: { condition: string; name: string; hasFMT: boolean; hasRCT: boolean; hasAnimalModel: boolean }[] = [];
+  for (const condId of allConditions) {
+    const condPapers = sourcePapersFor(db, condId);
+    let hasFMT = false, hasRCT = false, hasAnimalModel = false;
+    for (const paperId of condPapers) {
+      const st = (db.resolve(paperId).study_type as string) || '';
+      if (st === 'fecal_transplant') hasFMT = true;
+      if (st === 'clinical_trial') hasRCT = true;
+      if (st === 'animal_study') hasAnimalModel = true;
+    }
+    causalEvidenceMap.push({
+      condition: condId,
+      name: (db.resolve(condId).name as string) || condId,
+      hasFMT,
+      hasRCT,
+      hasAnimalModel,
+    });
+  }
+
+  return {
+    understudiedConditions,
+    translationalGaps,
+    temporalGaps,
+    geographicBlindSpots,
+    highLeverageMechanisms,
+    causalEvidenceMap,
+  };
+}

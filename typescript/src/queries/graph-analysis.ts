@@ -215,10 +215,15 @@ export function coOccurrence(
   return pairs;
 }
 
+type DirectionEntry = { claim: string; statement: string; paper: string; year: number; studyType: string };
+
 /**
  * Find contradictions: cases where different papers make opposing claims
  * about the same entity-condition pair. Looks for direction annotations
- * (e.g., 'increased_in_disease' vs 'decreased_in_disease').
+ * (e.g., 'increased_in_disease' vs 'decreased_in_disease' vs 'no_effect').
+ *
+ * A null result (no_effect) from a clinical trial contradicts a positive
+ * animal study finding — the contradiction categories reflect this.
  */
 export function findContradictions(
   db: RhizomeDB,
@@ -229,8 +234,9 @@ export function findContradictions(
   entityName: string;
   condition: string;
   conditionName: string;
-  increased: { claim: string; statement: string; paper: string; year: number }[];
-  decreased: { claim: string; statement: string; paper: string; year: number }[];
+  increased: DirectionEntry[];
+  decreased: DirectionEntry[];
+  noEffect: DirectionEntry[];
 }[] {
   const entities = db.entitiesOfType(entityType);
   const conditions = db.entitiesOfType(conditionType);
@@ -247,8 +253,9 @@ export function findContradictions(
       const sharedClaims = entityClaims.filter(c => condClaims.has(c));
       if (sharedClaims.length < 2) continue;
 
-      const increased: { claim: string; statement: string; paper: string; year: number }[] = [];
-      const decreased: { claim: string; statement: string; paper: string; year: number }[] = [];
+      const increased: DirectionEntry[] = [];
+      const decreased: DirectionEntry[] = [];
+      const noEffect: DirectionEntry[] = [];
 
       for (const claimId of sharedClaims) {
         const resolved = db.resolve(claimId);
@@ -256,24 +263,28 @@ export function findContradictions(
         if (!direction) continue;
 
         const papers = db.relatedIds(claimId, 'source_paper', 'source');
-        const paper = papers.length > 0 ? db.resolve(papers[0]) : { title: '', year: 0 };
+        const paper = papers.length > 0 ? db.resolve(papers[0]) : { title: '', year: 0, study_type: '' };
 
-        const entry = {
+        const entry: DirectionEntry = {
           claim: claimId,
           statement: (resolved.statement as string) || '',
           paper: (paper.title as string) || '',
           year: (paper.year as number) || 0,
+          studyType: (paper.study_type as string) || 'unspecified',
         };
 
         if (direction === 'increased_in_disease' || direction === 'increased_in_treatment') {
           increased.push(entry);
         } else if (direction === 'decreased_in_disease') {
           decreased.push(entry);
+        } else if (direction === 'no_effect') {
+          noEffect.push(entry);
         }
       }
 
-      // Only report if there are claims in BOTH directions (that's a contradiction)
-      if (increased.length > 0 && decreased.length > 0) {
+      // Report if there are claims in multiple directions
+      const categories = [increased.length > 0, decreased.length > 0, noEffect.length > 0].filter(Boolean).length;
+      if (categories >= 2) {
         contradictions.push({
           entity: entityId,
           entityName: (db.resolve(entityId).name as string) || entityId,
@@ -281,12 +292,72 @@ export function findContradictions(
           conditionName: (db.resolve(condId).name as string) || condId,
           increased,
           decreased,
+          noEffect,
         });
       }
     }
   }
 
   return contradictions;
+}
+
+/**
+ * Build a temporal trajectory for an entity: how understanding evolves over time.
+ * Returns claims organized by year with full provenance.
+ */
+export function temporalTrajectory(
+  db: RhizomeDB,
+  entityId: string
+): {
+  year: number;
+  claims: {
+    statement: string;
+    direction?: string;
+    paper: string;
+    journal: string;
+    studyType: string;
+    conditions: string[];
+  }[];
+}[] {
+  const claims = db.relatedIds(entityId, 'claims_about', 'claim');
+
+  const byYear = new Map<number, {
+    statement: string;
+    direction?: string;
+    paper: string;
+    journal: string;
+    studyType: string;
+    conditions: string[];
+  }[]>();
+
+  for (const claimId of claims) {
+    const resolved = db.resolve(claimId);
+    const papers = db.relatedIds(claimId, 'source_paper', 'source');
+    if (papers.length === 0) continue;
+
+    const paper = db.resolve(papers[0]);
+    const year = (paper.year as number) || 0;
+    if (year === 0) continue;
+
+    const condIds = db.relatedIds(claimId, 'conditions', 'subject');
+    const condNames = condIds.map(c => (db.resolve(c).name as string) || c);
+
+    const entry = {
+      statement: (resolved.statement as string) || '',
+      direction: resolved.direction as string | undefined,
+      paper: (paper.title as string) || '',
+      journal: (paper.journal as string) || '',
+      studyType: (paper.study_type as string) || 'unspecified',
+      conditions: condNames,
+    };
+
+    if (!byYear.has(year)) byYear.set(year, []);
+    byYear.get(year)!.push(entry);
+  }
+
+  return Array.from(byYear.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([year, claims]) => ({ year, claims }));
 }
 
 /**

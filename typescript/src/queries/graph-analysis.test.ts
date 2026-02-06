@@ -19,6 +19,7 @@ import {
   graphSummary,
   pathwayBetween,
   researcherNetwork,
+  temporalTrajectory,
 } from './graph-analysis';
 
 describe('Graph Analysis Queries', () => {
@@ -179,32 +180,81 @@ describe('Graph Analysis Queries', () => {
 
   describe('findContradictions', () => {
     it('should find bacteria with contradictory direction claims', () => {
-      // Look for bacteria where some papers say increased and others decreased
       const contradictions = findContradictions(db, 'bacterium', 'condition');
 
-      // We expect some contradictions — e.g., Prevotella is depleted in depression
-      // (Cao 2025) but increased in autism after treatment (Kang 2019)
-      // Or Lactobacillus decreased in schizophrenia but increased in treatment contexts
-      // The exact contradictions depend on our modeling, but there should be some
-      if (contradictions.length > 0) {
-        const first = contradictions[0];
-        expect(first.increased.length).toBeGreaterThan(0);
-        expect(first.decreased.length).toBeGreaterThan(0);
-        expect(first.entityName).toBeDefined();
-        expect(first.conditionName).toBeDefined();
-      }
+      expect(contradictions.length).toBeGreaterThan(0);
+      const first = contradictions[0];
+      expect(first.entityName).toBeDefined();
+      expect(first.conditionName).toBeDefined();
     });
 
-    it('should structure contradiction reports with full provenance', () => {
+    it('should structure contradiction reports with full provenance including study type', () => {
       const contradictions = findContradictions(db, 'bacterium', 'condition');
 
       for (const c of contradictions) {
-        // Each direction should have statement and paper info
-        for (const claim of [...c.increased, ...c.decreased]) {
+        for (const claim of [...c.increased, ...c.decreased, ...c.noEffect]) {
           expect(claim.statement.length).toBeGreaterThan(0);
           expect(claim.year).toBeGreaterThan(0);
+          expect(claim.studyType).toBeDefined();
         }
       }
+    });
+
+    it('should find no_effect contradictions (Kelly 2017 vs positive claims)', () => {
+      const contradictions = findContradictions(db, 'bacterium', 'condition');
+
+      // L. rhamnosus has decreased_in_disease (Bravo 2011 animal) AND no_effect (Kelly 2017 human)
+      const lRhamnosusContradictions = contradictions.filter(c =>
+        c.entity === ids.bact_l_rhamnosus
+      );
+
+      // There should be at least one contradiction involving L. rhamnosus
+      // that includes no_effect claims
+      const hasNoEffect = lRhamnosusContradictions.some(c => c.noEffect.length > 0);
+      expect(hasNoEffect).toBe(true);
+    });
+  });
+
+  describe('temporalTrajectory', () => {
+    it('should trace L. rhamnosus understanding over time', () => {
+      const trajectory = temporalTrajectory(db, ids.bact_l_rhamnosus);
+
+      expect(trajectory.length).toBeGreaterThanOrEqual(2);
+      // Should span 2011 (Bravo) to 2017 (Kelly/Slykerman)
+      expect(trajectory[0].year).toBeLessThanOrEqual(2011);
+      expect(trajectory[trajectory.length - 1].year).toBeGreaterThanOrEqual(2017);
+    });
+
+    it('should show depression understanding evolving from 2004 to 2025', () => {
+      const trajectory = temporalTrajectory(db, ids.cond_depression);
+
+      // Should have entries across many years
+      expect(trajectory.length).toBeGreaterThanOrEqual(8);
+      // Earliest depression claim is 2011 (Bravo/Messaoudi), latest 2025
+      expect(trajectory[0].year).toBeLessThanOrEqual(2013);
+      expect(trajectory[trajectory.length - 1].year).toBe(2025);
+
+      // Early entries should be animal/review, later entries more clinical trials
+      const earlyStudyTypes = trajectory.slice(0, 3).flatMap(t => t.claims.map(c => c.studyType));
+      expect(earlyStudyTypes.some(t => t === 'animal_study' || t === 'review')).toBe(true);
+    });
+
+    it('should track the kynurenine pathway emergence (2016+)', () => {
+      const trajectory = temporalTrajectory(db, ids.mech_kynurenine_pathway);
+
+      expect(trajectory.length).toBeGreaterThanOrEqual(3);
+      // First mention should be 2016 (Zheng or Kelly)
+      expect(trajectory[0].year).toBe(2016);
+    });
+
+    it('should show butyrate claims spanning from reviews to meta-analyses', () => {
+      const trajectory = temporalTrajectory(db, ids.metab_butyrate);
+
+      expect(trajectory.length).toBeGreaterThanOrEqual(3);
+
+      const studyTypes = trajectory.flatMap(t => t.claims.map(c => c.studyType));
+      const uniqueTypes = new Set(studyTypes);
+      expect(uniqueTypes.size).toBeGreaterThanOrEqual(2);
     });
   });
 

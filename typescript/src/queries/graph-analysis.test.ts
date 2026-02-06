@@ -22,6 +22,7 @@ import {
   temporalTrajectory,
   novelConnections,
   mechanismConvergence,
+  studyTypeBreakdown,
 } from './graph-analysis';
 
 describe('Graph Analysis Queries', () => {
@@ -402,6 +403,40 @@ describe('Graph Analysis Queries', () => {
       for (const mech of convergence) {
         expect(mech.claimSummaries.length).toBeGreaterThanOrEqual(1);
         expect(mech.claimSummaries[0].length).toBeGreaterThan(0);
+      }
+    });
+  });
+
+  describe('studyTypeBreakdown', () => {
+    it('should categorize papers by study type', () => {
+      const breakdown = studyTypeBreakdown(db);
+
+      // Should have multiple study types
+      expect(breakdown.byStudyType.length).toBeGreaterThanOrEqual(4);
+
+      // Total papers across types should equal total papers
+      const totalPapers = breakdown.byStudyType.reduce((sum, t) => sum + t.count, 0);
+      expect(totalPapers).toBe(27);
+    });
+
+    it('should include clinical trials and animal studies', () => {
+      const breakdown = studyTypeBreakdown(db);
+      const types = breakdown.byStudyType.map(t => t.type);
+
+      expect(types).toContain('clinical_trial');
+      expect(types).toContain('animal_study');
+      expect(types).toContain('cohort');
+    });
+
+    it('should identify translational gaps (animal-only bacteria)', () => {
+      const breakdown = studyTypeBreakdown(db);
+
+      // There should be some bacteria with only animal/review evidence
+      // (not all bacteria have been studied in human clinical trials)
+      if (breakdown.translationalGaps.length > 0) {
+        const gap = breakdown.translationalGaps[0];
+        expect(gap.name.length).toBeGreaterThan(0);
+        expect(gap.hasHumanEvidence).toBe(false);
       }
     });
   });

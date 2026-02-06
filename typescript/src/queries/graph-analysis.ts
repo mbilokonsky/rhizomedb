@@ -38,8 +38,12 @@ export function consensusScore(db: RhizomeDB, entityId: string): {
   studyTypes: string[];
 } {
   const evidenceWeights: Record<string, number> = {
+    'meta_analysis': 4,
     'clinical_trial': 3,
     'cohort': 2,
+    'case_control': 2,
+    'fecal_transplant': 3,
+    'animal_study': 1,
     'review': 1,
   };
 
@@ -797,6 +801,73 @@ export function mechanismConvergence(db: RhizomeDB): {
 
   results.sort((a, b) => b.convergenceScore - a.convergenceScore);
   return results;
+}
+
+/**
+ * Break down evidence quality across the knowledge graph.
+ * Shows how many papers of each study type support claims for each entity type.
+ * Useful for identifying where evidence is thin (mostly reviews/animal studies)
+ * vs strong (clinical trials, meta-analyses).
+ */
+export function studyTypeBreakdown(db: RhizomeDB): {
+  byStudyType: { type: string; count: number; papers: string[] }[];
+  translationalGaps: {
+    entity: string;
+    name: string;
+    animalOnly: boolean;
+    hasHumanEvidence: boolean;
+    studyTypes: string[];
+  }[];
+} {
+  const papers = db.entitiesOfType('paper');
+  const studyTypeCounts = new Map<string, { count: number; papers: string[] }>();
+
+  for (const paperId of papers) {
+    const paper = db.resolve(paperId);
+    const st = (paper.study_type as string) || 'unspecified';
+    if (!studyTypeCounts.has(st)) studyTypeCounts.set(st, { count: 0, papers: [] });
+    const entry = studyTypeCounts.get(st)!;
+    entry.count++;
+    entry.papers.push((paper.title as string) || paperId);
+  }
+
+  const byStudyType = Array.from(studyTypeCounts.entries())
+    .map(([type, { count, papers }]) => ({ type, count, papers }))
+    .sort((a, b) => b.count - a.count);
+
+  // Find translational gaps: entities supported only by animal studies
+  const humanTypes = new Set(['clinical_trial', 'cohort', 'case_control', 'meta_analysis', 'fecal_transplant']);
+  const bacteria = db.entitiesOfType('bacterium');
+  const translationalGaps: {
+    entity: string; name: string; animalOnly: boolean;
+    hasHumanEvidence: boolean; studyTypes: string[];
+  }[] = [];
+
+  for (const bactId of bacteria) {
+    const bactPapers = sourcePapersFor(db, bactId);
+    if (bactPapers.size === 0) continue;
+
+    const types = new Set<string>();
+    for (const paperId of bactPapers) {
+      const paper = db.resolve(paperId);
+      types.add((paper.study_type as string) || 'unspecified');
+    }
+
+    const hasHuman = Array.from(types).some(t => humanTypes.has(t));
+    const animalOnly = types.size === 1 && types.has('animal_study');
+
+    if (!hasHuman || animalOnly) {
+      translationalGaps.push({
+        entity: bactId,
+        name: (db.resolve(bactId).name as string) || bactId,
+        animalOnly,
+        hasHumanEvidence: hasHuman,
+        studyTypes: Array.from(types),
+      });
+    }
+  }
+
+  return { byStudyType, translationalGaps };
 }
 
 /**

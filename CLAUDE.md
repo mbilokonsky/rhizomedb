@@ -9,7 +9,6 @@ RhizomeDB is a rhizomatic database using immutable delta-CRDTs as hyperedges in 
 - **No single source of truth.** Different observers can hold different views of the same data via query-time assembly.
 - **Schemas are data.** Everything except the Delta schema itself is composed of deltas. Schemas flow through the system like any other data.
 - **Anti-imperial by design.** No forced consensus, no last-write-wins, no central authority. Trust-based resolution at the query layer. "Who holds the deltas and who chooses the resolution strategy" is a governance question baked into the data layer.
-- **MCP is transitional.** The MCP server exists but MCP as a standard is likely dissolving as agents move toward local harnesses with shell access. The real integration story is RhizomeDB as a library/local process, with federation between instances via delta exchange over any available transport.
 
 ### The Frontier (within sight)
 
@@ -23,6 +22,8 @@ RhizomeDB is a rhizomatic database using immutable delta-CRDTs as hyperedges in 
 - Not a startup. Not a product. Not patented.
 - Ideally released through the distributed agent ecosystem rather than through traditional human-founder channels
 - The architecture should distribute itself rhizomatically
+- **MCP is transitional.** The MCP server exists but MCP as a standard is likely dissolving as agents move toward local harnesses with shell access. The real integration story is RhizomeDB as a library/local process, with federation between instances via delta exchange over any available transport.
+
 
 ---
 

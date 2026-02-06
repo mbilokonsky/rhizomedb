@@ -549,13 +549,75 @@ export function researcherNetwork(db: RhizomeDB): {
 }
 
 /**
+ * Build a shared adjacency map for the entire knowledge graph.
+ * Used by novelConnections and mechanismConvergence to avoid
+ * rebuilding adjacency per BFS call.
+ */
+function buildGlobalAdjacency(db: RhizomeDB): Map<string, { entity: string; name: string }[]> {
+  const adjacency = new Map<string, { entity: string; name: string }[]>();
+  const resolveCache = new Map<string, string>();
+
+  function resolveName(entityId: string): string {
+    if (resolveCache.has(entityId)) return resolveCache.get(entityId)!;
+    const name = (db.resolve(entityId).name as string) || entityId;
+    resolveCache.set(entityId, name);
+    return name;
+  }
+
+  // Collect all entities that participate in claims
+  const allClaims = db.entitiesOfType('claim');
+  for (const claimId of allClaims) {
+    const participants: string[] = [];
+    for (const rel of ['bacteria', 'metabolites', 'mechanisms', 'conditions']) {
+      const subjects = db.relatedIds(claimId, rel, 'subject');
+      for (const s of subjects) participants.push(s);
+    }
+    // Every participant is a neighbor of every other participant
+    for (let i = 0; i < participants.length; i++) {
+      for (let j = i + 1; j < participants.length; j++) {
+        const a = participants[i], b = participants[j];
+        if (!adjacency.has(a)) adjacency.set(a, []);
+        if (!adjacency.has(b)) adjacency.set(b, []);
+        adjacency.get(a)!.push({ entity: b, name: resolveName(b) });
+        adjacency.get(b)!.push({ entity: a, name: resolveName(a) });
+      }
+    }
+  }
+
+  // Production relationships
+  for (const entityId of db.entitiesOfType('bacterium')) {
+    for (const product of db.relatedIds(entityId, 'produces', 'product')) {
+      if (!adjacency.has(entityId)) adjacency.set(entityId, []);
+      if (!adjacency.has(product)) adjacency.set(product, []);
+      adjacency.get(entityId)!.push({ entity: product, name: resolveName(product) });
+      adjacency.get(product)!.push({ entity: entityId, name: resolveName(entityId) });
+    }
+  }
+
+  // Deduplicate neighbors
+  for (const [entityId, neighbors] of adjacency) {
+    const seen = new Set<string>();
+    const deduped: { entity: string; name: string }[] = [];
+    for (const n of neighbors) {
+      if (!seen.has(n.entity)) {
+        seen.add(n.entity);
+        deduped.push(n);
+      }
+    }
+    adjacency.set(entityId, deduped);
+  }
+
+  return adjacency;
+}
+
+/**
  * Find novel connections: entity pairs that are linked through the graph
  * (via shared claims or production relationships) but never appear together
  * in any single paper. These are insights the knowledge graph reveals that
  * no individual paper states.
  *
- * Example: Bacterium X and Condition Y might be linked through
- * X→produces→Metabolite Z→[claim]→Y, but no paper directly studies X+Y.
+ * Optimized: builds a global adjacency map once, then runs BFS per entity-A
+ * to find all reachable type-B entities in a single pass.
  */
 export function novelConnections(
   db: RhizomeDB,
@@ -573,7 +635,7 @@ export function novelConnections(
   viaSummary: string;
 }[] {
   const entitiesA = db.entitiesOfType(entityTypeA);
-  const entitiesB = db.entitiesOfType(entityTypeB);
+  const entitiesB = new Set(db.entitiesOfType(entityTypeB));
 
   // Build set of entity pairs that DO appear in the same paper
   const directPairs = new Set<string>();
@@ -587,7 +649,6 @@ export function novelConnections(
         for (const s of subjects) paperEntities.add(s);
       }
     }
-    // Record all pairs within this paper
     const entityList = Array.from(paperEntities);
     for (let i = 0; i < entityList.length; i++) {
       for (let j = i + 1; j < entityList.length; j++) {
@@ -597,45 +658,144 @@ export function novelConnections(
     }
   }
 
+  // Build global adjacency once
+  const adjacency = buildGlobalAdjacency(db);
+
   const results: {
     entityA: string; nameA: string; entityB: string; nameB: string;
     shortestPath: number; pathCount: number; viaSummary: string;
   }[] = [];
 
-  for (const a of entitiesA) {
-    for (const b of entitiesB) {
-      if (a === b) continue;
-      const [sorted1, sorted2] = a < b ? [a, b] : [b, a];
-      if (directPairs.has(`${sorted1}|${sorted2}`)) continue;
+  // BFS from each entity-A to find all reachable entity-B targets
+  for (const startA of entitiesA) {
+    const nameA = (db.resolve(startA).name as string) || startA;
 
-      // Try to find paths
-      const paths = pathwayBetween(db, a, b, maxHops, maxPerPair);
-      if (paths.length === 0) continue;
+    // BFS: track shortest distance + intermediate names per reached target
+    type BFSEntry = { entity: string; depth: number; intermediates: string[] };
+    const queue: BFSEntry[] = [{ entity: startA, depth: 1, intermediates: [] }];
+    const visited = new Set<string>([startA]);
+    // target entity → { shortestPath, pathCount, intermediateNames }
+    const reached = new Map<string, { shortestPath: number; pathCount: number; intermediates: Set<string> }>();
 
-      // Summarize what's "via" — unique intermediate entities
-      const intermediates = new Set<string>();
-      for (const p of paths) {
-        for (let i = 1; i < p.path.length - 1; i++) {
-          intermediates.add(p.path[i].name);
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      if (current.depth > maxHops) continue;
+
+      const neighbors = adjacency.get(current.entity) || [];
+      for (const { entity: neighbor, name: neighborName } of neighbors) {
+        const newIntermediates = [...current.intermediates, neighborName];
+
+        if (entitiesB.has(neighbor) && neighbor !== startA) {
+          const [sorted1, sorted2] = startA < neighbor ? [startA, neighbor] : [neighbor, startA];
+          if (!directPairs.has(`${sorted1}|${sorted2}`)) {
+            if (!reached.has(neighbor)) {
+              reached.set(neighbor, { shortestPath: current.depth + 1, pathCount: 0, intermediates: new Set() });
+            }
+            const r = reached.get(neighbor)!;
+            r.pathCount++;
+            if (r.pathCount <= maxPerPair) {
+              for (const inter of current.intermediates) r.intermediates.add(inter);
+            }
+          }
+        }
+
+        if (!visited.has(neighbor) && current.depth < maxHops) {
+          visited.add(neighbor);
+          queue.push({ entity: neighbor, depth: current.depth + 1, intermediates: newIntermediates });
         }
       }
+    }
 
-      const resolvedA = db.resolve(a);
-      const resolvedB = db.resolve(b);
-
+    for (const [target, info] of reached) {
+      if (info.shortestPath < 3) continue; // must be truly indirect (3+ hops)
       results.push({
-        entityA: a,
-        nameA: (resolvedA.name as string) || a,
-        entityB: b,
-        nameB: (resolvedB.name as string) || b,
-        shortestPath: paths[0].path.length,
-        pathCount: paths.length,
-        viaSummary: Array.from(intermediates).slice(0, 5).join(', '),
+        entityA: startA,
+        nameA,
+        entityB: target,
+        nameB: (db.resolve(target).name as string) || target,
+        shortestPath: info.shortestPath,
+        pathCount: info.pathCount,
+        viaSummary: Array.from(info.intermediates).slice(0, 5).join(', '),
       });
     }
   }
 
   results.sort((a, b) => a.shortestPath - b.shortestPath);
+  return results;
+}
+
+/**
+ * Find mechanisms that are convergence points — supported by multiple
+ * independent bacteria-to-condition pathways from different papers.
+ *
+ * High-convergence mechanisms are candidates for therapeutic intervention
+ * because they represent shared biology across otherwise distinct findings.
+ *
+ * Returns mechanisms ranked by convergence score (unique supporting papers
+ * × unique bacteria sources × unique conditions).
+ */
+export function mechanismConvergence(db: RhizomeDB): {
+  mechanism: string;
+  name: string;
+  convergenceScore: number;
+  supportingPapers: number;
+  bacteriaSources: { id: string; name: string }[];
+  conditionsLinked: { id: string; name: string }[];
+  claimSummaries: string[];
+}[] {
+  const mechanisms = db.entitiesOfType('mechanism');
+  const results: ReturnType<typeof mechanismConvergence> = [];
+
+  for (const mechId of mechanisms) {
+    const claims = db.relatedIds(mechId, 'claims_about', 'claim');
+    if (claims.length < 2) continue;
+
+    const paperSet = new Set<string>();
+    const bacteriaMap = new Map<string, string>(); // id → name
+    const conditionMap = new Map<string, string>(); // id → name
+    const summaries: string[] = [];
+
+    for (const claimId of claims) {
+      const resolved = db.resolve(claimId);
+      if (resolved.statement) summaries.push(resolved.statement as string);
+
+      // Source papers
+      const papers = db.relatedIds(claimId, 'source_paper', 'source');
+      for (const p of papers) paperSet.add(p);
+
+      // Bacteria in same claim
+      const bacteria = db.relatedIds(claimId, 'bacteria', 'subject');
+      for (const b of bacteria) {
+        if (!bacteriaMap.has(b)) {
+          bacteriaMap.set(b, (db.resolve(b).name as string) || b);
+        }
+      }
+
+      // Conditions in same claim
+      const conditions = db.relatedIds(claimId, 'conditions', 'subject');
+      for (const c of conditions) {
+        if (!conditionMap.has(c)) {
+          conditionMap.set(c, (db.resolve(c).name as string) || c);
+        }
+      }
+    }
+
+    const convergenceScore = paperSet.size * bacteriaMap.size * conditionMap.size;
+    if (convergenceScore < 2) continue;
+
+    const mechName = (db.resolve(mechId).name as string) || mechId;
+    results.push({
+      mechanism: mechId,
+      name: mechName,
+      convergenceScore,
+      supportingPapers: paperSet.size,
+      bacteriaSources: Array.from(bacteriaMap.entries()).map(([id, name]) => ({ id, name })),
+      conditionsLinked: Array.from(conditionMap.entries()).map(([id, name]) => ({ id, name })),
+      claimSummaries: summaries.slice(0, 10),
+    });
+  }
+
+  results.sort((a, b) => b.convergenceScore - a.convergenceScore);
   return results;
 }
 

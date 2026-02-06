@@ -21,6 +21,7 @@ import {
   researcherNetwork,
   temporalTrajectory,
   novelConnections,
+  mechanismConvergence,
 } from './graph-analysis';
 
 describe('Graph Analysis Queries', () => {
@@ -360,6 +361,47 @@ describe('Graph Analysis Queries', () => {
       if (connections.length > 0) {
         // The connection should describe intermediaries
         expect(connections[0].viaSummary.length).toBeGreaterThan(0);
+      }
+    });
+  });
+
+  describe('mechanismConvergence', () => {
+    it('should rank mechanisms by convergence score', () => {
+      const convergence = mechanismConvergence(db);
+
+      expect(convergence.length).toBeGreaterThanOrEqual(3);
+
+      // Top mechanism should have high convergence (papers × bacteria × conditions)
+      expect(convergence[0].convergenceScore).toBeGreaterThanOrEqual(10);
+      expect(convergence[0].supportingPapers).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should find kynurenine pathway as a convergence hub', () => {
+      const convergence = mechanismConvergence(db);
+
+      const kynurenine = convergence.find(c => c.mechanism === ids.mech_kynurenine_pathway);
+      expect(kynurenine).toBeDefined();
+      // Kynurenine is mentioned in Zheng 2016, Kelly 2016, O'Hare 2025, and more
+      expect(kynurenine!.supportingPapers).toBeGreaterThanOrEqual(3);
+      // Should link multiple bacteria and conditions
+      expect(kynurenine!.bacteriaSources.length).toBeGreaterThanOrEqual(1);
+      expect(kynurenine!.conditionsLinked.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should find vagus nerve as a convergence hub', () => {
+      const convergence = mechanismConvergence(db);
+
+      const vagus = convergence.find(c => c.mechanism === ids.mech_vagus);
+      expect(vagus).toBeDefined();
+      expect(vagus!.supportingPapers).toBeGreaterThanOrEqual(3);
+    });
+
+    it('should include claim summaries for each mechanism', () => {
+      const convergence = mechanismConvergence(db);
+
+      for (const mech of convergence) {
+        expect(mech.claimSummaries.length).toBeGreaterThanOrEqual(1);
+        expect(mech.claimSummaries[0].length).toBeGreaterThan(0);
       }
     });
   });

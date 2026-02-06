@@ -549,6 +549,97 @@ export function researcherNetwork(db: RhizomeDB): {
 }
 
 /**
+ * Find novel connections: entity pairs that are linked through the graph
+ * (via shared claims or production relationships) but never appear together
+ * in any single paper. These are insights the knowledge graph reveals that
+ * no individual paper states.
+ *
+ * Example: Bacterium X and Condition Y might be linked through
+ * X→produces→Metabolite Z→[claim]→Y, but no paper directly studies X+Y.
+ */
+export function novelConnections(
+  db: RhizomeDB,
+  entityTypeA: string,
+  entityTypeB: string,
+  maxHops: number = 3,
+  maxPerPair: number = 3
+): {
+  entityA: string;
+  nameA: string;
+  entityB: string;
+  nameB: string;
+  shortestPath: number;
+  pathCount: number;
+  viaSummary: string;
+}[] {
+  const entitiesA = db.entitiesOfType(entityTypeA);
+  const entitiesB = db.entitiesOfType(entityTypeB);
+
+  // Build set of entity pairs that DO appear in the same paper
+  const directPairs = new Set<string>();
+  const papers = db.entitiesOfType('paper');
+  for (const paperId of papers) {
+    const claims = db.relatedIds(paperId, 'claims', 'claim');
+    const paperEntities = new Set<string>();
+    for (const claimId of claims) {
+      for (const rel of ['bacteria', 'metabolites', 'mechanisms', 'conditions']) {
+        const subjects = db.relatedIds(claimId, rel, 'subject');
+        for (const s of subjects) paperEntities.add(s);
+      }
+    }
+    // Record all pairs within this paper
+    const entityList = Array.from(paperEntities);
+    for (let i = 0; i < entityList.length; i++) {
+      for (let j = i + 1; j < entityList.length; j++) {
+        const [a, b] = entityList[i] < entityList[j] ? [entityList[i], entityList[j]] : [entityList[j], entityList[i]];
+        directPairs.add(`${a}|${b}`);
+      }
+    }
+  }
+
+  const results: {
+    entityA: string; nameA: string; entityB: string; nameB: string;
+    shortestPath: number; pathCount: number; viaSummary: string;
+  }[] = [];
+
+  for (const a of entitiesA) {
+    for (const b of entitiesB) {
+      if (a === b) continue;
+      const [sorted1, sorted2] = a < b ? [a, b] : [b, a];
+      if (directPairs.has(`${sorted1}|${sorted2}`)) continue;
+
+      // Try to find paths
+      const paths = pathwayBetween(db, a, b, maxHops, maxPerPair);
+      if (paths.length === 0) continue;
+
+      // Summarize what's "via" — unique intermediate entities
+      const intermediates = new Set<string>();
+      for (const p of paths) {
+        for (let i = 1; i < p.path.length - 1; i++) {
+          intermediates.add(p.path[i].name);
+        }
+      }
+
+      const resolvedA = db.resolve(a);
+      const resolvedB = db.resolve(b);
+
+      results.push({
+        entityA: a,
+        nameA: (resolvedA.name as string) || a,
+        entityB: b,
+        nameB: (resolvedB.name as string) || b,
+        shortestPath: paths[0].path.length,
+        pathCount: paths.length,
+        viaSummary: Array.from(intermediates).slice(0, 5).join(', '),
+      });
+    }
+  }
+
+  results.sort((a, b) => a.shortestPath - b.shortestPath);
+  return results;
+}
+
+/**
  * Generate a summary report of the knowledge graph's contents.
  */
 export function graphSummary(db: RhizomeDB): {

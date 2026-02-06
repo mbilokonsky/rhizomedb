@@ -20,6 +20,7 @@ import {
   pathwayBetween,
   researcherNetwork,
   temporalTrajectory,
+  novelConnections,
 } from './graph-analysis';
 
 describe('Graph Analysis Queries', () => {
@@ -333,6 +334,33 @@ describe('Graph Analysis Queries', () => {
       expect(dinanCryan).toBeDefined();
       // Dinan & Cryan co-author paper 16 (2013 review), Bravo 2011, Kelly 2017, Kelly 2016
       expect(dinanCryan!.sharedPapers).toBeGreaterThanOrEqual(3);
+    });
+  });
+
+  describe('novelConnections', () => {
+    it('should find bacteria-condition pairs linked indirectly but not in the same paper', () => {
+      const connections = novelConnections(db, 'bacterium', 'condition', 3, 3);
+
+      // There should be some indirect connections
+      expect(connections.length).toBeGreaterThanOrEqual(1);
+
+      // Each connection should have a via summary
+      for (const c of connections) {
+        expect(c.nameA.length).toBeGreaterThan(0);
+        expect(c.nameB.length).toBeGreaterThan(0);
+        expect(c.shortestPath).toBeGreaterThanOrEqual(3); // must be indirect (3+ hops)
+        expect(c.pathCount).toBeGreaterThanOrEqual(1);
+      }
+    });
+
+    it('should find metabolite-condition indirect connections', () => {
+      const connections = novelConnections(db, 'metabolite', 'condition', 3, 3);
+
+      // Some metabolites should connect to conditions only indirectly
+      if (connections.length > 0) {
+        // The connection should describe intermediaries
+        expect(connections[0].viaSummary.length).toBeGreaterThan(0);
+      }
     });
   });
 

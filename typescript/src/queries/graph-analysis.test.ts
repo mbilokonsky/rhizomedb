@@ -22,6 +22,7 @@ import {
   temporalTrajectory,
   novelConnections,
   mechanismConvergence,
+  conditionSimilarity,
   studyTypeBreakdown,
 } from './graph-analysis';
 
@@ -407,6 +408,51 @@ describe('Graph Analysis Queries', () => {
     });
   });
 
+  describe('conditionSimilarity', () => {
+    it('should find depression-anxiety as the most similar condition pair', () => {
+      const sim = conditionSimilarity(db);
+
+      // Depression and anxiety should be the most similar
+      const depAnx = sim.pairs.find(p =>
+        (p.conditionA === ids.cond_depression && p.conditionB === ids.cond_anxiety) ||
+        (p.conditionA === ids.cond_anxiety && p.conditionB === ids.cond_depression)
+      );
+      expect(depAnx).toBeDefined();
+      expect(depAnx!.overallJaccard).toBeGreaterThan(0.3);
+      expect(depAnx!.sharedBacteria.length).toBeGreaterThanOrEqual(5);
+    });
+
+    it('should find Parkinson\'s as relatively isolated from psychiatric conditions', () => {
+      const sim = conditionSimilarity(db);
+
+      const pdDep = sim.pairs.find(p =>
+        (p.conditionA === ids.cond_parkinsons && p.conditionB === ids.cond_depression) ||
+        (p.conditionA === ids.cond_depression && p.conditionB === ids.cond_parkinsons)
+      );
+
+      // Parkinson's should have low overlap with depression
+      if (pdDep) {
+        expect(pdDep.overallJaccard).toBeLessThan(0.2);
+      }
+    });
+
+    it('should find shared mechanisms between conditions', () => {
+      const sim = conditionSimilarity(db);
+
+      // At least some pairs should share mechanisms
+      const withSharedMech = sim.pairs.filter(p => p.sharedMechanisms.length > 0);
+      expect(withSharedMech.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('should rank pairs by overall Jaccard similarity', () => {
+      const sim = conditionSimilarity(db);
+
+      for (let i = 0; i < sim.pairs.length - 1; i++) {
+        expect(sim.pairs[i].overallJaccard).toBeGreaterThanOrEqual(sim.pairs[i + 1].overallJaccard);
+      }
+    });
+  });
+
   describe('studyTypeBreakdown', () => {
     it('should categorize papers by study type', () => {
       const breakdown = studyTypeBreakdown(db);
@@ -416,7 +462,7 @@ describe('Graph Analysis Queries', () => {
 
       // Total papers across types should equal total papers
       const totalPapers = breakdown.byStudyType.reduce((sum, t) => sum + t.count, 0);
-      expect(totalPapers).toBe(27);
+      expect(totalPapers).toBe(35);
     });
 
     it('should include clinical trials and animal studies', () => {
@@ -445,16 +491,16 @@ describe('Graph Analysis Queries', () => {
     it('should produce a complete summary of the knowledge graph', () => {
       const summary = graphSummary(db);
 
-      expect(summary.papers).toBe(27);
-      expect(summary.researchers).toBeGreaterThanOrEqual(54);
-      expect(summary.institutions).toBeGreaterThanOrEqual(25);
-      expect(summary.bacteria).toBeGreaterThanOrEqual(34);
-      expect(summary.metabolites).toBeGreaterThanOrEqual(16);
-      expect(summary.mechanisms).toBeGreaterThanOrEqual(11);
-      expect(summary.conditions).toBeGreaterThanOrEqual(8);
-      expect(summary.claims).toBeGreaterThanOrEqual(100);
-      expect(summary.totalDeltas).toBeGreaterThan(1200);
-      expect(summary.countries.length).toBeGreaterThanOrEqual(12);
+      expect(summary.papers).toBe(35);
+      expect(summary.researchers).toBeGreaterThanOrEqual(65);
+      expect(summary.institutions).toBeGreaterThanOrEqual(32);
+      expect(summary.bacteria).toBeGreaterThanOrEqual(44);
+      expect(summary.metabolites).toBeGreaterThanOrEqual(21);
+      expect(summary.mechanisms).toBeGreaterThanOrEqual(14);
+      expect(summary.conditions).toBeGreaterThanOrEqual(11);
+      expect(summary.claims).toBeGreaterThanOrEqual(135);
+      expect(summary.totalDeltas).toBeGreaterThan(1600);
+      expect(summary.countries.length).toBeGreaterThanOrEqual(15);
       expect(summary.yearRange[0]).toBe(2004);
       expect(summary.yearRange[1]).toBe(2025);
     });

@@ -804,6 +804,106 @@ export function mechanismConvergence(db: RhizomeDB): {
 }
 
 /**
+ * Compute similarity between conditions based on shared entities in claims.
+ * Uses Jaccard similarity: |A ∩ B| / |A ∪ B| for each entity type.
+ *
+ * Reveals which conditions are studied together (high overlap) vs. isolated domains.
+ * Example: Depression and Anxiety might share 80% of bacterial associations
+ * while Parkinson's and Depression share only 10%.
+ */
+export function conditionSimilarity(db: RhizomeDB): {
+  pairs: {
+    conditionA: string;
+    nameA: string;
+    conditionB: string;
+    nameB: string;
+    bacteriaJaccard: number;
+    metaboliteJaccard: number;
+    mechanismJaccard: number;
+    overallJaccard: number;
+    sharedBacteria: string[];
+    sharedMetabolites: string[];
+    sharedMechanisms: string[];
+  }[];
+} {
+  const conditions = db.entitiesOfType('condition');
+
+  // Build entity sets per condition
+  const condEntities = new Map<string, {
+    bacteria: Set<string>;
+    metabolites: Set<string>;
+    mechanisms: Set<string>;
+  }>();
+
+  for (const condId of conditions) {
+    const claims = db.relatedIds(condId, 'claims_about', 'claim');
+    const bacteria = new Set<string>();
+    const metabolites = new Set<string>();
+    const mechanisms = new Set<string>();
+
+    for (const claimId of claims) {
+      for (const b of db.relatedIds(claimId, 'bacteria', 'subject')) bacteria.add(b);
+      for (const m of db.relatedIds(claimId, 'metabolites', 'subject')) metabolites.add(m);
+      for (const mech of db.relatedIds(claimId, 'mechanisms', 'subject')) mechanisms.add(mech);
+    }
+
+    condEntities.set(condId, { bacteria, metabolites, mechanisms });
+  }
+
+  function jaccard(a: Set<string>, b: Set<string>): number {
+    if (a.size === 0 && b.size === 0) return 0;
+    let intersection = 0;
+    for (const item of a) { if (b.has(item)) intersection++; }
+    const union = a.size + b.size - intersection;
+    return union === 0 ? 0 : intersection / union;
+  }
+
+  function sharedItems(a: Set<string>, b: Set<string>): string[] {
+    const result: string[] = [];
+    for (const item of a) { if (b.has(item)) result.push(item); }
+    return result;
+  }
+
+  const pairs: ReturnType<typeof conditionSimilarity>['pairs'] = [];
+
+  const condList = Array.from(condEntities.keys());
+  for (let i = 0; i < condList.length; i++) {
+    for (let j = i + 1; j < condList.length; j++) {
+      const a = condEntities.get(condList[i])!;
+      const b = condEntities.get(condList[j])!;
+
+      const bj = jaccard(a.bacteria, b.bacteria);
+      const mj = jaccard(a.metabolites, b.metabolites);
+      const mechj = jaccard(a.mechanisms, b.mechanisms);
+      const overall = (bj + mj + mechj) / 3;
+
+      if (overall === 0) continue;
+
+      const sharedBact = sharedItems(a.bacteria, b.bacteria).map(id => (db.resolve(id).name as string) || id);
+      const sharedMetab = sharedItems(a.metabolites, b.metabolites).map(id => (db.resolve(id).name as string) || id);
+      const sharedMech = sharedItems(a.mechanisms, b.mechanisms).map(id => (db.resolve(id).name as string) || id);
+
+      pairs.push({
+        conditionA: condList[i],
+        nameA: (db.resolve(condList[i]).name as string) || condList[i],
+        conditionB: condList[j],
+        nameB: (db.resolve(condList[j]).name as string) || condList[j],
+        bacteriaJaccard: Math.round(bj * 100) / 100,
+        metaboliteJaccard: Math.round(mj * 100) / 100,
+        mechanismJaccard: Math.round(mechj * 100) / 100,
+        overallJaccard: Math.round(overall * 100) / 100,
+        sharedBacteria: sharedBact,
+        sharedMetabolites: sharedMetab,
+        sharedMechanisms: sharedMech,
+      });
+    }
+  }
+
+  pairs.sort((a, b) => b.overallJaccard - a.overallJaccard);
+  return { pairs };
+}
+
+/**
  * Break down evidence quality across the knowledge graph.
  * Shows how many papers of each study type support claims for each entity type.
  * Useful for identifying where evidence is thin (mostly reviews/animal studies)

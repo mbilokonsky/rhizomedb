@@ -375,101 +375,94 @@ export function pathwayBetween(
   db: RhizomeDB,
   startEntity: string,
   endEntity: string,
-  maxHops: number = 4
+  maxHops: number = 4,
+  maxResults: number = 20
 ): { path: { entity: string; name: string; type: string }[]; claims: string[] }[] {
-  // BFS from start to end
+  type PathNode = { entity: string; name: string; type: string };
   type PathState = {
     entity: string;
-    path: { entity: string; name: string; type: string }[];
+    path: PathNode[];
     claims: string[];
     visited: Set<string>;
   };
 
-  const results: { path: { entity: string; name: string; type: string }[]; claims: string[] }[] = [];
-  const startResolved = db.resolve(startEntity);
-  const startNode = {
-    entity: startEntity,
-    name: (startResolved.name as string) || startEntity,
-    type: (startResolved.type as string) || 'unknown',
-  };
+  // Pre-compute adjacency: entity → [{neighbor, claim?}]
+  // This avoids repeated relatedIds calls during BFS
+  const adjacency = new Map<string, { entity: string; claim: string | null }[]>();
 
-  const queue: PathState[] = [{
-    entity: startEntity,
-    path: [startNode],
-    claims: [],
-    visited: new Set([startEntity]),
-  }];
+  function ensureAdjacency(entityId: string): { entity: string; claim: string | null }[] {
+    if (adjacency.has(entityId)) return adjacency.get(entityId)!;
 
-  // Build adjacency via claims: for each entity, find all entities it shares claims with
-  function getClaimNeighbors(entityId: string): { entity: string; claim: string }[] {
-    const neighbors: { entity: string; claim: string }[] = [];
+    const neighbors: { entity: string; claim: string | null }[] = [];
+    const seen = new Set<string>();
+
+    // Claim co-mentions
     const claims = db.relatedIds(entityId, 'claims_about', 'claim');
     for (const claimId of claims) {
-      // Find all entities mentioned in this claim
       for (const rel of ['bacteria', 'metabolites', 'mechanisms', 'conditions']) {
         const subjects = db.relatedIds(claimId, rel, 'subject');
         for (const s of subjects) {
-          if (s !== entityId) {
+          if (s !== entityId && !seen.has(s)) {
+            seen.add(s);
             neighbors.push({ entity: s, claim: claimId });
           }
         }
       }
     }
-    return neighbors;
-  }
 
-  // Also traverse production relationships
-  function getProductionNeighbors(entityId: string): string[] {
-    const products = db.relatedIds(entityId, 'produces', 'product');
-    const producers = db.relatedIds(entityId, 'produced_by', 'producer');
-    return [...products, ...producers];
-  }
-
-  while (queue.length > 0) {
-    const current = queue.shift()!;
-    if (current.path.length > maxHops) continue;
-
-    // Check claim co-mentions
-    const claimNeighbors = getClaimNeighbors(current.entity);
-    for (const { entity: neighbor, claim } of claimNeighbors) {
-      if (current.visited.has(neighbor)) continue;
-
-      const resolved = db.resolve(neighbor);
-      const node = {
-        entity: neighbor,
-        name: (resolved.name as string) || neighbor,
-        type: (resolved.type as string) || 'unknown',
-      };
-
-      const newPath = [...current.path, node];
-      const newClaims = [...current.claims, claim];
-
-      if (neighbor === endEntity) {
-        results.push({ path: newPath, claims: newClaims });
-        continue; // Don't stop — find all paths up to maxHops
+    // Production relationships
+    for (const product of db.relatedIds(entityId, 'produces', 'product')) {
+      if (!seen.has(product)) {
+        seen.add(product);
+        neighbors.push({ entity: product, claim: null });
       }
-
-      if (newPath.length < maxHops) {
-        const newVisited = new Set(current.visited);
-        newVisited.add(neighbor);
-        queue.push({ entity: neighbor, path: newPath, claims: newClaims, visited: newVisited });
+    }
+    for (const producer of db.relatedIds(entityId, 'produced_by', 'producer')) {
+      if (!seen.has(producer)) {
+        seen.add(producer);
+        neighbors.push({ entity: producer, claim: null });
       }
     }
 
-    // Check production relationships
-    const productionNeighbors = getProductionNeighbors(current.entity);
-    for (const neighbor of productionNeighbors) {
+    adjacency.set(entityId, neighbors);
+    return neighbors;
+  }
+
+  // Resolve entity metadata (cached)
+  const resolveCache = new Map<string, PathNode>();
+  function resolveNode(entityId: string): PathNode {
+    if (resolveCache.has(entityId)) return resolveCache.get(entityId)!;
+    const resolved = db.resolve(entityId);
+    const node = {
+      entity: entityId,
+      name: (resolved.name as string) || entityId,
+      type: (resolved.type as string) || 'unknown',
+    };
+    resolveCache.set(entityId, node);
+    return node;
+  }
+
+  const results: { path: PathNode[]; claims: string[] }[] = [];
+
+  const queue: PathState[] = [{
+    entity: startEntity,
+    path: [resolveNode(startEntity)],
+    claims: [],
+    visited: new Set([startEntity]),
+  }];
+
+  while (queue.length > 0 && results.length < maxResults) {
+    const current = queue.shift()!;
+    if (current.path.length > maxHops) continue;
+
+    const neighbors = ensureAdjacency(current.entity);
+    for (const { entity: neighbor, claim } of neighbors) {
       if (current.visited.has(neighbor)) continue;
+      if (results.length >= maxResults) break;
 
-      const resolved = db.resolve(neighbor);
-      const node = {
-        entity: neighbor,
-        name: (resolved.name as string) || neighbor,
-        type: (resolved.type as string) || 'unknown',
-      };
-
+      const node = resolveNode(neighbor);
       const newPath = [...current.path, node];
-      const newClaims = [...current.claims]; // no claim for production edges
+      const newClaims = claim ? [...current.claims, claim] : [...current.claims];
 
       if (neighbor === endEntity) {
         results.push({ path: newPath, claims: newClaims });
@@ -484,7 +477,6 @@ export function pathwayBetween(
     }
   }
 
-  // Sort by shortest path first
   results.sort((a, b) => a.path.length - b.path.length);
   return results;
 }

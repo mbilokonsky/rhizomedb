@@ -349,6 +349,61 @@ export const ids = {
 
   // New conditions (batch 5)
   cond_adhd: 'condition:attention-deficit-hyperactivity-disorder',
+
+  // === Batch 6: Papers 43-52 (evidence gap closure) ===
+
+  // Papers
+  paper_coello_2019: 'paper:coello-2019-bbi-bipolar-microbiome',
+  paper_tang_2025: 'paper:tang-2025-bmcmed-bipolar-fmt',
+  paper_hemmings_2017: 'paper:hemmings-2017-psychosom-ptsd',
+  paper_tomova_2015: 'paper:tomova-2015-physbeh-asd-slovakia',
+  paper_zhang_m_2018: 'paper:zhang-m-2018-scirep-asd-china',
+  paper_painold_2019: 'paper:painold-2019-bipoldis-depressive',
+  paper_berding_2023: 'paper:berding-2023-molpsych-psychobiotic-diet',
+  paper_tamana_2021: 'paper:tamana-2021-gutmicrobes-infant',
+  paper_gao_2019: 'paper:gao-2019-psychopharm-infant-fmri',
+  paper_freijy_2023: 'paper:freijy-2023-frontneurosci-prebiotic-diet',
+
+  // New researchers (batch 6)
+  researcher_coello: 'researcher:klara-coello',
+  researcher_vinberg: 'researcher:morten-vinberg',
+  researcher_tang_a: 'researcher:aiming-tang',
+  researcher_tomova: 'researcher:anna-tomova',
+  researcher_ostatnikova: 'researcher:daniela-ostatnikova',
+  researcher_zhang_m: 'researcher:meng-zhang',
+  researcher_painold: 'researcher:annamaria-painold',
+  researcher_reininghaus: 'researcher:eva-reininghaus',
+  researcher_berding: 'researcher:kirsten-berding',
+  researcher_tamana: 'researcher:sukhpreet-tamana',
+  researcher_kozyrskyj: 'researcher:anita-kozyrskyj',
+  researcher_gao_wei: 'researcher:wei-gao',
+  researcher_knickmeyer: 'researcher:rebecca-knickmeyer',
+  researcher_freijy: 'researcher:tamsyn-freijy',
+  researcher_sarris: 'researcher:jerome-sarris',
+
+  // New institutions (batch 6)
+  inst_rigshospitalet: 'inst:rigshospitalet-copenhagen',
+  inst_zhejiang: 'inst:zhejiang-university',
+  inst_comenius: 'inst:comenius-university-bratislava',
+  inst_graz: 'inst:medical-university-graz',
+  inst_ualberta: 'inst:university-of-alberta',
+  inst_unc: 'inst:university-of-north-carolina',
+  inst_umelbourne: 'inst:university-of-melbourne',
+
+  // New bacteria (batch 6)
+  bact_desulfovibrio: 'bacterium:desulfovibrio',
+  bact_sutterella: 'bacterium:sutterella',
+  bact_odoribacter: 'bacterium:odoribacter',
+  bact_butyricimonas: 'bacterium:butyricimonas',
+  bact_veillonella: 'bacterium:veillonella',
+  bact_lentisphaerae: 'bacterium:lentisphaerae',
+  bact_verrucomicrobia: 'bacterium:verrucomicrobia',
+  bact_coriobacteriia: 'bacterium:coriobacteriia',
+
+  // New mechanisms (batch 6)
+  mech_synaptic_plasticity: 'mechanism:synaptic-plasticity',
+  mech_microbial_stability: 'mechanism:microbial-stability',
+  mech_amygdala_connectivity: 'mechanism:amygdala-functional-connectivity',
 };
 
 // Claim IDs are unique per paper-claim pair
@@ -1078,6 +1133,143 @@ async function seedEntities(db: RhizomeDB, author: string): Promise<number> {
   await ann(ids.cond_adhd, 'name', 'Attention-Deficit/Hyperactivity Disorder');
   await ann(ids.cond_adhd, 'type', 'condition');
 
+  // ===== Batch 6: Evidence gap closure (papers 43-52) =====
+
+  // Batch 6 papers
+  await ann(ids.paper_coello_2019, 'title', 'Gut microbiota composition in patients with newly diagnosed bipolar disorder and their unaffected first-degree relatives');
+  await ann(ids.paper_coello_2019, 'journal', 'Brain, Behavior, and Immunity');
+  await ann(ids.paper_coello_2019, 'year', 2019);
+  await ann(ids.paper_coello_2019, 'type', 'paper');
+  await ann(ids.paper_coello_2019, 'doi', '10.1016/j.bbi.2018.09.026');
+  await ann(ids.paper_coello_2019, 'study_type', 'case_control');
+
+  await ann(ids.paper_tang_2025, 'title', 'Gut microbiota links to cognitive impairment in bipolar disorder via modulating synaptic plasticity');
+  await ann(ids.paper_tang_2025, 'journal', 'BMC Medicine');
+  await ann(ids.paper_tang_2025, 'year', 2025);
+  await ann(ids.paper_tang_2025, 'type', 'paper');
+  await ann(ids.paper_tang_2025, 'doi', '10.1186/s12916-025-04313-6');
+  await ann(ids.paper_tang_2025, 'study_type', 'fecal_transplant');
+
+  await ann(ids.paper_hemmings_2017, 'title', 'The microbiome in posttraumatic stress disorder and trauma-exposed controls: an exploratory study');
+  await ann(ids.paper_hemmings_2017, 'journal', 'Psychosomatic Medicine');
+  await ann(ids.paper_hemmings_2017, 'year', 2017);
+  await ann(ids.paper_hemmings_2017, 'type', 'paper');
+  await ann(ids.paper_hemmings_2017, 'doi', '10.1097/PSY.0000000000000512');
+  await ann(ids.paper_hemmings_2017, 'study_type', 'case_control');
+
+  await ann(ids.paper_tomova_2015, 'title', 'Gastrointestinal microbiota in children with autism in Slovakia');
+  await ann(ids.paper_tomova_2015, 'journal', 'Physiology & Behavior');
+  await ann(ids.paper_tomova_2015, 'year', 2015);
+  await ann(ids.paper_tomova_2015, 'type', 'paper');
+  await ann(ids.paper_tomova_2015, 'doi', '10.1016/j.physbeh.2014.10.033');
+  await ann(ids.paper_tomova_2015, 'study_type', 'case_control');
+
+  await ann(ids.paper_zhang_m_2018, 'title', 'Analysis of gut microbiota profiles and microbe-disease associations in children with autism spectrum disorders in China');
+  await ann(ids.paper_zhang_m_2018, 'journal', 'Scientific Reports');
+  await ann(ids.paper_zhang_m_2018, 'year', 2018);
+  await ann(ids.paper_zhang_m_2018, 'type', 'paper');
+  await ann(ids.paper_zhang_m_2018, 'doi', '10.1038/s41598-018-32219-2');
+  await ann(ids.paper_zhang_m_2018, 'study_type', 'case_control');
+
+  await ann(ids.paper_painold_2019, 'title', 'A step ahead: Exploring the gut microbiota in inpatients with bipolar disorder during a depressive episode');
+  await ann(ids.paper_painold_2019, 'journal', 'Bipolar Disorders');
+  await ann(ids.paper_painold_2019, 'year', 2019);
+  await ann(ids.paper_painold_2019, 'type', 'paper');
+  await ann(ids.paper_painold_2019, 'doi', '10.1111/bdi.12682');
+  await ann(ids.paper_painold_2019, 'study_type', 'case_control');
+
+  await ann(ids.paper_berding_2023, 'title', 'Feed your microbes to deal with stress: a psychobiotic diet impacts microbial stability and perceived stress in a healthy adult population');
+  await ann(ids.paper_berding_2023, 'journal', 'Molecular Psychiatry');
+  await ann(ids.paper_berding_2023, 'year', 2023);
+  await ann(ids.paper_berding_2023, 'type', 'paper');
+  await ann(ids.paper_berding_2023, 'doi', '10.1038/s41380-022-01817-y');
+  await ann(ids.paper_berding_2023, 'study_type', 'clinical_trial');
+
+  await ann(ids.paper_tamana_2021, 'title', 'Bacteroides-dominant gut microbiome of late infancy is associated with enhanced neurodevelopment');
+  await ann(ids.paper_tamana_2021, 'journal', 'Gut Microbes');
+  await ann(ids.paper_tamana_2021, 'year', 2021);
+  await ann(ids.paper_tamana_2021, 'type', 'paper');
+  await ann(ids.paper_tamana_2021, 'doi', '10.1080/19490976.2021.1930875');
+  await ann(ids.paper_tamana_2021, 'study_type', 'cohort');
+
+  await ann(ids.paper_gao_2019, 'title', 'Gut microbiome and brain functional connectivity in infants — a preliminary study focusing on the amygdala');
+  await ann(ids.paper_gao_2019, 'journal', 'Psychopharmacology');
+  await ann(ids.paper_gao_2019, 'year', 2019);
+  await ann(ids.paper_gao_2019, 'type', 'paper');
+  await ann(ids.paper_gao_2019, 'doi', '10.1007/s00213-018-5161-8');
+  await ann(ids.paper_gao_2019, 'study_type', 'cohort');
+
+  await ann(ids.paper_freijy_2023, 'title', 'Effects of a high-prebiotic diet versus probiotic supplements versus synbiotics on adult mental health: The Gut Feelings randomised controlled trial');
+  await ann(ids.paper_freijy_2023, 'journal', 'Frontiers in Neuroscience');
+  await ann(ids.paper_freijy_2023, 'year', 2023);
+  await ann(ids.paper_freijy_2023, 'type', 'paper');
+  await ann(ids.paper_freijy_2023, 'doi', '10.3389/fnins.2022.1097278');
+  await ann(ids.paper_freijy_2023, 'study_type', 'clinical_trial');
+
+  // Batch 6 researchers
+  const researchers6: [string, string][] = [
+    [ids.researcher_coello, 'Klara Coello'],
+    [ids.researcher_vinberg, 'Morten Vinberg'],
+    [ids.researcher_tang_a, 'Aiming Tang'],
+    [ids.researcher_tomova, 'Anna Tomova'],
+    [ids.researcher_ostatnikova, 'Daniela Ostatnikova'],
+    [ids.researcher_zhang_m, 'Meng Zhang'],
+    [ids.researcher_painold, 'Annamaria Painold'],
+    [ids.researcher_reininghaus, 'Eva Z Reininghaus'],
+    [ids.researcher_berding, 'Kirsten Berding'],
+    [ids.researcher_tamana, 'Sukhpreet K Tamana'],
+    [ids.researcher_kozyrskyj, 'Anita L Kozyrskyj'],
+    [ids.researcher_gao_wei, 'Wei Gao'],
+    [ids.researcher_knickmeyer, 'Rebecca C Knickmeyer'],
+    [ids.researcher_freijy, 'Tamsyn M Freijy'],
+    [ids.researcher_sarris, 'Jerome Sarris'],
+  ];
+  for (const [id, name] of researchers6) {
+    await ann(id, 'name', name);
+    await ann(id, 'type', 'researcher');
+  }
+
+  // Batch 6 institutions
+  const institutions6: [string, string, string][] = [
+    [ids.inst_rigshospitalet, 'Rigshospitalet / Copenhagen Affective Disorders Research Centre', 'Denmark'],
+    [ids.inst_zhejiang, 'Zhejiang University School of Medicine', 'China'],
+    [ids.inst_comenius, 'Comenius University Bratislava', 'Slovakia'],
+    [ids.inst_graz, 'Medical University of Graz', 'Austria'],
+    [ids.inst_ualberta, 'University of Alberta', 'Canada'],
+    [ids.inst_unc, 'University of North Carolina', 'United States'],
+    [ids.inst_umelbourne, 'University of Melbourne', 'Australia'],
+  ];
+  for (const [id, name, country] of institutions6) {
+    await ann(id, 'name', name);
+    await ann(id, 'type', 'institution');
+    await ann(id, 'country', country);
+  }
+
+  // Batch 6 new bacteria
+  const bacteria6: [string, string, string][] = [
+    [ids.bact_desulfovibrio, 'Desulfovibrio', 'genus'],
+    [ids.bact_sutterella, 'Sutterella', 'genus'],
+    [ids.bact_odoribacter, 'Odoribacter', 'genus'],
+    [ids.bact_butyricimonas, 'Butyricimonas', 'genus'],
+    [ids.bact_veillonella, 'Veillonella', 'genus'],
+    [ids.bact_lentisphaerae, 'Lentisphaerae', 'phylum'],
+    [ids.bact_verrucomicrobia, 'Verrucomicrobia', 'phylum'],
+    [ids.bact_coriobacteriia, 'Coriobacteriia', 'class'],
+  ];
+  for (const [id, name, rank] of bacteria6) {
+    await ann(id, 'name', name);
+    await ann(id, 'type', 'bacterium');
+    await ann(id, 'taxonomic_rank', rank);
+  }
+
+  // Batch 6 new mechanisms
+  await ann(ids.mech_synaptic_plasticity, 'name', 'Synaptic plasticity (PSD-95 / dendritic complexity)');
+  await ann(ids.mech_synaptic_plasticity, 'type', 'mechanism');
+  await ann(ids.mech_microbial_stability, 'name', 'Microbial stability (resilience to perturbation)');
+  await ann(ids.mech_microbial_stability, 'type', 'mechanism');
+  await ann(ids.mech_amygdala_connectivity, 'name', 'Amygdala functional connectivity');
+  await ann(ids.mech_amygdala_connectivity, 'type', 'mechanism');
+
   return count;
 }
 
@@ -1402,6 +1594,72 @@ async function seedRelationships(db: RhizomeDB, author: string): Promise<number>
   // ===== Batch 5: Taxonomic hierarchy =====
   await rel('species', ids.bact_blautia, 'genus', 'genus', ids.bact_lachnospiraceae, 'species');
   await rel('species', ids.bact_dorea, 'genus', 'genus', ids.bact_lachnospiraceae, 'species');
+
+  // ===== Batch 6: Paper → Researcher =====
+
+  // Paper 43: Coello et al. 2019
+  await rel('paper', ids.paper_coello_2019, 'authors', 'author', ids.researcher_coello, 'papers');
+  await rel('paper', ids.paper_coello_2019, 'authors', 'author', ids.researcher_vinberg, 'papers');
+
+  // Paper 44: Tang et al. 2025
+  await rel('paper', ids.paper_tang_2025, 'authors', 'author', ids.researcher_tang_a, 'papers');
+
+  // Paper 45: Hemmings et al. 2017 (Hemmings already exists from O'Hare 2025!)
+  await rel('paper', ids.paper_hemmings_2017, 'authors', 'author', ids.researcher_hemmings, 'papers');
+
+  // Paper 46: Tomova et al. 2015
+  await rel('paper', ids.paper_tomova_2015, 'authors', 'author', ids.researcher_tomova, 'papers');
+  await rel('paper', ids.paper_tomova_2015, 'authors', 'author', ids.researcher_ostatnikova, 'papers');
+
+  // Paper 47: Zhang M et al. 2018
+  await rel('paper', ids.paper_zhang_m_2018, 'authors', 'author', ids.researcher_zhang_m, 'papers');
+
+  // Paper 48: Painold et al. 2019
+  await rel('paper', ids.paper_painold_2019, 'authors', 'author', ids.researcher_painold, 'papers');
+  await rel('paper', ids.paper_painold_2019, 'authors', 'author', ids.researcher_reininghaus, 'papers');
+
+  // Paper 49: Berding et al. 2023 (Cryan lab — Cryan & Dinan already exist)
+  await rel('paper', ids.paper_berding_2023, 'authors', 'author', ids.researcher_berding, 'papers');
+  await rel('paper', ids.paper_berding_2023, 'authors', 'author', ids.researcher_cryan, 'papers');
+  await rel('paper', ids.paper_berding_2023, 'authors', 'author', ids.researcher_dinan, 'papers');
+
+  // Paper 50: Tamana et al. 2021
+  await rel('paper', ids.paper_tamana_2021, 'authors', 'author', ids.researcher_tamana, 'papers');
+  await rel('paper', ids.paper_tamana_2021, 'authors', 'author', ids.researcher_kozyrskyj, 'papers');
+
+  // Paper 51: Gao et al. 2019
+  await rel('paper', ids.paper_gao_2019, 'authors', 'author', ids.researcher_gao_wei, 'papers');
+  await rel('paper', ids.paper_gao_2019, 'authors', 'author', ids.researcher_knickmeyer, 'papers');
+
+  // Paper 52: Freijy et al. 2023 (Jacka already exists from SMILES!)
+  await rel('paper', ids.paper_freijy_2023, 'authors', 'author', ids.researcher_freijy, 'papers');
+  await rel('paper', ids.paper_freijy_2023, 'authors', 'author', ids.researcher_sarris, 'papers');
+  await rel('paper', ids.paper_freijy_2023, 'authors', 'author', ids.researcher_jacka, 'papers');
+
+  // ===== Batch 6: Researcher → Institution =====
+  await rel('researcher', ids.researcher_coello, 'affiliations', 'member', ids.inst_rigshospitalet, 'researchers');
+  await rel('researcher', ids.researcher_vinberg, 'affiliations', 'member', ids.inst_rigshospitalet, 'researchers');
+  await rel('researcher', ids.researcher_tang_a, 'affiliations', 'member', ids.inst_zhejiang, 'researchers');
+  await rel('researcher', ids.researcher_tomova, 'affiliations', 'member', ids.inst_comenius, 'researchers');
+  await rel('researcher', ids.researcher_ostatnikova, 'affiliations', 'member', ids.inst_comenius, 'researchers');
+  await rel('researcher', ids.researcher_zhang_m, 'affiliations', 'member', ids.inst_zhejiang, 'researchers');
+  await rel('researcher', ids.researcher_painold, 'affiliations', 'member', ids.inst_graz, 'researchers');
+  await rel('researcher', ids.researcher_reininghaus, 'affiliations', 'member', ids.inst_graz, 'researchers');
+  await rel('researcher', ids.researcher_berding, 'affiliations', 'member', ids.inst_ucc_cork, 'researchers');
+  await rel('researcher', ids.researcher_tamana, 'affiliations', 'member', ids.inst_ualberta, 'researchers');
+  await rel('researcher', ids.researcher_kozyrskyj, 'affiliations', 'member', ids.inst_ualberta, 'researchers');
+  await rel('researcher', ids.researcher_gao_wei, 'affiliations', 'member', ids.inst_unc, 'researchers');
+  await rel('researcher', ids.researcher_knickmeyer, 'affiliations', 'member', ids.inst_unc, 'researchers');
+  await rel('researcher', ids.researcher_freijy, 'affiliations', 'member', ids.inst_umelbourne, 'researchers');
+  await rel('researcher', ids.researcher_sarris, 'affiliations', 'member', ids.inst_umelbourne, 'researchers');
+
+  // ===== Batch 6: Bacterium → produces → Metabolite =====
+  await rel('producer', ids.bact_desulfovibrio, 'produces', 'product', ids.metab_propionate, 'produced_by');
+
+  // ===== Batch 6: Taxonomic hierarchy =====
+  // Desulfovibrio, Sutterella, Odoribacter, Butyricimonas, Veillonella are genera (no species-level entries yet)
+  // Coriobacteriia is a class within Actinobacteria
+  await rel('species', ids.bact_coriobacteriia, 'genus', 'genus', ids.bact_actinobacteria, 'species');
 
   return count;
 }
@@ -2204,6 +2462,160 @@ async function seedClaims(db: RhizomeDB, author: string): Promise<number> {
   await makeClaim(ids.paper_jacka_2017,
     'Effects remain significant after controlling for physical activity, BMI, smoking, and medication changes',
     [], [], [ids.mech_diet_microbiome], [ids.cond_depression]);
+
+  // ===================================================================
+  // Batch 6: Evidence gap closure papers (43-52)
+  // ===================================================================
+
+  // Paper 43: Coello et al. 2019 — Bipolar disorder case-control (Denmark)
+  await makeClaim(ids.paper_coello_2019,
+    'Flavonifractor present in 61% of BD patients vs 39% of controls (OR=2.9, P=5.8e-4)',
+    [ids.bact_flavonifractor], [], [], [ids.cond_bipolar], 'increased_in_disease');
+
+  await makeClaim(ids.paper_coello_2019,
+    'Unaffected first-degree relatives do NOT differ from controls — microbiome changes are state-related, not familial',
+    [], [], [], [ids.cond_bipolar]);
+
+  await makeClaim(ids.paper_coello_2019,
+    'Flavonifractor-BD association weakens after adjusting for smoking (confound)',
+    [ids.bact_flavonifractor], [], [], [ids.cond_bipolar]);
+
+  // Paper 44: Tang et al. 2025 — Bipolar FMT causal evidence (China)
+  await makeClaim(ids.paper_tang_2025,
+    'FMT from BD patients with cognitive impairment induces depression-like behavior and working memory deficits in mice',
+    [], [], [ids.mech_fmt_transfer, ids.mech_synaptic_plasticity], [ids.cond_bipolar]);
+
+  await makeClaim(ids.paper_tang_2025,
+    'BD-CI recipient mice show reduced dendritic complexity and decreased PSD-95 (synaptic plasticity marker)',
+    [], [], [ids.mech_synaptic_plasticity], [ids.cond_bipolar]);
+
+  await makeClaim(ids.paper_tang_2025,
+    'Healthy donor microbiota supplementation partially reverses behavioral and neuroplasticity deficits',
+    [], [], [ids.mech_fmt_transfer, ids.mech_synaptic_plasticity], [ids.cond_bipolar]);
+
+  await makeClaim(ids.paper_tang_2025,
+    'Prevotella, Faecalibacterium, and Roseburia correlate with cognitive impairment in BD',
+    [ids.bact_prevotella, ids.bact_faecalibacterium, ids.bact_roseburia], [], [], [ids.cond_bipolar, ids.cond_cognitive_decline]);
+
+  // Paper 45: Hemmings et al. 2017 — PTSD gut microbiome (South Africa)
+  await makeClaim(ids.paper_hemmings_2017,
+    'Actinobacteria, Lentisphaerae, and Verrucomicrobia depleted in PTSD vs trauma-exposed controls',
+    [ids.bact_actinobacteria, ids.bact_lentisphaerae, ids.bact_verrucomicrobia], [], [], [ids.cond_ptsd], 'decreased_in_disease');
+
+  await makeClaim(ids.paper_hemmings_2017,
+    'Decreased total abundance of three phyla associated with higher PTSD severity (CAPS scores; r=-0.387)',
+    [ids.bact_actinobacteria, ids.bact_lentisphaerae, ids.bact_verrucomicrobia], [], [], [ids.cond_ptsd], 'decreased_in_disease');
+
+  await makeClaim(ids.paper_hemmings_2017,
+    'No differences in alpha or beta diversity between PTSD and trauma-exposed controls',
+    [], [], [], [ids.cond_ptsd]);
+
+  // Paper 46: Tomova et al. 2015 — ASD gut microbiota (Slovakia)
+  await makeClaim(ids.paper_tomova_2015,
+    'Decreased Bacteroidetes/Firmicutes ratio in ASD children vs controls',
+    [ids.bact_bacteroides, ids.bact_firmicutes], [], [], [ids.cond_autism]);
+
+  await makeClaim(ids.paper_tomova_2015,
+    'Desulfovibrio abundance positively correlates with autism severity (ADI restricted/repetitive behavior)',
+    [ids.bact_desulfovibrio], [], [], [ids.cond_autism], 'increased_in_disease');
+
+  await makeClaim(ids.paper_tomova_2015,
+    'Probiotic supplementation normalizes Bacteroidetes/Firmicutes ratio, Desulfovibrio, and Bifidobacterium levels in ASD',
+    [ids.bact_desulfovibrio, ids.bact_bifidobacterium], [], [], [ids.cond_autism], 'increased_in_treatment');
+
+  await makeClaim(ids.paper_tomova_2015,
+    'Strong positive correlation between autism severity and GI dysfunction severity',
+    [], [], [ids.mech_leaky_gut], [ids.cond_autism]);
+
+  // Paper 47: Zhang M et al. 2018 — ASD gut microbiota (China)
+  await makeClaim(ids.paper_zhang_m_2018,
+    'Increased Bacteroidetes/Firmicutes ratio in ASD group (opposite direction from Tomova 2015)',
+    [ids.bact_bacteroides, ids.bact_firmicutes], [], [], [ids.cond_autism]);
+
+  await makeClaim(ids.paper_zhang_m_2018,
+    'Sutterella, Odoribacter, and Butyricimonas significantly enriched in ASD',
+    [ids.bact_sutterella, ids.bact_odoribacter, ids.bact_butyricimonas], [], [], [ids.cond_autism], 'increased_in_disease');
+
+  await makeClaim(ids.paper_zhang_m_2018,
+    'Veillonella and Streptococcus significantly depleted in ASD',
+    [ids.bact_veillonella, ids.bact_streptococcus], [], [], [ids.cond_autism], 'decreased_in_disease');
+
+  await makeClaim(ids.paper_zhang_m_2018,
+    'Butyrate and lactate producers less abundant in ASD group',
+    [], [ids.metab_butyrate], [], [ids.cond_autism], 'decreased_in_disease');
+
+  // Paper 48: Painold et al. 2019 — BD during depressive episode (Austria)
+  await makeClaim(ids.paper_painold_2019,
+    'Ruminococcaceae and Faecalibacterium depleted in BD inpatients during depressive episode',
+    [ids.bact_ruminococcaceae, ids.bact_faecalibacterium], [ids.metab_butyrate], [], [ids.cond_bipolar], 'decreased_in_disease');
+
+  await makeClaim(ids.paper_painold_2019,
+    'Actinobacteria and Coriobacteriia more abundant in BD during depressive episode',
+    [ids.bact_actinobacteria, ids.bact_coriobacteriia], [], [], [ids.cond_bipolar], 'increased_in_disease');
+
+  await makeClaim(ids.paper_painold_2019,
+    'Microbial alpha diversity negatively correlates with BD illness duration (R=-0.408, longer illness = less diverse)',
+    [], [], [], [ids.cond_bipolar]);
+
+  // Paper 49: Berding et al. 2023 — Psychobiotic diet RCT (Ireland)
+  await makeClaim(ids.paper_berding_2023,
+    'Psychobiotic diet reduces perceived stress by 32% vs 17% in controls (dose-dependent)',
+    [], [], [ids.mech_diet_microbiome], [ids.cond_anxiety], 'increased_in_treatment');
+
+  await makeClaim(ids.paper_berding_2023,
+    'Microbial stability (not composition) predicts stress reduction — paradigm-level finding',
+    [], [], [ids.mech_microbial_stability, ids.mech_diet_microbiome], [ids.cond_anxiety]);
+
+  await makeClaim(ids.paper_berding_2023,
+    'Psychobiotic diet alters 40 specific fecal lipids and urinary tryptophan metabolites',
+    [], [ids.metab_tryptophan], [ids.mech_diet_microbiome], []);
+
+  // Paper 50: Tamana et al. 2021 — Infant gut microbiome + neurodevelopment (Canada)
+  await makeClaim(ids.paper_tamana_2021,
+    'Bacteroidetes-dominant cluster at 12 months associated with higher cognitive (+4.8), language (+4.2), and motor (+3.1) development at age 2',
+    [ids.bact_bacteroides], [], [ids.mech_developmental_window], []);
+
+  await makeClaim(ids.paper_tamana_2021,
+    'Neurodevelopment-microbiome association is sex-specific: found in males, not females',
+    [], [], [ids.mech_developmental_window], []);
+
+  await makeClaim(ids.paper_tamana_2021,
+    'No significant microbiome-outcome associations at 4-month timepoint — 12-month window is critical',
+    [], [], [ids.mech_developmental_window], []);
+
+  await makeClaim(ids.paper_tamana_2021,
+    'Proteobacteria-dominant cluster associated with poorer neurodevelopmental outcomes',
+    [ids.bact_proteobacteria], [], [ids.mech_developmental_window], [ids.cond_cognitive_decline]);
+
+  // Paper 51: Gao et al. 2019 — Infant gut microbiome + brain connectivity (USA)
+  await makeClaim(ids.paper_gao_2019,
+    'Gut microbial alpha diversity associated with amygdala-thalamus functional connectivity in 1-year-olds',
+    [], [], [ids.mech_amygdala_connectivity, ids.mech_developmental_window], []);
+
+  await makeClaim(ids.paper_gao_2019,
+    'Alpha diversity associated with anterior cingulate-anterior insula connectivity (threat processing regions)',
+    [], [], [ids.mech_amygdala_connectivity], [ids.cond_anxiety]);
+
+  await makeClaim(ids.paper_gao_2019,
+    'First study demonstrating direct link between infant gut microbiome and brain functional connectivity via fMRI',
+    [], [], [ids.mech_amygdala_connectivity, ids.mech_developmental_window], []);
+
+  // Paper 52: Freijy et al. 2023 — Prebiotic diet RCT (Australia)
+  await makeClaim(ids.paper_freijy_2023,
+    'High-prebiotic diet reduces total mood disturbance vs placebo (d=-0.60, P=0.039)',
+    [], [], [ids.mech_diet_microbiome], [ids.cond_depression, ids.cond_anxiety], 'increased_in_treatment');
+
+  await makeClaim(ids.paper_freijy_2023,
+    'Probiotic supplements alone show NO benefit for mood (d=-0.19, P=0.51)',
+    [ids.bact_lactobacillus, ids.bact_bifidobacterium], [], [], [ids.cond_depression, ids.cond_anxiety], 'no_effect');
+
+  await makeClaim(ids.paper_freijy_2023,
+    'Synbiotic (diet + probiotic) shows NO benefit — diet alone outperforms combination',
+    [], [], [ids.mech_diet_microbiome], [ids.cond_depression, ids.cond_anxiety], 'no_effect');
+
+  await makeClaim(ids.paper_freijy_2023,
+    'Prebiotic diet specifically improves anxiety, stress, and sleep',
+    [], [], [ids.mech_diet_microbiome], [ids.cond_anxiety], 'increased_in_treatment');
 
   return count;
 }

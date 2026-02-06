@@ -476,7 +476,7 @@ describe('Graph Analysis Queries', () => {
 
       // Total papers across types should equal total papers
       const totalPapers = breakdown.byStudyType.reduce((sum, t) => sum + t.count, 0);
-      expect(totalPapers).toBe(42);
+      expect(totalPapers).toBe(52);
     });
 
     it('should include clinical trials and animal studies', () => {
@@ -636,16 +636,16 @@ describe('Graph Analysis Queries', () => {
     it('should produce a complete summary of the knowledge graph', () => {
       const summary = graphSummary(db);
 
-      expect(summary.papers).toBe(42);
-      expect(summary.researchers).toBeGreaterThanOrEqual(74);
-      expect(summary.institutions).toBeGreaterThanOrEqual(37);
-      expect(summary.bacteria).toBeGreaterThanOrEqual(48);
+      expect(summary.papers).toBe(52);
+      expect(summary.researchers).toBeGreaterThanOrEqual(89);
+      expect(summary.institutions).toBeGreaterThanOrEqual(44);
+      expect(summary.bacteria).toBeGreaterThanOrEqual(56);
       expect(summary.metabolites).toBeGreaterThanOrEqual(21);
-      expect(summary.mechanisms).toBeGreaterThanOrEqual(18);
+      expect(summary.mechanisms).toBeGreaterThanOrEqual(21);
       expect(summary.conditions).toBeGreaterThanOrEqual(12);
-      expect(summary.claims).toBeGreaterThanOrEqual(160);
-      expect(summary.totalDeltas).toBeGreaterThan(1900);
-      expect(summary.countries.length).toBeGreaterThanOrEqual(17);
+      expect(summary.claims).toBeGreaterThanOrEqual(195);
+      expect(summary.totalDeltas).toBeGreaterThan(2300);
+      expect(summary.countries.length).toBeGreaterThanOrEqual(20);
       expect(summary.yearRange[0]).toBe(2004);
       expect(summary.yearRange[1]).toBe(2025);
     });

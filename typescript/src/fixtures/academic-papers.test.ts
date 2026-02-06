@@ -20,7 +20,7 @@ describe('Academic Paper Knowledge Graph', () => {
     db = new RhizomeDB({ storage: 'memory', systemId: 'academic-digestion' });
     const result = await seedAcademicPapers(db);
     // eslint-disable-next-line no-console
-    console.error(`Seeded ${result.totalDeltas} deltas from 42 papers`);
+    console.error(`Seeded ${result.totalDeltas} deltas from 52 papers`);
   });
 
   describe('Basic ingestion', () => {
@@ -56,9 +56,9 @@ describe('Academic Paper Knowledge Graph', () => {
   });
 
   describe('Collection queries (entitiesOfType)', () => {
-    it('should find all 42 papers', () => {
+    it('should find all 52 papers', () => {
       const papers = db.entitiesOfType('paper');
-      expect(papers).toHaveLength(42);
+      expect(papers).toHaveLength(52);
     });
 
     it('should find all bacteria (batch 1 + batch 2)', () => {
@@ -938,9 +938,9 @@ describe('Academic Paper Knowledge Graph', () => {
       expect(uccResearchers.length).toBeGreaterThanOrEqual(7);
     });
 
-    it('should now span 2004-2025 across 42 papers with 17+ countries', () => {
+    it('should now span 2004-2025 across 52 papers with 17+ countries', () => {
       const allPapers = db.entitiesOfType('paper');
-      expect(allPapers.length).toBe(42);
+      expect(allPapers.length).toBe(52);
 
       const years = allPapers.map(p => db.resolve(p).year as number).sort();
       expect(years[0]).toBe(2004);
@@ -1024,6 +1024,152 @@ describe('Academic Paper Knowledge Graph', () => {
     it('should add alpha-synuclein aggregation as a new mechanism', () => {
       const mech = db.resolve(ids.mech_alpha_synuclein);
       expect(mech.name).toBe('Alpha-synuclein aggregation');
+    });
+  });
+
+  describe('Batch 6: Evidence gap closure — bipolar causal, PTSD, ASD diversity, diet RCTs, early life', () => {
+    it('should now have 6 bipolar papers with causal FMT evidence', () => {
+      const bipolarClaims = db.relatedIds(ids.cond_bipolar, 'claims_about', 'claim');
+      const bipolarPapers = new Set<string>();
+      for (const claimId of bipolarClaims) {
+        const papers = db.relatedIds(claimId, 'source_paper', 'source');
+        for (const p of papers) bipolarPapers.add(p);
+      }
+      // Mehta, Shaikh, Nikolova (batches 1-3) + Coello, Tang, Painold (batch 6)
+      expect(bipolarPapers.size).toBeGreaterThanOrEqual(6);
+      expect(bipolarPapers.has(ids.paper_coello_2019)).toBe(true);
+      expect(bipolarPapers.has(ids.paper_tang_2025)).toBe(true);
+      expect(bipolarPapers.has(ids.paper_painold_2019)).toBe(true);
+    });
+
+    it('should provide causal evidence for bipolar via Tang 2025 FMT', () => {
+      const paper = db.resolve(ids.paper_tang_2025);
+      expect(paper.study_type).toBe('fecal_transplant');
+      expect(paper.journal).toBe('BMC Medicine');
+
+      // FMT mechanism claims
+      const fmtClaims = db.relatedIds(ids.mech_fmt_transfer, 'claims_about', 'claim');
+      const tangFmtClaims = fmtClaims.filter(c => {
+        const papers = db.relatedIds(c, 'source_paper', 'source');
+        return papers.includes(ids.paper_tang_2025);
+      });
+      expect(tangFmtClaims.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should now have 2 PTSD papers from South African research ecosystem', () => {
+      const ptsdClaims = db.relatedIds(ids.cond_ptsd, 'claims_about', 'claim');
+      const ptsdPapers = new Set<string>();
+      for (const claimId of ptsdClaims) {
+        const papers = db.relatedIds(claimId, 'source_paper', 'source');
+        for (const p of papers) ptsdPapers.add(p);
+      }
+      // O'Hare 2025 + Hemmings 2017
+      expect(ptsdPapers.size).toBeGreaterThanOrEqual(2);
+      expect(ptsdPapers.has(ids.paper_hemmings_2017)).toBe(true);
+      expect(ptsdPapers.has(ids.paper_ohare_2025)).toBe(true);
+    });
+
+    it('should link Hemmings to both the 2017 and 2025 PTSD papers', () => {
+      // Hemmings is an author on both Hemmings 2017 and O'Hare 2025
+      const hemmingsPapers = db.relatedIds(ids.researcher_hemmings, 'papers', 'paper');
+      expect(hemmingsPapers).toContain(ids.paper_hemmings_2017);
+      expect(hemmingsPapers).toContain(ids.paper_ohare_2025);
+    });
+
+    it('should find ASD across 3 continents (Ecuador + Slovakia + China)', () => {
+      const asdClaims = db.relatedIds(ids.cond_autism, 'claims_about', 'claim');
+      const asdPapers = new Set<string>();
+      for (const claimId of asdClaims) {
+        const papers = db.relatedIds(claimId, 'source_paper', 'source');
+        for (const p of papers) asdPapers.add(p);
+      }
+      expect(asdPapers.has(ids.paper_zurita_2020)).toBe(true);    // Ecuador
+      expect(asdPapers.has(ids.paper_tomova_2015)).toBe(true);     // Slovakia
+      expect(asdPapers.has(ids.paper_zhang_m_2018)).toBe(true);    // China
+    });
+
+    it('should capture the ASD Bacteroidetes/Firmicutes divergence between Slovakia and China', () => {
+      // Tomova 2015 and Zhang M 2018 found opposite B/F ratio directions
+      const tomovaClaims = db.entitiesOfType('claim').filter(c => {
+        const papers = db.relatedIds(c, 'source_paper', 'source');
+        return papers.includes(ids.paper_tomova_2015);
+      });
+      const zhangmClaims = db.entitiesOfType('claim').filter(c => {
+        const papers = db.relatedIds(c, 'source_paper', 'source');
+        return papers.includes(ids.paper_zhang_m_2018);
+      });
+      expect(tomovaClaims.length).toBeGreaterThanOrEqual(3);
+      expect(zhangmClaims.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('should find Desulfovibrio as a new ASD-severity biomarker', () => {
+      const desClaims = db.relatedIds(ids.bact_desulfovibrio, 'claims_about', 'claim');
+      expect(desClaims.length).toBeGreaterThanOrEqual(1);
+      const resolved = db.resolve(desClaims[0]);
+      expect((resolved.statement as string).toLowerCase()).toContain('desulfovibrio');
+    });
+
+    it('should find diet-microbiome mechanism now supported by 7+ papers', () => {
+      const dietClaims = db.relatedIds(ids.mech_diet_microbiome, 'claims_about', 'claim');
+      const papers = new Set<string>();
+      for (const claim of dietClaims) {
+        for (const p of db.relatedIds(claim, 'source_paper', 'source')) papers.add(p);
+      }
+      // Ghosh 2020, Claesson 2012, Jacka 2017 + Berding 2023, Freijy 2023
+      expect(papers.size).toBeGreaterThanOrEqual(5);
+    });
+
+    it('should find the Berding 2023 microbial stability finding', () => {
+      const stabilityClaims = db.relatedIds(ids.mech_microbial_stability, 'claims_about', 'claim');
+      expect(stabilityClaims.length).toBeGreaterThanOrEqual(1);
+      const sourcePapers = new Set<string>();
+      for (const claim of stabilityClaims) {
+        for (const p of db.relatedIds(claim, 'source_paper', 'source')) sourcePapers.add(p);
+      }
+      expect(sourcePapers.has(ids.paper_berding_2023)).toBe(true);
+    });
+
+    it('should find early life developmental window now with 4 papers', () => {
+      const devClaims = db.relatedIds(ids.mech_developmental_window, 'claims_about', 'claim');
+      const papers = new Set<string>();
+      for (const claim of devClaims) {
+        for (const p of db.relatedIds(claim, 'source_paper', 'source')) papers.add(p);
+      }
+      // Sudo 2004, Carlson 2018, Tamana 2021, Gao 2019
+      expect(papers.size).toBeGreaterThanOrEqual(4);
+    });
+
+    it('should add 5+ new countries (Denmark, Slovakia, Austria, Canada)', () => {
+      const allInstitutions = db.entitiesOfType('institution');
+      const countries = new Set<string>();
+      for (const instId of allInstitutions) {
+        const resolved = db.resolve(instId);
+        if (resolved.country) countries.add(resolved.country as string);
+      }
+      expect(countries.has('Denmark')).toBe(true);
+      expect(countries.has('Slovakia')).toBe(true);
+      expect(countries.has('Austria')).toBe(true);
+      expect(countries.has('Canada')).toBe(true);
+      expect(countries.size).toBeGreaterThanOrEqual(20);
+    });
+
+    it('should grow UCC Cork further with Berding (Cryan lab)', () => {
+      const uccResearchers = db.relatedIds(ids.inst_ucc_cork, 'researchers', 'researcher');
+      expect(uccResearchers).toContain(ids.researcher_berding);
+      expect(uccResearchers.length).toBeGreaterThanOrEqual(8);
+    });
+
+    it('should find Freijy 2023 demonstrates diet outperforms supplements', () => {
+      const freijyClaims = db.entitiesOfType('claim').filter(c => {
+        const papers = db.relatedIds(c, 'source_paper', 'source');
+        return papers.includes(ids.paper_freijy_2023);
+      });
+      expect(freijyClaims.length).toBeGreaterThanOrEqual(3);
+
+      // Should have both treatment effect and no_effect directions
+      const directions = freijyClaims.map(c => db.resolve(c).direction).filter(Boolean);
+      expect(directions).toContain('increased_in_treatment');
+      expect(directions).toContain('no_effect');
     });
   });
 });

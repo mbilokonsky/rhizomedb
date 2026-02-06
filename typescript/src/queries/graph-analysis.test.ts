@@ -24,6 +24,7 @@ import {
   mechanismConvergence,
   conditionSimilarity,
   studyTypeBreakdown,
+  entityProfile,
 } from './graph-analysis';
 
 describe('Graph Analysis Queries', () => {
@@ -196,11 +197,23 @@ describe('Graph Analysis Queries', () => {
       const contradictions = findContradictions(db, 'bacterium', 'condition');
 
       for (const c of contradictions) {
-        for (const claim of [...c.increased, ...c.decreased, ...c.noEffect]) {
+        for (const claim of [...c.increasedInDisease, ...c.decreasedInDisease, ...c.increasedInTreatment, ...c.noEffect]) {
           expect(claim.statement.length).toBeGreaterThan(0);
           expect(claim.year).toBeGreaterThan(0);
           expect(claim.studyType).toBeDefined();
         }
+      }
+    });
+
+    it('should separate disease-state from treatment-direction claims', () => {
+      const contradictions = findContradictions(db, 'bacterium', 'condition');
+
+      // Verify the new 4-category structure
+      for (const c of contradictions) {
+        expect(c.increasedInDisease).toBeDefined();
+        expect(c.decreasedInDisease).toBeDefined();
+        expect(c.increasedInTreatment).toBeDefined();
+        expect(c.noEffect).toBeDefined();
       }
     });
 
@@ -484,6 +497,64 @@ describe('Graph Analysis Queries', () => {
         expect(gap.name.length).toBeGreaterThan(0);
         expect(gap.hasHumanEvidence).toBe(false);
       }
+    });
+  });
+
+  describe('entityProfile', () => {
+    it('should build a comprehensive profile for Lactobacillus rhamnosus', () => {
+      const profile = entityProfile(db, ids.bact_l_rhamnosus);
+
+      expect(profile.name).toBe('Lactobacillus rhamnosus');
+      expect(profile.type).toBe('bacterium');
+      expect(profile.conditions.length).toBeGreaterThanOrEqual(1);
+      expect(profile.papers.length).toBeGreaterThanOrEqual(2);
+      expect(profile.consensus.paperCount).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should include mechanism links', () => {
+      const profile = entityProfile(db, ids.bact_l_rhamnosus);
+
+      // L. rhamnosus is linked to GABA, vagus nerve, HPA axis via claims
+      expect(profile.mechanisms.length).toBeGreaterThanOrEqual(1);
+      const mechNames = profile.mechanisms.map(m => m.name);
+      expect(mechNames.some(n => n.toLowerCase().includes('vagus') || n.toLowerCase().includes('hpa') || n.toLowerCase().includes('gaba'))).toBe(true);
+    });
+
+    it('should show claim counts per condition', () => {
+      const profile = entityProfile(db, ids.bact_l_rhamnosus);
+
+      // Each condition should have at least one claim
+      for (const cond of profile.conditions) {
+        expect(cond.claimCount).toBeGreaterThan(0);
+        expect(cond.name.length).toBeGreaterThan(0);
+      }
+    });
+
+    it('should build a timeline of claims sorted by year', () => {
+      const profile = entityProfile(db, ids.bact_l_rhamnosus);
+
+      expect(profile.claimTimeline.length).toBeGreaterThan(0);
+      // Should be sorted by year
+      for (let i = 1; i < profile.claimTimeline.length; i++) {
+        expect(profile.claimTimeline[i].year).toBeGreaterThanOrEqual(profile.claimTimeline[i - 1].year);
+      }
+    });
+
+    it('should work for conditions too', () => {
+      const profile = entityProfile(db, ids.cond_depression);
+
+      expect(profile.name).toBe('Major Depressive Disorder');
+      // Conditions have other conditions in shared claims (co-mentions)
+      expect(profile.papers.length).toBeGreaterThanOrEqual(5);
+      expect(profile.mechanisms.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('should include metabolite production relationships', () => {
+      // Bifidobacterium produces GABA
+      const profile = entityProfile(db, ids.bact_bifidobacterium);
+
+      const produces = profile.metabolites.filter(m => m.relationship === 'produces');
+      expect(produces.length).toBeGreaterThanOrEqual(1);
     });
   });
 

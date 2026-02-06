@@ -223,11 +223,19 @@ type DirectionEntry = { claim: string; statement: string; paper: string; year: n
 
 /**
  * Find contradictions: cases where different papers make opposing claims
- * about the same entity-condition pair. Looks for direction annotations
- * (e.g., 'increased_in_disease' vs 'decreased_in_disease' vs 'no_effect').
+ * about the same entity-condition pair. Looks for direction annotations.
  *
- * A null result (no_effect) from a clinical trial contradicts a positive
- * animal study finding — the contradiction categories reflect this.
+ * Separates disease-state observations from treatment effects:
+ * - increased_in_disease / decreased_in_disease: observational directions
+ * - increased_in_treatment / decreased_in_treatment: intervention effects
+ * - no_effect: null results
+ *
+ * Contradictions are detected WITHIN each domain:
+ * - increased_in_disease vs decreased_in_disease (observational contradiction)
+ * - increased_in_disease vs no_effect (observation vs null result)
+ * - increased_in_treatment vs no_effect (treatment effect vs null)
+ * Treatment directions are NOT contradictory with disease directions
+ * (a bacterium can be elevated in disease AND increased by treatment).
  */
 export function findContradictions(
   db: RhizomeDB,
@@ -238,8 +246,9 @@ export function findContradictions(
   entityName: string;
   condition: string;
   conditionName: string;
-  increased: DirectionEntry[];
-  decreased: DirectionEntry[];
+  increasedInDisease: DirectionEntry[];
+  decreasedInDisease: DirectionEntry[];
+  increasedInTreatment: DirectionEntry[];
   noEffect: DirectionEntry[];
 }[] {
   const entities = db.entitiesOfType(entityType);
@@ -257,8 +266,9 @@ export function findContradictions(
       const sharedClaims = entityClaims.filter(c => condClaims.has(c));
       if (sharedClaims.length < 2) continue;
 
-      const increased: DirectionEntry[] = [];
-      const decreased: DirectionEntry[] = [];
+      const increasedInDisease: DirectionEntry[] = [];
+      const decreasedInDisease: DirectionEntry[] = [];
+      const increasedInTreatment: DirectionEntry[] = [];
       const noEffect: DirectionEntry[] = [];
 
       for (const claimId of sharedClaims) {
@@ -277,25 +287,31 @@ export function findContradictions(
           studyType: (paper.study_type as string) || 'unspecified',
         };
 
-        if (direction === 'increased_in_disease' || direction === 'increased_in_treatment') {
-          increased.push(entry);
+        if (direction === 'increased_in_disease') {
+          increasedInDisease.push(entry);
         } else if (direction === 'decreased_in_disease') {
-          decreased.push(entry);
+          decreasedInDisease.push(entry);
+        } else if (direction === 'increased_in_treatment') {
+          increasedInTreatment.push(entry);
         } else if (direction === 'no_effect') {
           noEffect.push(entry);
         }
       }
 
-      // Report if there are claims in multiple directions
-      const categories = [increased.length > 0, decreased.length > 0, noEffect.length > 0].filter(Boolean).length;
-      if (categories >= 2) {
+      // Detect contradictions: opposing directions within a domain
+      const diseaseContra = increasedInDisease.length > 0 && decreasedInDisease.length > 0;
+      const diseaseNullContra = (increasedInDisease.length > 0 || decreasedInDisease.length > 0) && noEffect.length > 0;
+      const treatmentNullContra = increasedInTreatment.length > 0 && noEffect.length > 0;
+
+      if (diseaseContra || diseaseNullContra || treatmentNullContra) {
         contradictions.push({
           entity: entityId,
           entityName: (db.resolve(entityId).name as string) || entityId,
           condition: condId,
           conditionName: (db.resolve(condId).name as string) || condId,
-          increased,
-          decreased,
+          increasedInDisease,
+          decreasedInDisease,
+          increasedInTreatment,
           noEffect,
         });
       }
@@ -303,6 +319,118 @@ export function findContradictions(
   }
 
   return contradictions;
+}
+
+/**
+ * Comprehensive profile for a single entity: all claims, conditions,
+ * mechanisms, metabolites, papers, and consensus score in one view.
+ *
+ * Works for any entity type but most useful for bacteria, metabolites,
+ * and mechanisms.
+ */
+export function entityProfile(db: RhizomeDB, entityId: string): {
+  id: string;
+  name: string;
+  type: string;
+  conditions: { id: string; name: string; direction: string; claimCount: number }[];
+  mechanisms: { id: string; name: string }[];
+  metabolites: { id: string; name: string; relationship: string }[];
+  papers: { id: string; title: string; year: number; studyType: string; journal: string }[];
+  consensus: { paperCount: number; weightedScore: number; countries: string[]; studyTypes: string[] };
+  claimTimeline: { year: number; statement: string; direction?: string; paper: string }[];
+} {
+  const resolved = db.resolve(entityId);
+  const name = (resolved.name as string) || entityId;
+  const type = (resolved.type as string) || 'unknown';
+
+  const claims = db.relatedIds(entityId, 'claims_about', 'claim');
+
+  // Conditions with direction counts
+  const condMap = new Map<string, { name: string; directions: Map<string, number> }>();
+  const mechSet = new Map<string, string>(); // id → name
+  const paperMap = new Map<string, { title: string; year: number; studyType: string; journal: string }>();
+  const timeline: { year: number; statement: string; direction?: string; paper: string }[] = [];
+
+  for (const claimId of claims) {
+    const claimResolved = db.resolve(claimId);
+    const direction = (claimResolved.direction as string) || '';
+    const statement = (claimResolved.statement as string) || '';
+
+    // Collect conditions from claim
+    for (const condId of db.relatedIds(claimId, 'conditions', 'subject')) {
+      if (!condMap.has(condId)) {
+        condMap.set(condId, { name: (db.resolve(condId).name as string) || condId, directions: new Map() });
+      }
+      const entry = condMap.get(condId)!;
+      entry.directions.set(direction, (entry.directions.get(direction) || 0) + 1);
+    }
+
+    // Collect mechanisms from claim
+    for (const mechId of db.relatedIds(claimId, 'mechanisms', 'subject')) {
+      if (!mechSet.has(mechId)) {
+        mechSet.set(mechId, (db.resolve(mechId).name as string) || mechId);
+      }
+    }
+
+    // Collect papers
+    const paperIds = db.relatedIds(claimId, 'source_paper', 'source');
+    for (const paperId of paperIds) {
+      if (!paperMap.has(paperId)) {
+        const paper = db.resolve(paperId);
+        paperMap.set(paperId, {
+          title: (paper.title as string) || paperId,
+          year: (paper.year as number) || 0,
+          studyType: (paper.study_type as string) || 'unspecified',
+          journal: (paper.journal as string) || '',
+        });
+      }
+      const paper = paperMap.get(paperId)!;
+      if (paper.year > 0) {
+        timeline.push({ year: paper.year, statement, direction: direction || undefined, paper: paper.title });
+      }
+    }
+  }
+
+  // Collect metabolite relationships (production)
+  const metabolites: { id: string; name: string; relationship: string }[] = [];
+  for (const product of db.relatedIds(entityId, 'produces', 'product')) {
+    metabolites.push({ id: product, name: (db.resolve(product).name as string) || product, relationship: 'produces' });
+  }
+  for (const producer of db.relatedIds(entityId, 'produced_by', 'producer')) {
+    metabolites.push({ id: producer, name: (db.resolve(producer).name as string) || producer, relationship: 'produced_by' });
+  }
+
+  // Build conditions array with dominant direction
+  const conditions = Array.from(condMap.entries()).map(([id, { name, directions }]) => {
+    let dominant = '';
+    let maxCount = 0;
+    for (const [dir, count] of directions) {
+      if (count > maxCount) { dominant = dir; maxCount = count; }
+    }
+    let total = 0;
+    for (const count of directions.values()) total += count;
+    return { id, name, direction: dominant, claimCount: total };
+  }).sort((a, b) => b.claimCount - a.claimCount);
+
+  // Build papers array sorted by year
+  const papers = Array.from(paperMap.entries())
+    .map(([id, info]) => ({ id, ...info }))
+    .sort((a, b) => a.year - b.year);
+
+  // Build timeline sorted by year
+  timeline.sort((a, b) => a.year - b.year);
+
+  return {
+    id: entityId,
+    name,
+    type,
+    conditions,
+    mechanisms: Array.from(mechSet.entries()).map(([id, name]) => ({ id, name })),
+    metabolites,
+    papers,
+    consensus: consensusScore(db, entityId),
+    claimTimeline: timeline,
+  };
 }
 
 /**

@@ -14,7 +14,12 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "prepublishOnly": "npm run clean && npm run build",
-    "prepare": "husky"
+    "prepare": "husky",
+    "rhizome:init": "ts-node cli/init.ts",
+    "rhizome:status": "ts-node cli/status.ts",
+    "rhizome:delta": "ts-node cli/delta-create.ts",
+    "rhizome:query": "ts-node cli/query.ts",
+    "rhizome:negate": "ts-node cli/negate.ts"
   },
   "repository": {
     "type": "git",

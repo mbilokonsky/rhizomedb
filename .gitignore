@@ -138,7 +138,10 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-# RhizomeDB local development database (not committed)
+# RhizomeDB local data directories (not committed)
 .rhizome/dev/
+.rhizome/data/
+typescript/.rhizome/
+dist-cli/
 
 # Note: .rhizome/rhia/ IS committed - it's our project's intellectual history

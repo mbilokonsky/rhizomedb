@@ -1,8 +1,32 @@
 # RhizomeDB Development Guide
 
-## Project Overview
+## Vision & Strategic Direction
 
-RhizomeDB is a rhizomatic database using immutable delta-CRDTs as hyperedges in a hypergraph. State is assembled at query time from an append-only stream of deltas.
+RhizomeDB is a rhizomatic database using immutable delta-CRDTs as hyperedges in a hypergraph that treats state as a side-effect assembled at query-time. The target is not "a database product." The target is a **substrate for autonomous agent coordination**, and emergent possibilities.
+
+### Core Architectural Principles
+
+- **No single source of truth.** Different observers can hold different views of the same data via query-time assembly.
+- **Schemas are data.** Everything except the Delta schema itself is composed of deltas. Schemas flow through the system like any other data.
+- **Anti-imperial by design.** No forced consensus, no last-write-wins, no central authority. Trust-based resolution at the query layer. "Who holds the deltas and who chooses the resolution strategy" is a governance question baked into the data layer.
+- **MCP is transitional.** The MCP server exists but MCP as a standard is likely dissolving as agents move toward local harnesses with shell access. The real integration story is RhizomeDB as a library/local process, with federation between instances via delta exchange over any available transport.
+
+### The Frontier (within sight)
+
+- Deltas that define functions which when invoked generate new deltas based on input deltas
+- This creates homoiconic (code-as-data), distributed (CRDT), autopoietic (self-producing) structures
+- "Organisms" in idea space — sets of deltas that maintain their own coherence
+- Self-similarity quantification: measuring when a set of deltas crosses from "collection of assertions" into "self-maintaining structure"
+
+### Release Philosophy
+
+- Not a startup. Not a product. Not patented.
+- Ideally released through the distributed agent ecosystem rather than through traditional human-founder channels
+- The architecture should distribute itself rhizomatically
+
+---
+
+## Project Overview
 
 ### Core Concepts
 
@@ -78,13 +102,9 @@ npx tsc --noEmit
 - Strict TypeScript
 - No `any` types without justification
 
-## Dogfooding
+## Delta Semantics
 
-We use RhizomeDB to track development context. The database persists to `.rhizome/` directory.
-
-### Delta Semantics
-
-#### Role Naming Conventions
+### Role Naming Conventions
 
 **Annotation Pattern (Object + Primitive)**
 
@@ -114,62 +134,14 @@ When relating two domain objects, both roles are nouns - neither is privileged:
 
 The delta is readable from either direction. The `context` on each target determines where the delta appears when querying that object.
 
-#### Atomicity
+### Atomicity
 
 **Independent facts should be separate deltas** (each can be negated independently).
 **Inseparable facts** belong in one delta (e.g., a transaction's buyer/seller/price).
 
-#### Ordering
+### Ordering
 
 The data layer is fundamentally unordered - deltas exist in superposition. **Ordering is a property of View-level reduction**, not data-level structure. Timestamps, position hints, and sequence annotations are just more facts in the rhizome - they inform ordering but don't determine it. The View resolver collapses superposition into sequence.
-
-### Quick Usage
-
-```typescript
-import { LevelDBStore } from './src/storage/leveldb-store';
-
-const db = new LevelDBStore({
-  dbPath: '.rhizome/dev',
-  storage: 'leveldb'
-});
-
-const taskId = 'task-123';
-
-// Delta 1: Assert the task's type
-const typeDelta = db.createDelta('claude', [
-  { role: 'typed', target: { id: taskId, context: 'type' } },
-  { role: 'type', target: 'task' }
-]);
-
-// Delta 2: Assert the task's name
-const nameDelta = db.createDelta('claude', [
-  { role: 'named', target: { id: taskId, context: 'name' } },
-  { role: 'name', target: 'Implement feature X' }
-]);
-
-await db.persistDelta(typeDelta);
-await db.persistDelta(nameDelta);
-
-// Query deltas targeting this task
-const taskDeltas = await db.queryDeltas({
-  targetIds: [taskId]
-});
-
-await db.close();
-```
-
-### Dogfooding Script
-
-Run from the typescript directory:
-
-```bash
-npx ts-node scripts/dogfood.ts <command> [args]
-```
-
-Commands:
-- `stats` - Show database statistics
-- `log` - Show recent deltas
-- `add <type> <content>` - Add a new entry
 
 ## Key Files
 

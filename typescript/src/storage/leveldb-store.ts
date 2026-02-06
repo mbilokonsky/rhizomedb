@@ -17,6 +17,8 @@ import {
   DeltaHandler,
   Subscription,
   StreamInfo,
+  ResolutionStrategy,
+  PropertyResolution,
   DeltaAuthor,
   DeltaStore,
   StreamConsumer,
@@ -24,7 +26,8 @@ import {
   IndexMaintainer
 } from '../core/types';
 import { validateDelta, isDomainNodeReference, isReference } from '../core/validation';
-import { constructHyperView, SchemaRegistry } from '../schemas/hyperview';
+import { constructHyperView, createStandardSchema, SchemaRegistry } from '../schemas/hyperview';
+import { ViewResolver, mostRecent } from '../queries/view-resolver';
 import { calculateSchemaHash, VersionedHyperSchema } from '../schemas/schema-versioning';
 
 /**
@@ -136,6 +139,8 @@ export class LevelDBStore
   private db: Level<string, string>;
   private subscriptions: Map<string, LevelDBSubscription> = new Map();
   private materializedViews: Map<string, MaterializedHyperView> = new Map();
+  /** Reverse index: objectId → Set of cache keys for views that reference this object */
+  private viewsByObjectId: Map<string, Set<string>> = new Map();
   private schemaRegistry: SchemaRegistry;
   private startTime: number = Date.now();
   private config: Required<RhizomeConfig>;
@@ -291,7 +296,7 @@ export class LevelDBStore
 
     // Update materialized views if indexing is enabled
     if (this.config.enableIndexing) {
-      // TODO: Implement incremental view updates
+      await this.incrementallyUpdateViews(delta);
     }
   }
 
@@ -585,6 +590,7 @@ export class LevelDBStore
     // Cache if within size limit
     if (this.materializedViews.size < this.config.cacheSize) {
       this.materializedViews.set(cacheKey, materialized);
+      this.addToReverseIndex(objectId, cacheKey);
     }
 
     return materialized;
@@ -641,6 +647,314 @@ export class LevelDBStore
   invalidateView(objectId: string, schemaId: string): void {
     const cacheKey = `${objectId}:${schemaId}`;
     this.materializedViews.delete(cacheKey);
+  }
+
+  // =========================================================================
+  // Incremental view update internals
+  // =========================================================================
+
+  private addToReverseIndex(objectId: string, cacheKey: string): void {
+    let keys = this.viewsByObjectId.get(objectId);
+    if (!keys) {
+      keys = new Set();
+      this.viewsByObjectId.set(objectId, keys);
+    }
+    keys.add(cacheKey);
+  }
+
+  private removeFromReverseIndex(cacheKey: string): void {
+    for (const [objectId, keys] of this.viewsByObjectId.entries()) {
+      keys.delete(cacheKey);
+      if (keys.size === 0) {
+        this.viewsByObjectId.delete(objectId);
+      }
+    }
+  }
+
+  private getReferencedObjectIds(delta: Delta): string[] {
+    const ids: string[] = [];
+    for (const pointer of delta.pointers) {
+      if (isDomainNodeReference(pointer.target)) {
+        ids.push(pointer.target.id);
+      }
+    }
+    return ids;
+  }
+
+  private isNegationDelta(delta: Delta): { isNegation: boolean; targetDeltaId?: string } {
+    for (const pointer of delta.pointers) {
+      if (pointer.role === 'negates' && isDomainNodeReference(pointer.target)) {
+        return { isNegation: true, targetDeltaId: pointer.target.id };
+      }
+    }
+    return { isNegation: false };
+  }
+
+  private countViewDeltas(view: MaterializedHyperView): number {
+    let count = 0;
+    for (const key in view) {
+      if (key !== 'id' && key !== '_metadata' && Array.isArray(view[key])) {
+        count += (view[key] as Delta[]).length;
+      }
+    }
+    return count;
+  }
+
+  private async incrementallyUpdateViews(delta: Delta): Promise<void> {
+    const { isNegation, targetDeltaId } = this.isNegationDelta(delta);
+
+    if (isNegation && targetDeltaId) {
+      await this.handleNegationDelta(delta, targetDeltaId);
+    } else {
+      this.handleRegularDelta(delta);
+    }
+  }
+
+  private handleRegularDelta(delta: Delta): void {
+    const objectIds = this.getReferencedObjectIds(delta);
+
+    for (const objectId of objectIds) {
+      const cacheKeys = this.viewsByObjectId.get(objectId);
+      if (!cacheKeys) continue;
+
+      for (const cacheKey of cacheKeys) {
+        const view = this.materializedViews.get(cacheKey);
+        if (!view) continue;
+
+        const schema = this.schemaRegistry.get(view._metadata.schemaId);
+        if (!schema) continue;
+
+        const result = schema.select(objectId, delta);
+        if (result === false) continue;
+
+        const properties = result === true ? ['_default'] : result;
+
+        const transformedDelta: Delta = {
+          ...delta,
+          pointers: delta.pointers.map(pointer => {
+            const rule = schema.transform[pointer.role];
+            if (!rule || (rule.when && !rule.when(pointer, delta))) return pointer;
+            if (!isDomainNodeReference(pointer.target)) return pointer;
+            return pointer;
+          })
+        };
+
+        for (const property of properties) {
+          if (!view[property]) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (view as any)[property] = [];
+          }
+          (view[property] as Delta[]).push(transformedDelta);
+        }
+
+        view._metadata.lastUpdated = Date.now();
+        view._metadata.deltaCount = this.countViewDeltas(view);
+      }
+    }
+  }
+
+  private async handleNegationDelta(_negationDelta: Delta, targetDeltaId: string): Promise<void> {
+    // Look up target delta to check for double negation
+    const targetDeltas = await this.getDeltas([targetDeltaId]);
+    const targetDelta = targetDeltas[0];
+
+    if (targetDelta) {
+      const { isNegation: isDoubleNegation, targetDeltaId: originalDeltaId } = this.isNegationDelta(targetDelta);
+      if (isDoubleNegation && originalDeltaId) {
+        // Double negation: rebuild views for the originally negated delta
+        const originalDeltas = await this.getDeltas([originalDeltaId]);
+        if (originalDeltas[0]) {
+          await this.rebuildAffectedViews(originalDeltas[0]);
+        }
+        return;
+      }
+    }
+
+    if (!targetDelta) return;
+
+    const objectIds = this.getReferencedObjectIds(targetDelta);
+
+    for (const objectId of objectIds) {
+      const cacheKeys = this.viewsByObjectId.get(objectId);
+      if (!cacheKeys) continue;
+
+      for (const cacheKey of cacheKeys) {
+        const view = this.materializedViews.get(cacheKey);
+        if (!view) continue;
+
+        let removed = false;
+        for (const key in view) {
+          if (key === 'id' || key === '_metadata') continue;
+          const arr = view[key];
+          if (!Array.isArray(arr)) continue;
+
+          const before = arr.length;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (view as any)[key] = arr.filter((d: Delta) => d.id !== targetDeltaId);
+          if ((view[key] as Delta[]).length < before) {
+            removed = true;
+          }
+        }
+
+        if (removed) {
+          view._metadata.lastUpdated = Date.now();
+          view._metadata.deltaCount = this.countViewDeltas(view);
+        }
+      }
+    }
+  }
+
+  private async rebuildAffectedViews(delta: Delta): Promise<void> {
+    const objectIds = this.getReferencedObjectIds(delta);
+
+    for (const objectId of objectIds) {
+      const cacheKeys = this.viewsByObjectId.get(objectId);
+      if (!cacheKeys) continue;
+
+      for (const cacheKey of Array.from(cacheKeys)) {
+        const view = this.materializedViews.get(cacheKey);
+        if (!view) continue;
+
+        const schema = this.schemaRegistry.get(view._metadata.schemaId);
+        if (!schema) continue;
+
+        // Invalidate cache so materializeHyperView doesn't return cached version
+        this.materializedViews.delete(cacheKey);
+        await this.materializeHyperView(objectId, schema);
+      }
+    }
+  }
+
+  // =========================================================================
+  // Convenience methods
+  // =========================================================================
+
+  /**
+   * Resolve an entity to a plain object using a resolution strategy.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async resolve(entityId: string, strategy?: ResolutionStrategy, queryTimestamp?: number): Promise<Record<string, any>> {
+    const schema = createStandardSchema('_resolve', 'Resolve');
+    const registry = new SchemaRegistry();
+    registry.register(schema);
+
+    const allDeltas = await this.queryDeltas({ includeNegated: true });
+    const hyperView = constructHyperView(entityId, schema, allDeltas, registry, queryTimestamp);
+
+    const resolveStrategy = strategy ?? mostRecent;
+    const properties: Record<string, PropertyResolution> = {};
+
+    for (const [key, value] of Object.entries(hyperView)) {
+      if (key === 'id' || key === '_metadata' || !Array.isArray(value)) continue;
+      properties[key] = {
+        source: key,
+        extract: (delta: Delta) => {
+          for (const p of delta.pointers) {
+            if (typeof p.target === 'string' || typeof p.target === 'number' || typeof p.target === 'boolean') {
+              return p.target;
+            }
+          }
+          return null;
+        },
+        resolve: resolveStrategy
+      };
+    }
+
+    if (Object.keys(properties).length === 0) {
+      return { id: hyperView.id };
+    }
+
+    const resolver = new ViewResolver();
+    return resolver.resolveView(hyperView, { properties });
+  }
+
+  /**
+   * Get all values for a specific property of an entity.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async allValuesFor(entityId: string, property: string, queryTimestamp?: number): Promise<any[]> {
+    const schema = createStandardSchema('_resolve', 'Resolve');
+    const registry = new SchemaRegistry();
+    registry.register(schema);
+
+    const allDeltas = await this.queryDeltas({ includeNegated: true });
+    const hyperView = constructHyperView(entityId, schema, allDeltas, registry, queryTimestamp);
+    const deltas = hyperView[property] as Delta[] | undefined;
+    if (!deltas || deltas.length === 0) return [];
+
+    return deltas.map((delta) => {
+      for (const p of delta.pointers) {
+        if (typeof p.target === 'string' || typeof p.target === 'number' || typeof p.target === 'boolean') {
+          return p.target;
+        }
+      }
+      return null;
+    }).filter((v) => v !== null);
+  }
+
+  /**
+   * Get related entity IDs through a relationship property.
+   */
+  async relatedIds(entityId: string, property: string, throughRole: string, queryTimestamp?: number): Promise<string[]> {
+    const schema = createStandardSchema('_resolve', 'Resolve');
+    const registry = new SchemaRegistry();
+    registry.register(schema);
+
+    const allDeltas = await this.queryDeltas({ includeNegated: true });
+    const hyperView = constructHyperView(entityId, schema, allDeltas, registry, queryTimestamp);
+    const deltas = hyperView[property] as Delta[] | undefined;
+    if (!deltas || deltas.length === 0) return [];
+
+    const ids: string[] = [];
+    for (const delta of deltas) {
+      for (const p of delta.pointers) {
+        if (p.role === throughRole && typeof p.target === 'object' && 'id' in p.target) {
+          ids.push(p.target.id);
+        }
+      }
+    }
+    return ids;
+  }
+
+  /**
+   * Create and persist an annotation delta (object + primitive value).
+   */
+  async annotate(
+    entityId: string,
+    property: string,
+    value: string | number | boolean,
+    author: string,
+    timestamp?: number
+  ): Promise<Delta> {
+    const delta = this.createDelta(author, [
+      { role: `${property}d`, target: { id: entityId, context: property } },
+      { role: property, target: value }
+    ]);
+    if (timestamp !== undefined) delta.timestamp = timestamp;
+    await this.persistDelta(delta);
+    return delta;
+  }
+
+  /**
+   * Create and persist a relationship delta (object + object).
+   */
+  async relate(
+    roleA: string,
+    entityA: string,
+    contextA: string,
+    roleB: string,
+    entityB: string,
+    contextB: string,
+    author: string,
+    timestamp?: number
+  ): Promise<Delta> {
+    const delta = this.createDelta(author, [
+      { role: roleA, target: { id: entityA, context: contextA } },
+      { role: roleB, target: { id: entityB, context: contextB } }
+    ]);
+    if (timestamp !== undefined) delta.timestamp = timestamp;
+    await this.persistDelta(delta);
+    return delta;
   }
 
   // =========================================================================

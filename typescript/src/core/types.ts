@@ -336,7 +336,7 @@ export interface RhizomeInstance {
   readonly systemId: string;
 
   /** Query deltas matching a filter */
-  queryDeltas(filter: DeltaFilter): Delta[] | AsyncIterable<Delta> | Promise<Delta[]>;
+  queryDeltas(filter: DeltaFilter): Delta[] | Promise<Delta[]>;
 
   /** Apply a HyperSchema to construct a HyperView */
   applyHyperSchema(objectId: string, schema: HyperSchema): HyperView | Promise<HyperView>;

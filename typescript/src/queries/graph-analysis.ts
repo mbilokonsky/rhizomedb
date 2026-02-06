@@ -1284,6 +1284,22 @@ export function researchFrontier(db: RhizomeDB): {
       if (st === 'clinical_trial') hasRCT = true;
       if (st === 'animal_study') hasAnimalModel = true;
     }
+    // Also detect FMT evidence from claims involving the FMT mechanism
+    // (many FMT studies are classified as animal_study, not fecal_transplant)
+    if (!hasFMT) {
+      const condClaims = db.relatedIds(condId, 'claims_about', 'claim');
+      for (const claimId of condClaims) {
+        const mechs = db.relatedIds(claimId, 'mechanisms', 'subject');
+        for (const mech of mechs) {
+          const mechName = (db.resolve(mech).name as string) || '';
+          if (mechName.toLowerCase().includes('fecal microbiota') || mechName.toLowerCase().includes('fmt')) {
+            hasFMT = true;
+            break;
+          }
+        }
+        if (hasFMT) break;
+      }
+    }
     causalEvidenceMap.push({
       condition: condId,
       name: (db.resolve(condId).name as string) || condId,

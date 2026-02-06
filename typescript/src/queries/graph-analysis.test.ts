@@ -604,9 +604,10 @@ describe('Graph Analysis Queries', () => {
     it('should map causal evidence (FMT/RCT/animal) per condition', () => {
       const frontier = researchFrontier(db);
 
-      // Depression should have RCT and animal model evidence
+      // Depression should have FMT (via mech_fmt_transfer in Kelly 2016/Zheng 2016), RCT, and animal model
       const depression = frontier.causalEvidenceMap.find(c => c.condition.includes('depressive'));
       expect(depression).toBeDefined();
+      expect(depression!.hasFMT).toBe(true);
       expect(depression!.hasRCT).toBe(true);
       expect(depression!.hasAnimalModel).toBe(true);
 

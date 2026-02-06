@@ -20,7 +20,7 @@ describe('Academic Paper Knowledge Graph', () => {
     db = new RhizomeDB({ storage: 'memory', systemId: 'academic-digestion' });
     const result = await seedAcademicPapers(db);
     // eslint-disable-next-line no-console
-    console.error(`Seeded ${result.totalDeltas} deltas from 35 papers`);
+    console.error(`Seeded ${result.totalDeltas} deltas from 42 papers`);
   });
 
   describe('Basic ingestion', () => {
@@ -56,9 +56,9 @@ describe('Academic Paper Knowledge Graph', () => {
   });
 
   describe('Collection queries (entitiesOfType)', () => {
-    it('should find all 35 papers', () => {
+    it('should find all 42 papers', () => {
       const papers = db.entitiesOfType('paper');
-      expect(papers).toHaveLength(35);
+      expect(papers).toHaveLength(42);
     });
 
     it('should find all bacteria (batch 1 + batch 2)', () => {
@@ -938,9 +938,9 @@ describe('Academic Paper Knowledge Graph', () => {
       expect(uccResearchers.length).toBeGreaterThanOrEqual(7);
     });
 
-    it('should now span 2004-2025 across 35 papers with 15+ countries', () => {
+    it('should now span 2004-2025 across 42 papers with 17+ countries', () => {
       const allPapers = db.entitiesOfType('paper');
-      expect(allPapers.length).toBe(35);
+      expect(allPapers.length).toBe(42);
 
       const years = allPapers.map(p => db.resolve(p).year as number).sort();
       expect(years[0]).toBe(2004);
@@ -952,7 +952,78 @@ describe('Academic Paper Knowledge Graph', () => {
         const resolved = db.resolve(instId);
         if (resolved.country) countries.add(resolved.country as string);
       }
-      expect(countries.size).toBeGreaterThanOrEqual(15);
+      expect(countries.size).toBeGreaterThanOrEqual(17);
+    });
+  });
+
+  describe('Batch 5: Evidence gap filling — PD, ADHD, multi-ethnic, diet RCT', () => {
+    it('should have 4 Parkinson\'s papers (Scheperjans + Sampson + Keshavarzian + Unger)', () => {
+      const pdClaims = db.relatedIds(ids.cond_parkinsons, 'claims_about', 'claim');
+      const pdPapers = new Set<string>();
+      for (const claimId of pdClaims) {
+        const papers = db.relatedIds(claimId, 'source_paper', 'source');
+        for (const p of papers) pdPapers.add(p);
+      }
+      expect(pdPapers.size).toBeGreaterThanOrEqual(4);
+    });
+
+    it('should establish ADHD as a new condition with 2 papers', () => {
+      const adhd = db.resolve(ids.cond_adhd);
+      expect(adhd.name).toBe('Attention-Deficit/Hyperactivity Disorder');
+
+      const adhdClaims = db.relatedIds(ids.cond_adhd, 'claims_about', 'claim');
+      expect(adhdClaims.length).toBeGreaterThanOrEqual(3);
+
+      const adhdPapers = new Set<string>();
+      for (const claimId of adhdClaims) {
+        const papers = db.relatedIds(claimId, 'source_paper', 'source');
+        for (const p of papers) adhdPapers.add(p);
+      }
+      expect(adhdPapers.size).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should include FMT causal evidence for ADHD (Tengeler 2020)', () => {
+      const paper = db.resolve(ids.paper_tengeler_2020);
+      expect(paper.study_type).toBe('fecal_transplant');
+      expect(paper.title).toContain('attention-deficit');
+    });
+
+    it('should capture the PD SCFA paradox (depleted in patients but promotes pathology in mice)', () => {
+      // Unger 2016: SCFAs decreased in PD patients
+      const ungerClaims = db.relatedIds(ids.paper_unger_2016, 'claims', 'claim');
+      expect(ungerClaims.length).toBeGreaterThanOrEqual(2);
+
+      // Sampson 2016: SCFAs promote alpha-synuclein pathology
+      const sampsonClaims = db.relatedIds(ids.paper_sampson_2016, 'claims', 'claim');
+      expect(sampsonClaims.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('should include the HELIUS multi-ethnic cohort (Bos 2022)', () => {
+      const paper = db.resolve(ids.paper_bos_2022);
+      expect(paper.study_type).toBe('cohort');
+      expect((paper.title as string)).toContain('HELIUS');
+    });
+
+    it('should include the SMILES diet RCT (Jacka 2017)', () => {
+      const paper = db.resolve(ids.paper_jacka_2017);
+      expect(paper.study_type).toBe('clinical_trial');
+      expect((paper.title as string)).toContain('SMILES');
+    });
+
+    it('should add Germany as a new country', () => {
+      const inst = db.resolve(ids.inst_philipps_marburg);
+      expect(inst.country).toBe('Germany');
+    });
+
+    it('should link Sampson to Mazmanian at Caltech (shared across batch 4 and 5)', () => {
+      const caltechResearchers = db.relatedIds(ids.inst_caltech, 'researchers', 'researcher');
+      expect(caltechResearchers).toContain(ids.researcher_sampson);
+      expect(caltechResearchers).toContain(ids.researcher_mazmanian);
+    });
+
+    it('should add alpha-synuclein aggregation as a new mechanism', () => {
+      const mech = db.resolve(ids.mech_alpha_synuclein);
+      expect(mech.name).toBe('Alpha-synuclein aggregation');
     });
   });
 });

@@ -304,6 +304,51 @@ export const ids = {
   cond_parkinsons: 'condition:parkinsons-disease',
   cond_frailty: 'condition:age-related-frailty',
   cond_cognitive_decline: 'condition:cognitive-decline',
+
+  // === Batch 5: Papers 36-42 (evidence gap filling) ===
+
+  // Papers
+  paper_sampson_2016: 'paper:sampson-2016-cell-parkinsons-microbiota',
+  paper_keshavarzian_2015: 'paper:keshavarzian-2015-movdis-parkinsons-mucosal',
+  paper_unger_2016: 'paper:unger-2016-parkreldis-scfa-parkinsons',
+  paper_aarts_2017: 'paper:aarts-2017-plosone-adhd-microbiome',
+  paper_tengeler_2020: 'paper:tengeler-2020-microbiome-adhd-fmt',
+  paper_bos_2022: 'paper:bos-2022-natcomms-helius-multiethnic',
+  paper_jacka_2017: 'paper:jacka-2017-bmcmed-smiles-diet',
+
+  // New researchers (batch 5)
+  researcher_sampson: 'researcher:timothy-sampson',
+  researcher_keshavarzian: 'researcher:ali-keshavarzian',
+  researcher_unger: 'researcher:marcus-unger',
+  researcher_aarts: 'researcher:esther-aarts',
+  researcher_tenje: 'researcher:maria-tenje',
+  researcher_tengeler: 'researcher:alejandro-arias-vasquez',
+  researcher_bosch: 'researcher:jos-bosch',
+  researcher_lok: 'researcher:anja-lok',
+  researcher_jacka: 'researcher:felice-jacka',
+  researcher_berk: 'researcher:michael-berk',
+
+  // New institutions (batch 5)
+  inst_rush_chicago: 'inst:rush-university-chicago',
+  inst_philipps_marburg: 'inst:philipps-university-marburg',
+  inst_radboud: 'inst:radboud-university-nijmegen',
+  inst_amsterdam_umc: 'inst:amsterdam-university-medical-centre',
+  inst_deakin: 'inst:deakin-university',
+
+  // New bacteria (batch 5)
+  bact_lachnospiraceae: 'bacterium:lachnospiraceae',
+  bact_christensenellaceae: 'bacterium:christensenellaceae',
+  bact_blautia: 'bacterium:blautia',
+  bact_dorea: 'bacterium:dorea',
+
+  // New mechanisms (batch 5)
+  mech_alpha_synuclein: 'mechanism:alpha-synuclein-aggregation',
+  mech_mucosal_inflammation: 'mechanism:intestinal-mucosal-inflammation',
+  mech_scfa_neuroprotection: 'mechanism:scfa-neuroprotection',
+  mech_dopamine_synthesis: 'mechanism:dopamine-synthesis-pathway',
+
+  // New conditions (batch 5)
+  cond_adhd: 'condition:attention-deficit-hyperactivity-disorder',
 };
 
 // Claim IDs are unique per paper-claim pair
@@ -923,6 +968,116 @@ async function seedEntities(db: RhizomeDB, author: string): Promise<number> {
   await ann(ids.cond_cognitive_decline, 'name', 'Cognitive Decline');
   await ann(ids.cond_cognitive_decline, 'type', 'condition');
 
+  // ===== Batch 5: Evidence gap filling (papers 36-42) =====
+
+  // Batch 5 papers
+  await ann(ids.paper_sampson_2016, 'title', 'Gut Microbiota Regulate Motor Deficits and Neuroinflammation in a Model of Parkinson\'s Disease');
+  await ann(ids.paper_sampson_2016, 'journal', 'Cell');
+  await ann(ids.paper_sampson_2016, 'year', 2016);
+  await ann(ids.paper_sampson_2016, 'type', 'paper');
+  await ann(ids.paper_sampson_2016, 'doi', '10.1016/j.cell.2016.11.018');
+  await ann(ids.paper_sampson_2016, 'study_type', 'animal_study');
+
+  await ann(ids.paper_keshavarzian_2015, 'title', 'Colonic bacterial composition in Parkinson\'s disease');
+  await ann(ids.paper_keshavarzian_2015, 'journal', 'Movement Disorders');
+  await ann(ids.paper_keshavarzian_2015, 'year', 2015);
+  await ann(ids.paper_keshavarzian_2015, 'type', 'paper');
+  await ann(ids.paper_keshavarzian_2015, 'doi', '10.1002/mds.26307');
+  await ann(ids.paper_keshavarzian_2015, 'study_type', 'case_control');
+
+  await ann(ids.paper_unger_2016, 'title', 'Short chain fatty acids and gut microbiota differ between patients with Parkinson\'s disease and age-matched controls');
+  await ann(ids.paper_unger_2016, 'journal', 'Parkinsonism & Related Disorders');
+  await ann(ids.paper_unger_2016, 'year', 2016);
+  await ann(ids.paper_unger_2016, 'type', 'paper');
+  await ann(ids.paper_unger_2016, 'doi', '10.1016/j.parkreldis.2016.08.019');
+  await ann(ids.paper_unger_2016, 'study_type', 'case_control');
+
+  await ann(ids.paper_aarts_2017, 'title', 'Gut microbiota and ADHD: Neural reward anticipation is associated with the genus Bifidobacterium');
+  await ann(ids.paper_aarts_2017, 'journal', 'PLoS ONE');
+  await ann(ids.paper_aarts_2017, 'year', 2017);
+  await ann(ids.paper_aarts_2017, 'type', 'paper');
+  await ann(ids.paper_aarts_2017, 'doi', '10.1371/journal.pone.0183509');
+  await ann(ids.paper_aarts_2017, 'study_type', 'case_control');
+
+  await ann(ids.paper_tengeler_2020, 'title', 'Gut microbiota from persons with attention-deficit/hyperactivity disorder affects the brain in mice');
+  await ann(ids.paper_tengeler_2020, 'journal', 'Microbiome');
+  await ann(ids.paper_tengeler_2020, 'year', 2020);
+  await ann(ids.paper_tengeler_2020, 'type', 'paper');
+  await ann(ids.paper_tengeler_2020, 'doi', '10.1186/s40168-020-00816-x');
+  await ann(ids.paper_tengeler_2020, 'study_type', 'fecal_transplant');
+
+  await ann(ids.paper_bos_2022, 'title', 'Gut microbiota composition is associated with depressive symptoms across ethnicities (HELIUS)');
+  await ann(ids.paper_bos_2022, 'journal', 'Nature Communications');
+  await ann(ids.paper_bos_2022, 'year', 2022);
+  await ann(ids.paper_bos_2022, 'type', 'paper');
+  await ann(ids.paper_bos_2022, 'doi', '10.1038/s41467-022-34504-1');
+  await ann(ids.paper_bos_2022, 'study_type', 'cohort');
+
+  await ann(ids.paper_jacka_2017, 'title', 'A randomised controlled trial of dietary improvement for adults with major depression (the SMILES trial)');
+  await ann(ids.paper_jacka_2017, 'journal', 'BMC Medicine');
+  await ann(ids.paper_jacka_2017, 'year', 2017);
+  await ann(ids.paper_jacka_2017, 'type', 'paper');
+  await ann(ids.paper_jacka_2017, 'doi', '10.1186/s12916-017-0791-y');
+  await ann(ids.paper_jacka_2017, 'study_type', 'clinical_trial');
+
+  // Batch 5 researchers
+  const researchers5: [string, string][] = [
+    [ids.researcher_sampson, 'Timothy R Sampson'],
+    [ids.researcher_keshavarzian, 'Ali Keshavarzian'],
+    [ids.researcher_unger, 'Marcus M Unger'],
+    [ids.researcher_aarts, 'Esther Aarts'],
+    [ids.researcher_tengeler, 'Alejandro Arias-Vasquez'],
+    [ids.researcher_bosch, 'Jos A Bosch'],
+    [ids.researcher_lok, 'Anja Lok'],
+    [ids.researcher_jacka, 'Felice N Jacka'],
+    [ids.researcher_berk, 'Michael Berk'],
+  ];
+  for (const [id, name] of researchers5) {
+    await ann(id, 'name', name);
+    await ann(id, 'type', 'researcher');
+  }
+
+  // Batch 5 institutions
+  const institutions5: [string, string, string][] = [
+    [ids.inst_rush_chicago, 'Rush University Medical Center', 'United States'],
+    [ids.inst_philipps_marburg, 'Philipps-University Marburg', 'Germany'],
+    [ids.inst_radboud, 'Radboud University Nijmegen', 'Netherlands'],
+    [ids.inst_amsterdam_umc, 'Amsterdam University Medical Centre', 'Netherlands'],
+    [ids.inst_deakin, 'Deakin University', 'Australia'],
+  ];
+  for (const [id, name, country] of institutions5) {
+    await ann(id, 'name', name);
+    await ann(id, 'type', 'institution');
+    await ann(id, 'country', country);
+  }
+
+  // Batch 5 new bacteria
+  const bacteria5: [string, string, string][] = [
+    [ids.bact_lachnospiraceae, 'Lachnospiraceae', 'family'],
+    [ids.bact_christensenellaceae, 'Christensenellaceae', 'family'],
+    [ids.bact_blautia, 'Blautia', 'genus'],
+    [ids.bact_dorea, 'Dorea', 'genus'],
+  ];
+  for (const [id, name, rank] of bacteria5) {
+    await ann(id, 'name', name);
+    await ann(id, 'type', 'bacterium');
+    await ann(id, 'taxonomic_rank', rank);
+  }
+
+  // Batch 5 new mechanisms
+  await ann(ids.mech_alpha_synuclein, 'name', 'Alpha-synuclein aggregation');
+  await ann(ids.mech_alpha_synuclein, 'type', 'mechanism');
+  await ann(ids.mech_mucosal_inflammation, 'name', 'Intestinal mucosal inflammation');
+  await ann(ids.mech_mucosal_inflammation, 'type', 'mechanism');
+  await ann(ids.mech_scfa_neuroprotection, 'name', 'SCFA-mediated neuroprotection');
+  await ann(ids.mech_scfa_neuroprotection, 'type', 'mechanism');
+  await ann(ids.mech_dopamine_synthesis, 'name', 'Dopamine synthesis pathway');
+  await ann(ids.mech_dopamine_synthesis, 'type', 'mechanism');
+
+  // Batch 5 new conditions
+  await ann(ids.cond_adhd, 'name', 'Attention-Deficit/Hyperactivity Disorder');
+  await ann(ids.cond_adhd, 'type', 'condition');
+
   return count;
 }
 
@@ -1206,6 +1361,47 @@ async function seedRelationships(db: RhizomeDB, author: string): Promise<number>
   await rel('species', ids.bact_bacteroides_ovatus, 'genus', 'genus', ids.bact_bacteroides, 'species');
   await rel('species', ids.bact_ruminococcus_torques, 'genus', 'genus', ids.bact_ruminococcaceae, 'species');
   await rel('species', ids.bact_clostridium_ramosum, 'genus', 'genus', ids.bact_firmicutes, 'species');
+
+  // ===== Batch 5: Paper → Researcher =====
+
+  // Sampson 2016 (Caltech — Mazmanian already exists)
+  await rel('paper', ids.paper_sampson_2016, 'authors', 'author', ids.researcher_sampson, 'papers');
+  await rel('paper', ids.paper_sampson_2016, 'authors', 'author', ids.researcher_mazmanian, 'papers');
+
+  // Keshavarzian 2015
+  await rel('paper', ids.paper_keshavarzian_2015, 'authors', 'author', ids.researcher_keshavarzian, 'papers');
+
+  // Unger 2016
+  await rel('paper', ids.paper_unger_2016, 'authors', 'author', ids.researcher_unger, 'papers');
+
+  // Aarts 2017
+  await rel('paper', ids.paper_aarts_2017, 'authors', 'author', ids.researcher_aarts, 'papers');
+
+  // Tengeler 2020 (Arias-Vasquez)
+  await rel('paper', ids.paper_tengeler_2020, 'authors', 'author', ids.researcher_tengeler, 'papers');
+
+  // Bos 2022 (HELIUS)
+  await rel('paper', ids.paper_bos_2022, 'authors', 'author', ids.researcher_bosch, 'papers');
+  await rel('paper', ids.paper_bos_2022, 'authors', 'author', ids.researcher_lok, 'papers');
+
+  // Jacka 2017 (SMILES)
+  await rel('paper', ids.paper_jacka_2017, 'authors', 'author', ids.researcher_jacka, 'papers');
+  await rel('paper', ids.paper_jacka_2017, 'authors', 'author', ids.researcher_berk, 'papers');
+
+  // ===== Batch 5: Researcher → Institution =====
+  await rel('researcher', ids.researcher_sampson, 'affiliations', 'member', ids.inst_caltech, 'researchers');
+  await rel('researcher', ids.researcher_keshavarzian, 'affiliations', 'member', ids.inst_rush_chicago, 'researchers');
+  await rel('researcher', ids.researcher_unger, 'affiliations', 'member', ids.inst_philipps_marburg, 'researchers');
+  await rel('researcher', ids.researcher_aarts, 'affiliations', 'member', ids.inst_radboud, 'researchers');
+  await rel('researcher', ids.researcher_tengeler, 'affiliations', 'member', ids.inst_radboud, 'researchers');
+  await rel('researcher', ids.researcher_bosch, 'affiliations', 'member', ids.inst_amsterdam_umc, 'researchers');
+  await rel('researcher', ids.researcher_lok, 'affiliations', 'member', ids.inst_amsterdam_umc, 'researchers');
+  await rel('researcher', ids.researcher_jacka, 'affiliations', 'member', ids.inst_deakin, 'researchers');
+  await rel('researcher', ids.researcher_berk, 'affiliations', 'member', ids.inst_deakin, 'researchers');
+
+  // ===== Batch 5: Taxonomic hierarchy =====
+  await rel('species', ids.bact_blautia, 'genus', 'genus', ids.bact_lachnospiraceae, 'species');
+  await rel('species', ids.bact_dorea, 'genus', 'genus', ids.bact_lachnospiraceae, 'species');
 
   return count;
 }
@@ -1905,6 +2101,109 @@ async function seedClaims(db: RhizomeDB, author: string): Promise<number> {
   await makeClaim(ids.paper_claesson_2012,
     'Oscillibacter increased in long-stay institutional care residents',
     [ids.bact_oscillibacter], [], [ids.mech_diversity_frailty], [ids.cond_frailty], 'increased_in_disease');
+
+  // ===================================================================
+  // Batch 5: Evidence gap-filling papers (36-42)
+  // ===================================================================
+
+  // Paper 36: Sampson et al. 2016 — PD causal evidence (Cell)
+  await makeClaim(ids.paper_sampson_2016,
+    'Gut microbiota required for motor deficits and neuroinflammation in alpha-synuclein-overexpressing mice',
+    [], [], [ids.mech_alpha_synuclein, ids.mech_neuroinflammation], [ids.cond_parkinsons]);
+
+  await makeClaim(ids.paper_sampson_2016,
+    'Germ-free conditions ameliorate PD pathology; recolonization restores motor deficits',
+    [], [], [ids.mech_alpha_synuclein], [ids.cond_parkinsons]);
+
+  await makeClaim(ids.paper_sampson_2016,
+    'SCFAs promote alpha-synuclein aggregation and neuroinflammation in germ-free ASO mice',
+    [], [ids.metab_scfa], [ids.mech_alpha_synuclein, ids.mech_neuroinflammation], [ids.cond_parkinsons], 'increased_in_disease');
+
+  await makeClaim(ids.paper_sampson_2016,
+    'Fecal transplant from PD patients into germ-free mice causes enhanced motor dysfunction',
+    [], [], [ids.mech_alpha_synuclein], [ids.cond_parkinsons]);
+
+  // Paper 37: Keshavarzian et al. 2015 — PD mucosal microbiome
+  await makeClaim(ids.paper_keshavarzian_2015,
+    'Colonic mucosal-associated Blautia, Coprococcus, and Roseburia depleted in PD patients',
+    [ids.bact_blautia, ids.bact_coprococcus, ids.bact_roseburia], [ids.metab_butyrate], [ids.mech_mucosal_inflammation], [ids.cond_parkinsons], 'decreased_in_disease');
+
+  await makeClaim(ids.paper_keshavarzian_2015,
+    'Faecalibacterium reduced in sigmoid mucosa of PD patients (anti-inflammatory SCFA producer)',
+    [ids.bact_faecalibacterium], [ids.metab_butyrate], [ids.mech_mucosal_inflammation], [ids.cond_parkinsons], 'decreased_in_disease');
+
+  await makeClaim(ids.paper_keshavarzian_2015,
+    'Intestinal mucosal inflammation precedes PD motor symptoms — gut-first pathogenesis',
+    [], [], [ids.mech_mucosal_inflammation, ids.mech_alpha_synuclein], [ids.cond_parkinsons]);
+
+  // Paper 38: Unger et al. 2016 — SCFA depletion in PD
+  await makeClaim(ids.paper_unger_2016,
+    'Fecal SCFA concentrations (acetate, propionate, butyrate) significantly reduced in PD patients',
+    [], [ids.metab_acetate, ids.metab_propionate, ids.metab_butyrate], [ids.mech_scfa_neuroprotection], [ids.cond_parkinsons], 'decreased_in_disease');
+
+  await makeClaim(ids.paper_unger_2016,
+    'Prevotellaceae reduced in PD fecal samples vs controls',
+    [ids.bact_prevotellaceae], [], [], [ids.cond_parkinsons], 'decreased_in_disease');
+
+  await makeClaim(ids.paper_unger_2016,
+    'Enterobacteriaceae increased in PD fecal samples',
+    [ids.bact_enterobacteriaceae], [], [], [ids.cond_parkinsons], 'increased_in_disease');
+
+  // Paper 39: Aarts et al. 2017 — ADHD microbiome (first study)
+  await makeClaim(ids.paper_aarts_2017,
+    'Bifidobacterium genus increased in ADHD patients compared to controls',
+    [ids.bact_bifidobacterium], [], [], [ids.cond_adhd], 'increased_in_disease');
+
+  await makeClaim(ids.paper_aarts_2017,
+    'Predicted cyclohexadienyl dehydratase (dopamine precursor pathway) increased in ADHD microbiome',
+    [ids.bact_bifidobacterium], [ids.metab_dopamine], [ids.mech_dopamine_synthesis], [ids.cond_adhd], 'increased_in_disease');
+
+  await makeClaim(ids.paper_aarts_2017,
+    'Neural reward anticipation (fMRI ventral striatum) associated with Bifidobacterium abundance in ADHD',
+    [ids.bact_bifidobacterium], [], [ids.mech_dopamine_synthesis], [ids.cond_adhd]);
+
+  // Paper 40: Tengeler et al. 2020 — ADHD FMT causal evidence
+  await makeClaim(ids.paper_tengeler_2020,
+    'Fecal transplant from ADHD patients into germ-free mice produces anxiety-like behavior and structural brain changes',
+    [], [], [], [ids.cond_adhd, ids.cond_anxiety]);
+
+  await makeClaim(ids.paper_tengeler_2020,
+    'ADHD microbiota transplant alters brain structure (thalamus, hippocampus) in recipient mice',
+    [], [], [], [ids.cond_adhd]);
+
+  await makeClaim(ids.paper_tengeler_2020,
+    'ADHD-associated microbiota shifts Lachnospiraceae and Ruminococcaceae abundance in recipient mice',
+    [ids.bact_lachnospiraceae, ids.bact_ruminococcaceae], [], [], [ids.cond_adhd]);
+
+  // Paper 41: Bos et al. 2022 — HELIUS multi-ethnic depression cohort
+  await makeClaim(ids.paper_bos_2022,
+    'Alpha-diversity and beta-diversity both predict depressive symptoms across 6 ethnic groups (N=3211)',
+    [], [], [], [ids.cond_depression]);
+
+  await makeClaim(ids.paper_bos_2022,
+    'Christensenellaceae, Lachnospiraceae, Ruminococcaceae associated with depressive symptoms across ethnicities',
+    [ids.bact_christensenellaceae, ids.bact_lachnospiraceae, ids.bact_ruminococcaceae], [], [], [ids.cond_depression], 'increased_in_disease');
+
+  await makeClaim(ids.paper_bos_2022,
+    'Microbiota-depression associations do NOT differ between ethnic groups — cross-ethnic invariance',
+    [], [], [], [ids.cond_depression]);
+
+  await makeClaim(ids.paper_bos_2022,
+    'Beta-diversity explains 29-18% of ethnic differences in depressive symptoms',
+    [], [], [], [ids.cond_depression]);
+
+  // Paper 42: Jacka et al. 2017 — SMILES diet intervention RCT
+  await makeClaim(ids.paper_jacka_2017,
+    'Mediterranean diet intervention reduces depression symptoms (MADRS) vs social support control (d=-1.16)',
+    [], [], [ids.mech_diet_microbiome], [ids.cond_depression], 'increased_in_treatment');
+
+  await makeClaim(ids.paper_jacka_2017,
+    'Dietary improvement achieves 32.3% remission rate vs 8% control (NNT=4.1) in clinically diagnosed MDD',
+    [], [], [ids.mech_diet_microbiome], [ids.cond_depression], 'increased_in_treatment');
+
+  await makeClaim(ids.paper_jacka_2017,
+    'Effects remain significant after controlling for physical activity, BMI, smoking, and medication changes',
+    [], [], [ids.mech_diet_microbiome], [ids.cond_depression]);
 
   return count;
 }

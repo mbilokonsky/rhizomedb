@@ -241,6 +241,69 @@ export const ids = {
 
   // New conditions (batch 3)
   cond_ptsd: 'condition:post-traumatic-stress-disorder',
+
+  // === Batch 4: Papers 28-36 ===
+
+  // Papers
+  paper_carlson_2018: 'paper:carlson-2018-biolpsych-infant-cognitive',
+  paper_schmidt_2015: 'paper:schmidt-2015-psychopharm-prebiotic',
+  paper_zurita_2020: 'paper:zurita-2020-gutmicrobes-asd-ecuador',
+  paper_sharon_2019: 'paper:sharon-2019-cell-asd-fmt',
+  paper_liu_2019: 'paper:liu-2019-neubiorev-psychobiotic-meta',
+  paper_scheperjans_2015: 'paper:scheperjans-2015-movdis-parkinsons',
+  paper_ghosh_2020: 'paper:ghosh-2020-gut-meddiet-elderly',
+  paper_claesson_2012: 'paper:claesson-2012-nature-elderly-diet',
+
+  // New researchers (batch 4)
+  researcher_carlson: 'researcher:alexander-carlson',
+  researcher_schmidt: 'researcher:kristin-schmidt',
+  researcher_burnet: 'researcher:philip-burnet',
+  researcher_zurita: 'researcher:maria-fernanda-zurita',
+  researcher_sharon: 'researcher:gil-sharon',
+  researcher_mazmanian: 'researcher:sarkis-mazmanian',
+  researcher_liu_rt: 'researcher:richard-t-liu',
+  researcher_scheperjans: 'researcher:filip-scheperjans',
+  researcher_ghosh: 'researcher:tarini-shankar-ghosh',
+  researcher_claesson: 'researcher:marcus-j-claesson',
+  researcher_paul_otoole: 'researcher:paul-w-otoole',
+
+  // New institutions (batch 4)
+  inst_umn: 'inst:university-of-minnesota',
+  inst_oxford: 'inst:university-of-oxford',
+  inst_ute_quito: 'inst:universidad-tecnologica-equinoccial-quito',
+  inst_caltech: 'inst:california-institute-of-technology',
+  inst_mgh_harvard: 'inst:massachusetts-general-hospital-harvard',
+  inst_helsinki: 'inst:helsinki-university-hospital',
+  inst_teagasc: 'inst:teagasc-food-research-centre',
+
+  // New bacteria (batch 4)
+  bact_l_reuteri: 'bacterium:lactobacillus-reuteri',
+  bact_bacteroides_ovatus: 'bacterium:bacteroides-ovatus',
+  bact_roseburia: 'bacterium:roseburia',
+  bact_eubacterium: 'bacterium:eubacterium',
+  bact_prevotellaceae: 'bacterium:prevotellaceae',
+  bact_enterobacteriaceae: 'bacterium:enterobacteriaceae',
+  bact_oscillibacter: 'bacterium:oscillibacter',
+  bact_ruminococcus_torques: 'bacterium:ruminococcus-torques',
+  bact_akkermansia: 'bacterium:akkermansia',
+  bact_clostridium_ramosum: 'bacterium:clostridium-ramosum',
+
+  // New metabolites (batch 4)
+  metab_5av: 'metabolite:5-aminovaleric-acid',
+  metab_taurine: 'metabolite:taurine',
+  metab_p_cresol: 'metabolite:p-cresol',
+  metab_secondary_bile_acids: 'metabolite:secondary-bile-acids',
+  metab_crp: 'metabolite:c-reactive-protein',
+
+  // New mechanisms (batch 4)
+  mech_alternative_splicing: 'mechanism:alternative-splicing-asd-genes',
+  mech_diet_microbiome: 'mechanism:diet-driven-microbiome-modulation',
+  mech_diversity_frailty: 'mechanism:microbiota-diversity-frailty-axis',
+
+  // New conditions (batch 4)
+  cond_parkinsons: 'condition:parkinsons-disease',
+  cond_frailty: 'condition:age-related-frailty',
+  cond_cognitive_decline: 'condition:cognitive-decline',
 };
 
 // Claim IDs are unique per paper-claim pair
@@ -719,6 +782,147 @@ async function seedEntities(db: RhizomeDB, author: string): Promise<number> {
   await ann(ids.cond_ptsd, 'name', 'Post-traumatic Stress Disorder');
   await ann(ids.cond_ptsd, 'type', 'condition');
 
+  // ============ Batch 4: Papers 28-35 ============
+
+  // ----- Papers -----
+  await ann(ids.paper_carlson_2018, 'title', 'Infant Gut Microbiome Associated With Cognitive Development');
+  await ann(ids.paper_carlson_2018, 'journal', 'Biological Psychiatry');
+  await ann(ids.paper_carlson_2018, 'year', 2018);
+  await ann(ids.paper_carlson_2018, 'type', 'paper');
+  await ann(ids.paper_carlson_2018, 'doi', '10.1016/j.biopsych.2017.06.021');
+  await ann(ids.paper_carlson_2018, 'study_type', 'cohort');
+
+  await ann(ids.paper_schmidt_2015, 'title', 'Prebiotic intake reduces the waking cortisol response and alters emotional bias in healthy volunteers');
+  await ann(ids.paper_schmidt_2015, 'journal', 'Psychopharmacology');
+  await ann(ids.paper_schmidt_2015, 'year', 2015);
+  await ann(ids.paper_schmidt_2015, 'type', 'paper');
+  await ann(ids.paper_schmidt_2015, 'doi', '10.1007/s00213-014-3810-0');
+  await ann(ids.paper_schmidt_2015, 'study_type', 'clinical_trial');
+
+  await ann(ids.paper_zurita_2020, 'title', 'Analysis of gut microbiome, nutrition and immune status in autism spectrum disorder');
+  await ann(ids.paper_zurita_2020, 'journal', 'Gut Microbes');
+  await ann(ids.paper_zurita_2020, 'year', 2020);
+  await ann(ids.paper_zurita_2020, 'type', 'paper');
+  await ann(ids.paper_zurita_2020, 'doi', '10.1080/19490976.2019.1662260');
+  await ann(ids.paper_zurita_2020, 'study_type', 'case_control');
+
+  await ann(ids.paper_sharon_2019, 'title', 'Human Gut Microbiota from Autism Spectrum Disorder Promote Behavioral Symptoms in Mice');
+  await ann(ids.paper_sharon_2019, 'journal', 'Cell');
+  await ann(ids.paper_sharon_2019, 'year', 2019);
+  await ann(ids.paper_sharon_2019, 'type', 'paper');
+  await ann(ids.paper_sharon_2019, 'doi', '10.1016/j.cell.2019.05.004');
+  await ann(ids.paper_sharon_2019, 'study_type', 'animal_study');
+
+  await ann(ids.paper_liu_2019, 'title', 'Prebiotics and probiotics for depression and anxiety: A systematic review and meta-analysis of controlled clinical trials');
+  await ann(ids.paper_liu_2019, 'journal', 'Neuroscience & Biobehavioral Reviews');
+  await ann(ids.paper_liu_2019, 'year', 2019);
+  await ann(ids.paper_liu_2019, 'type', 'paper');
+  await ann(ids.paper_liu_2019, 'doi', '10.1016/j.neubiorev.2019.03.023');
+  await ann(ids.paper_liu_2019, 'study_type', 'meta_analysis');
+
+  await ann(ids.paper_scheperjans_2015, 'title', 'Gut microbiota are related to Parkinson\'s disease and clinical phenotype');
+  await ann(ids.paper_scheperjans_2015, 'journal', 'Movement Disorders');
+  await ann(ids.paper_scheperjans_2015, 'year', 2015);
+  await ann(ids.paper_scheperjans_2015, 'type', 'paper');
+  await ann(ids.paper_scheperjans_2015, 'doi', '10.1002/mds.26069');
+  await ann(ids.paper_scheperjans_2015, 'study_type', 'case_control');
+
+  await ann(ids.paper_ghosh_2020, 'title', 'Mediterranean diet intervention alters the gut microbiome in older people reducing frailty and improving health status');
+  await ann(ids.paper_ghosh_2020, 'journal', 'Gut');
+  await ann(ids.paper_ghosh_2020, 'year', 2020);
+  await ann(ids.paper_ghosh_2020, 'type', 'paper');
+  await ann(ids.paper_ghosh_2020, 'doi', '10.1136/gutjnl-2019-319654');
+  await ann(ids.paper_ghosh_2020, 'study_type', 'clinical_trial');
+
+  await ann(ids.paper_claesson_2012, 'title', 'Gut microbiota composition correlates with diet and health in the elderly');
+  await ann(ids.paper_claesson_2012, 'journal', 'Nature');
+  await ann(ids.paper_claesson_2012, 'year', 2012);
+  await ann(ids.paper_claesson_2012, 'type', 'paper');
+  await ann(ids.paper_claesson_2012, 'doi', '10.1038/nature11319');
+  await ann(ids.paper_claesson_2012, 'study_type', 'cohort');
+
+  // Batch 4 researchers
+  const researchers4: [string, string][] = [
+    [ids.researcher_carlson, 'Alexander L Carlson'],
+    [ids.researcher_schmidt, 'Kristin Schmidt'],
+    [ids.researcher_burnet, 'Philip W J Burnet'],
+    [ids.researcher_zurita, 'Maria Fernanda Zurita'],
+    [ids.researcher_sharon, 'Gil Sharon'],
+    [ids.researcher_mazmanian, 'Sarkis K Mazmanian'],
+    [ids.researcher_liu_rt, 'Richard T Liu'],
+    [ids.researcher_scheperjans, 'Filip Scheperjans'],
+    [ids.researcher_ghosh, 'Tarini Shankar Ghosh'],
+    [ids.researcher_claesson, 'Marcus J Claesson'],
+    [ids.researcher_paul_otoole, 'Paul W O\'Toole'],
+  ];
+  for (const [id, name] of researchers4) {
+    await ann(id, 'name', name);
+    await ann(id, 'type', 'researcher');
+  }
+
+  // Batch 4 institutions
+  const institutions4: [string, string, string][] = [
+    [ids.inst_umn, 'University of Minnesota', 'United States'],
+    [ids.inst_oxford, 'University of Oxford', 'United Kingdom'],
+    [ids.inst_ute_quito, 'Universidad Tecnologica Equinoccial', 'Ecuador'],
+    [ids.inst_caltech, 'California Institute of Technology', 'United States'],
+    [ids.inst_mgh_harvard, 'Massachusetts General Hospital / Harvard', 'United States'],
+    [ids.inst_helsinki, 'Helsinki University Hospital', 'Finland'],
+    [ids.inst_teagasc, 'Teagasc Food Research Centre', 'Ireland'],
+  ];
+  for (const [id, name, country] of institutions4) {
+    await ann(id, 'name', name);
+    await ann(id, 'type', 'institution');
+    await ann(id, 'country', country);
+  }
+
+  // Batch 4 new bacteria
+  const bacteria4: [string, string, string][] = [
+    [ids.bact_l_reuteri, 'Lactobacillus reuteri', 'species'],
+    [ids.bact_bacteroides_ovatus, 'Bacteroides ovatus', 'species'],
+    [ids.bact_roseburia, 'Roseburia', 'genus'],
+    [ids.bact_eubacterium, 'Eubacterium', 'genus'],
+    [ids.bact_prevotellaceae, 'Prevotellaceae', 'family'],
+    [ids.bact_enterobacteriaceae, 'Enterobacteriaceae', 'family'],
+    [ids.bact_oscillibacter, 'Oscillibacter', 'genus'],
+    [ids.bact_ruminococcus_torques, 'Ruminococcus torques', 'species'],
+    [ids.bact_akkermansia, 'Akkermansia', 'genus'],
+    [ids.bact_clostridium_ramosum, 'Clostridium ramosum', 'species'],
+  ];
+  for (const [id, name, rank] of bacteria4) {
+    await ann(id, 'name', name);
+    await ann(id, 'type', 'bacterium');
+    await ann(id, 'taxonomic_rank', rank);
+  }
+
+  // Batch 4 new metabolites
+  await ann(ids.metab_5av, 'name', '5-Aminovaleric acid');
+  await ann(ids.metab_5av, 'type', 'metabolite');
+  await ann(ids.metab_taurine, 'name', 'Taurine');
+  await ann(ids.metab_taurine, 'type', 'metabolite');
+  await ann(ids.metab_p_cresol, 'name', 'p-Cresol');
+  await ann(ids.metab_p_cresol, 'type', 'metabolite');
+  await ann(ids.metab_secondary_bile_acids, 'name', 'Secondary bile acids');
+  await ann(ids.metab_secondary_bile_acids, 'type', 'metabolite');
+  await ann(ids.metab_crp, 'name', 'C-reactive protein (CRP)');
+  await ann(ids.metab_crp, 'type', 'metabolite');
+
+  // Batch 4 new mechanisms
+  await ann(ids.mech_alternative_splicing, 'name', 'Alternative splicing of ASD-relevant genes');
+  await ann(ids.mech_alternative_splicing, 'type', 'mechanism');
+  await ann(ids.mech_diet_microbiome, 'name', 'Diet-driven microbiome modulation');
+  await ann(ids.mech_diet_microbiome, 'type', 'mechanism');
+  await ann(ids.mech_diversity_frailty, 'name', 'Microbiota diversity-frailty axis');
+  await ann(ids.mech_diversity_frailty, 'type', 'mechanism');
+
+  // Batch 4 new conditions
+  await ann(ids.cond_parkinsons, 'name', 'Parkinson\'s Disease');
+  await ann(ids.cond_parkinsons, 'type', 'condition');
+  await ann(ids.cond_frailty, 'name', 'Age-related Frailty');
+  await ann(ids.cond_frailty, 'type', 'condition');
+  await ann(ids.cond_cognitive_decline, 'name', 'Cognitive Decline');
+  await ann(ids.cond_cognitive_decline, 'type', 'condition');
+
   return count;
 }
 
@@ -947,6 +1151,61 @@ async function seedRelationships(db: RhizomeDB, author: string): Promise<number>
   await rel('species', ids.bact_l_acidophilus, 'genus', 'genus', ids.bact_lactobacillus, 'species');
   await rel('species', ids.bact_l_casei, 'genus', 'genus', ids.bact_lactobacillus, 'species');
   await rel('species', ids.bact_eubacterium_rectale, 'genus', 'genus', ids.bact_firmicutes, 'species');
+
+  // ===== Batch 4: Authorship =====
+
+  // Paper 28: Carlson et al. 2018
+  await rel('paper', ids.paper_carlson_2018, 'authors', 'author', ids.researcher_carlson, 'papers');
+
+  // Paper 29: Schmidt et al. 2015
+  await rel('paper', ids.paper_schmidt_2015, 'authors', 'author', ids.researcher_schmidt, 'papers');
+  await rel('paper', ids.paper_schmidt_2015, 'authors', 'author', ids.researcher_burnet, 'papers');
+
+  // Paper 30: Zurita et al. 2020
+  await rel('paper', ids.paper_zurita_2020, 'authors', 'author', ids.researcher_zurita, 'papers');
+
+  // Paper 31: Sharon et al. 2019
+  await rel('paper', ids.paper_sharon_2019, 'authors', 'author', ids.researcher_sharon, 'papers');
+  await rel('paper', ids.paper_sharon_2019, 'authors', 'author', ids.researcher_mazmanian, 'papers');
+
+  // Paper 32: Liu et al. 2019
+  await rel('paper', ids.paper_liu_2019, 'authors', 'author', ids.researcher_liu_rt, 'papers');
+
+  // Paper 33: Scheperjans et al. 2015
+  await rel('paper', ids.paper_scheperjans_2015, 'authors', 'author', ids.researcher_scheperjans, 'papers');
+
+  // Paper 34: Ghosh et al. 2020 — UCC Cork + Teagasc (overlaps with Dinan/Cryan institution)
+  await rel('paper', ids.paper_ghosh_2020, 'authors', 'author', ids.researcher_ghosh, 'papers');
+  await rel('paper', ids.paper_ghosh_2020, 'authors', 'author', ids.researcher_paul_otoole, 'papers');
+
+  // Paper 35: Claesson et al. 2012 — UCC Cork
+  await rel('paper', ids.paper_claesson_2012, 'authors', 'author', ids.researcher_claesson, 'papers');
+  await rel('paper', ids.paper_claesson_2012, 'authors', 'author', ids.researcher_paul_otoole, 'papers');
+
+  // ===== Batch 4: Affiliations =====
+  await rel('researcher', ids.researcher_carlson, 'affiliations', 'member', ids.inst_umn, 'researchers');
+  await rel('researcher', ids.researcher_schmidt, 'affiliations', 'member', ids.inst_oxford, 'researchers');
+  await rel('researcher', ids.researcher_burnet, 'affiliations', 'member', ids.inst_oxford, 'researchers');
+  await rel('researcher', ids.researcher_zurita, 'affiliations', 'member', ids.inst_ute_quito, 'researchers');
+  await rel('researcher', ids.researcher_sharon, 'affiliations', 'member', ids.inst_caltech, 'researchers');
+  await rel('researcher', ids.researcher_mazmanian, 'affiliations', 'member', ids.inst_caltech, 'researchers');
+  await rel('researcher', ids.researcher_liu_rt, 'affiliations', 'member', ids.inst_mgh_harvard, 'researchers');
+  await rel('researcher', ids.researcher_scheperjans, 'affiliations', 'member', ids.inst_helsinki, 'researchers');
+  await rel('researcher', ids.researcher_ghosh, 'affiliations', 'member', ids.inst_ucc_cork, 'researchers');
+  await rel('researcher', ids.researcher_paul_otoole, 'affiliations', 'member', ids.inst_ucc_cork, 'researchers');
+  await rel('researcher', ids.researcher_claesson, 'affiliations', 'member', ids.inst_ucc_cork, 'researchers');
+  await rel('researcher', ids.researcher_paul_otoole, 'affiliations', 'member', ids.inst_teagasc, 'researchers');
+  await rel('researcher', ids.researcher_claesson, 'affiliations', 'member', ids.inst_teagasc, 'researchers');
+
+  // ===== Batch 4: Production relationships =====
+  await rel('producer', ids.bact_roseburia, 'produces', 'product', ids.metab_butyrate, 'produced_by');
+  await rel('producer', ids.bact_eubacterium, 'produces', 'product', ids.metab_butyrate, 'produced_by');
+
+  // ===== Batch 4: Taxonomic hierarchy =====
+  await rel('species', ids.bact_l_reuteri, 'genus', 'genus', ids.bact_lactobacillus, 'species');
+  await rel('species', ids.bact_bacteroides_ovatus, 'genus', 'genus', ids.bact_bacteroides, 'species');
+  await rel('species', ids.bact_ruminococcus_torques, 'genus', 'genus', ids.bact_ruminococcaceae, 'species');
+  await rel('species', ids.bact_clostridium_ramosum, 'genus', 'genus', ids.bact_firmicutes, 'species');
 
   return count;
 }
@@ -1494,6 +1753,158 @@ async function seedClaims(db: RhizomeDB, author: string): Promise<number> {
   await makeClaim(ids.paper_ohare_2025,
     'Holdemanella abundance positively associated with PTSD symptom severity',
     [ids.bact_holdemanella], [], [], [ids.cond_ptsd], 'increased_in_disease');
+
+  // ===================================================================
+  // Paper 28: Carlson et al. 2018 — Infant gut microbiome + cognition
+  // ===================================================================
+  await makeClaim(ids.paper_carlson_2018,
+    'Higher alpha diversity in infant gut microbiome at 1 year associated with LOWER cognitive scores at 2 years',
+    [], [], [ids.mech_developmental_window], [ids.cond_cognitive_decline]);
+
+  await makeClaim(ids.paper_carlson_2018,
+    'Bacteroides-dominant gut microbiome cluster in infancy associated with enhanced neurodevelopment',
+    [ids.bact_bacteroides], [], [ids.mech_developmental_window], []);
+
+  await makeClaim(ids.paper_carlson_2018,
+    'Prevotella-dominant gut microbiome in infancy associated with lower cognitive scores',
+    [ids.bact_prevotella], [], [ids.mech_developmental_window], [ids.cond_cognitive_decline]);
+
+  // ===================================================================
+  // Paper 29: Schmidt et al. 2015 — B-GOS prebiotic reduces cortisol
+  // ===================================================================
+  await makeClaim(ids.paper_schmidt_2015,
+    'Bifidobacterium-targeted GOS prebiotic reduces waking cortisol response in healthy volunteers',
+    [ids.bact_bifidobacterium], [ids.metab_cortisol], [ids.mech_hpa], [ids.cond_anxiety], 'decreased_in_disease');
+
+  await makeClaim(ids.paper_schmidt_2015,
+    'B-GOS prebiotic attenuates attentional bias to negative stimuli (emotional dot-probe task)',
+    [], [], [], [ids.cond_anxiety, ids.cond_depression]);
+
+  await makeClaim(ids.paper_schmidt_2015,
+    'FOS prebiotic has NO effect on cortisol or emotional processing',
+    [], [ids.metab_cortisol], [], [ids.cond_anxiety], 'no_effect');
+
+  // ===================================================================
+  // Paper 30: Zurita et al. 2020 — ASD gut microbiome in Ecuador
+  // ===================================================================
+  await makeClaim(ids.paper_zurita_2020,
+    'Bacteroides abundance increased in Ecuadorian children with ASD vs controls',
+    [ids.bact_bacteroides], [], [], [ids.cond_autism], 'increased_in_disease');
+
+  await makeClaim(ids.paper_zurita_2020,
+    'Ruminococcaceae abundance increased in ASD (Ecuador cohort)',
+    [ids.bact_ruminococcaceae], [], [], [ids.cond_autism], 'increased_in_disease');
+
+  await makeClaim(ids.paper_zurita_2020,
+    'Akkermansia abundance increased in ASD children (Ecuador)',
+    [ids.bact_akkermansia], [], [], [ids.cond_autism], 'increased_in_disease');
+
+  await makeClaim(ids.paper_zurita_2020,
+    'ASD children have higher prevalence of GI symptoms and abnormal food habits',
+    [], [], [ids.mech_leaky_gut], [ids.cond_autism]);
+
+  // ===================================================================
+  // Paper 31: Sharon et al. 2019 — ASD microbiota causes behavior in mice
+  // ===================================================================
+  await makeClaim(ids.paper_sharon_2019,
+    'FMT from ASD human donors to germ-free mice induces autistic-like behaviors (reduced sociability, repetitive behaviors)',
+    [], [], [ids.mech_fmt_transfer], [ids.cond_autism]);
+
+  await makeClaim(ids.paper_sharon_2019,
+    '5-aminovaleric acid depleted in ASD-colonized mice; treatment reduces ASD-like behaviors',
+    [], [ids.metab_5av, ids.metab_gaba], [], [ids.cond_autism], 'decreased_in_disease');
+
+  await makeClaim(ids.paper_sharon_2019,
+    'Taurine depleted in ASD-colonized mice; treatment reduces ASD-like behaviors',
+    [], [ids.metab_taurine], [], [ids.cond_autism], 'decreased_in_disease');
+
+  await makeClaim(ids.paper_sharon_2019,
+    'ASD microbiota induces alternative splicing of ASD-relevant genes in mouse brains',
+    [], [], [ids.mech_alternative_splicing], [ids.cond_autism]);
+
+  await makeClaim(ids.paper_sharon_2019,
+    'Bacteroides ovatus differentially abundant in ASD donor transplants',
+    [ids.bact_bacteroides_ovatus], [], [], [ids.cond_autism]);
+
+  // ===================================================================
+  // Paper 32: Liu et al. 2019 — Psychobiotic meta-analysis (34 trials)
+  // ===================================================================
+  await makeClaim(ids.paper_liu_2019,
+    'Probiotics yield small but significant effects for depression (d=-0.24) across 34 controlled trials',
+    [ids.bact_lactobacillus, ids.bact_bifidobacterium], [], [], [ids.cond_depression], 'increased_in_treatment');
+
+  await makeClaim(ids.paper_liu_2019,
+    'Probiotics yield small but significant effects for anxiety (d=-0.10)',
+    [ids.bact_lactobacillus, ids.bact_bifidobacterium], [], [], [ids.cond_anxiety], 'increased_in_treatment');
+
+  await makeClaim(ids.paper_liu_2019,
+    'Probiotic effects are larger in clinical/psychiatric samples (d=-0.73) than community samples',
+    [], [], [], [ids.cond_depression, ids.cond_anxiety]);
+
+  await makeClaim(ids.paper_liu_2019,
+    'Prebiotics do NOT differ from placebo for depression or anxiety',
+    [], [], [], [ids.cond_depression, ids.cond_anxiety], 'no_effect');
+
+  // ===================================================================
+  // Paper 33: Scheperjans et al. 2015 — Parkinson's disease microbiome
+  // ===================================================================
+  await makeClaim(ids.paper_scheperjans_2015,
+    'Prevotellaceae abundance reduced by 77.6% in Parkinson\'s disease patients vs controls',
+    [ids.bact_prevotellaceae], [], [], [ids.cond_parkinsons], 'decreased_in_disease');
+
+  await makeClaim(ids.paper_scheperjans_2015,
+    'Enterobacteriaceae abundance positively associated with postural instability and gait difficulty severity',
+    [ids.bact_enterobacteriaceae], [], [], [ids.cond_parkinsons], 'increased_in_disease');
+
+  await makeClaim(ids.paper_scheperjans_2015,
+    'Classifier using four bacterial families achieves 90.3% specificity for PD identification',
+    [], [], [], [ids.cond_parkinsons]);
+
+  // ===================================================================
+  // Paper 34: Ghosh et al. 2020 — Mediterranean diet + elderly microbiome
+  // ===================================================================
+  await makeClaim(ids.paper_ghosh_2020,
+    'Mediterranean diet enriches anti-inflammatory SCFA-producing bacteria (F. prausnitzii, Roseburia, Eubacterium) in elderly',
+    [ids.bact_faecalibacterium, ids.bact_roseburia, ids.bact_eubacterium], [ids.metab_scfa], [ids.mech_diet_microbiome], [ids.cond_frailty], 'increased_in_treatment');
+
+  await makeClaim(ids.paper_ghosh_2020,
+    'MedDiet reduces R. torques, Collinsella, C. ramosum — bacteria associated with age-related disease',
+    [ids.bact_ruminococcus_torques, ids.bact_collinsella, ids.bact_clostridium_ramosum], [], [ids.mech_diet_microbiome], [ids.cond_frailty], 'decreased_in_disease');
+
+  await makeClaim(ids.paper_ghosh_2020,
+    'MedDiet reduces inflammatory markers (CRP, IL-17) correlated with microbiome changes',
+    [], [ids.metab_crp], [ids.mech_neuroinflammation], [ids.cond_frailty]);
+
+  await makeClaim(ids.paper_ghosh_2020,
+    'MedDiet reduces secondary bile acids and p-cresol (deleterious metabolites)',
+    [], [ids.metab_secondary_bile_acids, ids.metab_p_cresol], [ids.mech_diet_microbiome], [ids.cond_cognitive_decline]);
+
+  await makeClaim(ids.paper_ghosh_2020,
+    'Microbiome-diet response is consistent across 5 European countries despite baseline differences',
+    [], [], [ids.mech_diet_microbiome], []);
+
+  // ===================================================================
+  // Paper 35: Claesson et al. 2012 — Elderly diet-microbiome-health
+  // ===================================================================
+  await makeClaim(ids.paper_claesson_2012,
+    'Long-term care residents have significantly less diverse gut microbiota than community-dwelling elderly',
+    [], [], [ids.mech_diversity_frailty], [ids.cond_frailty]);
+
+  await makeClaim(ids.paper_claesson_2012,
+    'Microbiota diversity loss correlates with increased frailty, co-morbidity, and inflammatory markers in elderly',
+    [], [ids.metab_crp], [ids.mech_diversity_frailty], [ids.cond_frailty, ids.cond_cognitive_decline]);
+
+  await makeClaim(ids.paper_claesson_2012,
+    'Animal-product-heavy diet enriches Bacteroides and Alistipes in institutionalized elderly',
+    [ids.bact_bacteroides, ids.bact_alistipes], [], [ids.mech_diet_microbiome], [ids.cond_frailty], 'increased_in_disease');
+
+  await makeClaim(ids.paper_claesson_2012,
+    'Prevotella dominance in community-dwelling elderly associated with healthier outcomes',
+    [ids.bact_prevotella], [], [ids.mech_diet_microbiome], [ids.cond_frailty], 'decreased_in_disease');
+
+  await makeClaim(ids.paper_claesson_2012,
+    'Oscillibacter increased in long-stay institutional care residents',
+    [ids.bact_oscillibacter], [], [ids.mech_diversity_frailty], [ids.cond_frailty], 'increased_in_disease');
 
   return count;
 }

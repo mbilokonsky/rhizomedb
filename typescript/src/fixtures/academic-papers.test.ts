@@ -20,7 +20,7 @@ describe('Academic Paper Knowledge Graph', () => {
     db = new RhizomeDB({ storage: 'memory', systemId: 'academic-digestion' });
     const result = await seedAcademicPapers(db);
     // eslint-disable-next-line no-console
-    console.error(`Seeded ${result.totalDeltas} deltas from 27 papers`);
+    console.error(`Seeded ${result.totalDeltas} deltas from 35 papers`);
   });
 
   describe('Basic ingestion', () => {
@@ -56,9 +56,9 @@ describe('Academic Paper Knowledge Graph', () => {
   });
 
   describe('Collection queries (entitiesOfType)', () => {
-    it('should find all 27 papers', () => {
+    it('should find all 35 papers', () => {
       const papers = db.entitiesOfType('paper');
-      expect(papers).toHaveLength(27);
+      expect(papers).toHaveLength(35);
     });
 
     it('should find all bacteria (batch 1 + batch 2)', () => {
@@ -489,7 +489,7 @@ describe('Academic Paper Knowledge Graph', () => {
       expect(countryCounts['Netherlands']).toBeGreaterThanOrEqual(1);
     });
 
-    it('should span 2004-2025 across 27 papers', () => {
+    it('should span 2004-2025 across all papers', () => {
       const allPapers = db.entitiesOfType('paper');
       const years = allPapers.map(p => db.resolve(p).year as number).sort();
       expect(years[0]).toBe(2004);
@@ -540,7 +540,7 @@ describe('Academic Paper Knowledge Graph', () => {
       expect(qiluResearchers.length).toBeGreaterThanOrEqual(1);
     });
 
-    it('should map research by geographic region across all 27 papers', () => {
+    it('should map research by geographic region across all papers', () => {
       const allInstitutions = db.entitiesOfType('institution');
       const countryCounts: Record<string, number> = {};
       for (const instId of allInstitutions) {
@@ -695,6 +695,7 @@ describe('Academic Paper Knowledge Graph', () => {
       expect(species).toContain(ids.bact_l_acidophilus);
       expect(species).toContain(ids.bact_l_casei);
       expect(species).toContain(ids.bact_l_plantarum); // batch 3
+      expect(species).toContain(ids.bact_l_reuteri); // batch 4
     });
 
     it('should link Bifidobacterium species to the genus', () => {
@@ -836,6 +837,122 @@ describe('Academic Paper Knowledge Graph', () => {
       // Should span multiple years
       const years = evidenceChain.map(e => e.year);
       expect(Math.max(...years) - Math.min(...years)).toBeGreaterThanOrEqual(3);
+    });
+  });
+
+  describe('Batch 4: New domains and causal evidence', () => {
+    it('should find Parkinson\'s disease as a new neurological condition', () => {
+      const pdClaims = db.relatedIds(ids.cond_parkinsons, 'claims_about', 'claim');
+      expect(pdClaims.length).toBeGreaterThanOrEqual(2);
+
+      // Prevotellaceae decreased, Enterobacteriaceae increased
+      const bacteria = new Set<string>();
+      for (const claim of pdClaims) {
+        for (const b of db.relatedIds(claim, 'bacteria', 'subject')) bacteria.add(b);
+      }
+      expect(bacteria.has(ids.bact_prevotellaceae)).toBe(true);
+      expect(bacteria.has(ids.bact_enterobacteriaceae)).toBe(true);
+    });
+
+    it('should find ASD causal evidence from Sharon 2019 (FMT → behavior)', () => {
+      const fmtClaims = db.relatedIds(ids.mech_fmt_transfer, 'claims_about', 'claim');
+      const asdFmtClaims = fmtClaims.filter(c => {
+        const papers = db.relatedIds(c, 'source_paper', 'source');
+        return papers.includes(ids.paper_sharon_2019);
+      });
+      expect(asdFmtClaims.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should find Ecuador as the first Latin American geography', () => {
+      const allInstitutions = db.entitiesOfType('institution');
+      const countries = new Set<string>();
+      for (const instId of allInstitutions) {
+        const resolved = db.resolve(instId);
+        if (resolved.country) countries.add(resolved.country as string);
+      }
+      expect(countries.has('Ecuador')).toBe(true);
+    });
+
+    it('should find the alpha diversity paradox: infant vs elderly', () => {
+      // Carlson 2018: higher diversity → lower cognitive scores in infants
+      const carlsonClaims = db.relatedIds(ids.cond_cognitive_decline, 'claims_about', 'claim');
+      const infantClaims = carlsonClaims.filter(c => {
+        const papers = db.relatedIds(c, 'source_paper', 'source');
+        return papers.includes(ids.paper_carlson_2018);
+      });
+      expect(infantClaims.length).toBeGreaterThanOrEqual(1);
+
+      // Claesson 2012: diversity loss → frailty in elderly
+      const frailtyClaims = db.relatedIds(ids.cond_frailty, 'claims_about', 'claim');
+      const claessonClaims = frailtyClaims.filter(c => {
+        const papers = db.relatedIds(c, 'source_paper', 'source');
+        return papers.includes(ids.paper_claesson_2012);
+      });
+      expect(claessonClaims.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('should find diet-microbiome modulation as a mechanism across elderly studies', () => {
+      const dietClaims = db.relatedIds(ids.mech_diet_microbiome, 'claims_about', 'claim');
+      const papers = new Set<string>();
+      for (const claim of dietClaims) {
+        const claimPapers = db.relatedIds(claim, 'source_paper', 'source');
+        for (const p of claimPapers) papers.add(p);
+      }
+      // Ghosh 2020 + Claesson 2012
+      expect(papers.has(ids.paper_ghosh_2020)).toBe(true);
+      expect(papers.has(ids.paper_claesson_2012)).toBe(true);
+    });
+
+    it('should find prebiotic specificity: B-GOS works, FOS doesn\'t', () => {
+      // Schmidt 2015 has both a positive result and a no_effect result
+      const schmidtClaims = db.entitiesOfType('claim').filter(c => {
+        const papers = db.relatedIds(c, 'source_paper', 'source');
+        return papers.includes(ids.paper_schmidt_2015);
+      });
+      expect(schmidtClaims.length).toBeGreaterThanOrEqual(2);
+
+      const directions = schmidtClaims.map(c => db.resolve(c).direction).filter(Boolean);
+      expect(directions).toContain('decreased_in_disease');
+      expect(directions).toContain('no_effect');
+    });
+
+    it('should find Liu 2019 meta-analysis covering both depression and anxiety', () => {
+      const liuClaims = db.entitiesOfType('claim').filter(c => {
+        const papers = db.relatedIds(c, 'source_paper', 'source');
+        return papers.includes(ids.paper_liu_2019);
+      });
+      expect(liuClaims.length).toBeGreaterThanOrEqual(3);
+
+      // Should cover both depression and anxiety
+      const conditions = new Set<string>();
+      for (const claim of liuClaims) {
+        for (const c of db.relatedIds(claim, 'conditions', 'subject')) conditions.add(c);
+      }
+      expect(conditions.has(ids.cond_depression)).toBe(true);
+      expect(conditions.has(ids.cond_anxiety)).toBe(true);
+    });
+
+    it('should find UCC Cork growing as a research hub with Ghosh and Claesson', () => {
+      const uccResearchers = db.relatedIds(ids.inst_ucc_cork, 'researchers', 'researcher');
+      // Dinan, Cryan, Kelly, Clarke, Bravo + Ghosh, O'Toole, Claesson
+      expect(uccResearchers.length).toBeGreaterThanOrEqual(7);
+    });
+
+    it('should now span 2004-2025 across 35 papers with 15+ countries', () => {
+      const allPapers = db.entitiesOfType('paper');
+      expect(allPapers.length).toBe(35);
+
+      const years = allPapers.map(p => db.resolve(p).year as number).sort();
+      expect(years[0]).toBe(2004);
+      expect(years[years.length - 1]).toBe(2025);
+
+      const allInstitutions = db.entitiesOfType('institution');
+      const countries = new Set<string>();
+      for (const instId of allInstitutions) {
+        const resolved = db.resolve(instId);
+        if (resolved.country) countries.add(resolved.country as string);
+      }
+      expect(countries.size).toBeGreaterThanOrEqual(15);
     });
   });
 });

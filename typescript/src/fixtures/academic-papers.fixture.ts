@@ -173,6 +173,74 @@ export const ids = {
   // New mechanisms (batch 2)
   mech_enteric_nervous: 'mechanism:enteric-nervous-system',
   mech_immune_cytokine: 'mechanism:immune-cytokine-pathway',
+
+  // === Batch 3: Papers 17-27 ===
+
+  // Papers
+  paper_sudo_2004: 'paper:sudo-2004-jphysiol-germfree',
+  paper_bravo_2011: 'paper:bravo-2011-pnas-vagus',
+  paper_kelly_2017: 'paper:kelly-2017-bbi-lost-translation',
+  paper_zheng_2016: 'paper:zheng-2016-molpsych-fmt-depression',
+  paper_kelly_2016: 'paper:kelly-2016-jpsychres-fmt-rats',
+  paper_nikolova_2021: 'paper:nikolova-2021-jamapsych-metaanalysis',
+  paper_tian_2022: 'paper:tian-2022-bbi-bbreve-mdd',
+  paper_rudzki_2019: 'paper:rudzki-2019-psychoneuro-plantarum',
+  paper_chahwan_2019: 'paper:chahwan-2019-jad-ecologic',
+  paper_zhu_2020: 'paper:zhu-2020-molpsych-schiz-fmt',
+  paper_ohare_2025: 'paper:ohare-2025-neuroimmod-saneurogut',
+
+  // New researchers (batch 3)
+  researcher_sudo: 'researcher:nobuyuki-sudo',
+  researcher_koga: 'researcher:yasuhiro-koga',
+  researcher_bravo: 'researcher:javier-bravo',
+  researcher_forsythe: 'researcher:paul-forsythe',
+  researcher_bienenstock: 'researcher:john-bienenstock',
+  researcher_kelly: 'researcher:john-r-kelly',
+  researcher_clarke: 'researcher:gerard-clarke',
+  researcher_zheng_peng: 'researcher:peng-zheng',
+  researcher_xie_peng: 'researcher:peng-xie',
+  researcher_nikolova: 'researcher:viktoriya-nikolova',
+  researcher_young: 'researcher:allan-young',
+  researcher_tian: 'researcher:peijun-tian',
+  researcher_chen_wei: 'researcher:wei-chen',
+  researcher_rudzki: 'researcher:leszek-rudzki',
+  researcher_szulc: 'researcher:agata-szulc',
+  researcher_chahwan: 'researcher:bahia-chahwan',
+  researcher_roberts: 'researcher:lynette-roberts',
+  researcher_zhu_feng: 'researcher:feng-zhu',
+  researcher_ma_xiancang: 'researcher:xiancang-ma',
+  researcher_ohare: 'researcher:michaela-ohare',
+  researcher_hemmings: 'researcher:sian-hemmings',
+
+  // New institutions (batch 3)
+  inst_kyushu: 'inst:kyushu-university',
+  inst_chongqing: 'inst:chongqing-medical-university',
+  inst_kings_college: 'inst:kings-college-london',
+  inst_jiangnan: 'inst:jiangnan-university',
+  inst_bialystok: 'inst:medical-university-bialystok',
+  inst_uts: 'inst:university-technology-sydney',
+  inst_xian_jiaotong: 'inst:xian-jiaotong-university',
+  inst_stellenbosch: 'inst:stellenbosch-university',
+
+  // New bacteria (batch 3)
+  bact_l_plantarum: 'bacterium:lactobacillus-plantarum',
+  bact_b_breve: 'bacterium:bifidobacterium-breve',
+  bact_ruminococcus_gnavus: 'bacterium:ruminococcus-gnavus',
+  bact_catenibacterium: 'bacterium:catenibacterium',
+  bact_collinsella: 'bacterium:collinsella',
+  bact_holdemanella: 'bacterium:holdemanella',
+
+  // New metabolites (batch 3)
+  metab_kynurenine: 'metabolite:kynurenine',
+  metab_corticosterone: 'metabolite:corticosterone',
+
+  // New mechanisms (batch 3)
+  mech_kynurenine_pathway: 'mechanism:tryptophan-kynurenine-pathway',
+  mech_developmental_window: 'mechanism:developmental-critical-window',
+  mech_fmt_transfer: 'mechanism:fecal-microbiota-transfer',
+
+  // New conditions (batch 3)
+  cond_ptsd: 'condition:post-traumatic-stress-disorder',
 };
 
 // Claim IDs are unique per paper-claim pair
@@ -198,33 +266,39 @@ async function seedEntities(db: RhizomeDB, author: string): Promise<number> {
   await ann(ids.paper_mehta_2025, 'year', 2025);
   await ann(ids.paper_mehta_2025, 'type', 'paper');
   await ann(ids.paper_mehta_2025, 'doi', '10.7759/cureus.80323');
+  await ann(ids.paper_mehta_2025, 'study_type', 'review');
 
   await ann(ids.paper_cao_2025, 'title', 'Gut microbiota variations in depression and anxiety: a systematic review');
   await ann(ids.paper_cao_2025, 'journal', 'BMC Psychiatry');
   await ann(ids.paper_cao_2025, 'year', 2025);
   await ann(ids.paper_cao_2025, 'type', 'paper');
   await ann(ids.paper_cao_2025, 'doi', '10.1186/s12888-025-06871-8');
+  await ann(ids.paper_cao_2025, 'study_type', 'review');
 
   await ann(ids.paper_rathore_2025, 'title', 'The Bidirectional Relationship Between the Gut Microbiome and Mental Health: A Comprehensive Review');
   await ann(ids.paper_rathore_2025, 'journal', 'Cureus');
   await ann(ids.paper_rathore_2025, 'year', 2025);
   await ann(ids.paper_rathore_2025, 'type', 'paper');
+  await ann(ids.paper_rathore_2025, 'study_type', 'review');
 
   await ann(ids.paper_zhang_2025, 'title', 'Gut microbiota as a novel target for treating anxiety and depression: from mechanisms to multimodal interventions');
   await ann(ids.paper_zhang_2025, 'journal', 'Frontiers in Microbiology');
   await ann(ids.paper_zhang_2025, 'year', 2025);
   await ann(ids.paper_zhang_2025, 'type', 'paper');
+  await ann(ids.paper_zhang_2025, 'study_type', 'review');
 
   await ann(ids.paper_shaikh_2025, 'title', 'Understanding the Impact of the Gut Microbiome on Mental Health: A Systematic Review');
   await ann(ids.paper_shaikh_2025, 'journal', 'Cureus');
   await ann(ids.paper_shaikh_2025, 'year', 2025);
   await ann(ids.paper_shaikh_2025, 'type', 'paper');
+  await ann(ids.paper_shaikh_2025, 'study_type', 'review');
 
   await ann(ids.paper_radjabzadeh_2022, 'title', 'Gut microbiome-wide association study of depressive symptoms');
   await ann(ids.paper_radjabzadeh_2022, 'journal', 'Nature Communications');
   await ann(ids.paper_radjabzadeh_2022, 'year', 2022);
   await ann(ids.paper_radjabzadeh_2022, 'type', 'paper');
   await ann(ids.paper_radjabzadeh_2022, 'doi', '10.1038/s41467-022-34502-3');
+  await ann(ids.paper_radjabzadeh_2022, 'study_type', 'cohort');
 
   // ----- Researchers -----
   const researchers: [string, string][] = [
@@ -486,6 +560,165 @@ async function seedEntities(db: RhizomeDB, author: string): Promise<number> {
   await ann(ids.mech_immune_cytokine, 'name', 'Immune cytokine pathway');
   await ann(ids.mech_immune_cytokine, 'type', 'mechanism');
 
+  // ===== Batch 3: Papers 17-27 =====
+
+  // Papers
+  await ann(ids.paper_sudo_2004, 'title', 'Postnatal microbial colonization programs the hypothalamic-pituitary-adrenal system for stress response in mice');
+  await ann(ids.paper_sudo_2004, 'journal', 'The Journal of Physiology');
+  await ann(ids.paper_sudo_2004, 'year', 2004);
+  await ann(ids.paper_sudo_2004, 'type', 'paper');
+  await ann(ids.paper_sudo_2004, 'doi', '10.1113/jphysiol.2004.063388');
+  await ann(ids.paper_sudo_2004, 'study_type', 'animal_study');
+
+  await ann(ids.paper_bravo_2011, 'title', 'Ingestion of Lactobacillus strain regulates emotional behavior and central GABA receptor expression in a mouse via the vagus nerve');
+  await ann(ids.paper_bravo_2011, 'journal', 'Proceedings of the National Academy of Sciences');
+  await ann(ids.paper_bravo_2011, 'year', 2011);
+  await ann(ids.paper_bravo_2011, 'type', 'paper');
+  await ann(ids.paper_bravo_2011, 'doi', '10.1073/pnas.1102999108');
+  await ann(ids.paper_bravo_2011, 'study_type', 'animal_study');
+
+  await ann(ids.paper_kelly_2017, 'title', 'Lost in translation? The potential psychobiotic Lactobacillus rhamnosus (JB-1) fails to modulate stress or cognitive performance in healthy male subjects');
+  await ann(ids.paper_kelly_2017, 'journal', 'Brain, Behavior, and Immunity');
+  await ann(ids.paper_kelly_2017, 'year', 2017);
+  await ann(ids.paper_kelly_2017, 'type', 'paper');
+  await ann(ids.paper_kelly_2017, 'doi', '10.1016/j.bbi.2016.11.018');
+  await ann(ids.paper_kelly_2017, 'study_type', 'clinical_trial');
+
+  await ann(ids.paper_zheng_2016, 'title', 'Gut microbiome remodeling induces depressive-like behaviors through a pathway mediated by the host metabolism');
+  await ann(ids.paper_zheng_2016, 'journal', 'Molecular Psychiatry');
+  await ann(ids.paper_zheng_2016, 'year', 2016);
+  await ann(ids.paper_zheng_2016, 'type', 'paper');
+  await ann(ids.paper_zheng_2016, 'doi', '10.1038/mp.2016.44');
+  await ann(ids.paper_zheng_2016, 'study_type', 'animal_study');
+
+  await ann(ids.paper_kelly_2016, 'title', 'Transferring the blues: Depression-associated gut microbiota induces neurobehavioural changes in the rat');
+  await ann(ids.paper_kelly_2016, 'journal', 'Journal of Psychiatric Research');
+  await ann(ids.paper_kelly_2016, 'year', 2016);
+  await ann(ids.paper_kelly_2016, 'type', 'paper');
+  await ann(ids.paper_kelly_2016, 'doi', '10.1016/j.jpsychires.2016.07.019');
+  await ann(ids.paper_kelly_2016, 'study_type', 'animal_study');
+
+  await ann(ids.paper_nikolova_2021, 'title', 'Perturbations in Gut Microbiota Composition in Psychiatric Disorders: A Review and Meta-analysis');
+  await ann(ids.paper_nikolova_2021, 'journal', 'JAMA Psychiatry');
+  await ann(ids.paper_nikolova_2021, 'year', 2021);
+  await ann(ids.paper_nikolova_2021, 'type', 'paper');
+  await ann(ids.paper_nikolova_2021, 'doi', '10.1001/jamapsychiatry.2021.2573');
+  await ann(ids.paper_nikolova_2021, 'study_type', 'review');
+
+  await ann(ids.paper_tian_2022, 'title', 'Bifidobacterium breve CCFM1025 attenuates major depression disorder via regulating gut microbiome and tryptophan metabolism');
+  await ann(ids.paper_tian_2022, 'journal', 'Brain, Behavior, and Immunity');
+  await ann(ids.paper_tian_2022, 'year', 2022);
+  await ann(ids.paper_tian_2022, 'type', 'paper');
+  await ann(ids.paper_tian_2022, 'doi', '10.1016/j.bbi.2021.11.023');
+  await ann(ids.paper_tian_2022, 'study_type', 'clinical_trial');
+
+  await ann(ids.paper_rudzki_2019, 'title', 'Probiotic Lactobacillus Plantarum 299v decreases kynurenine concentration and improves cognitive functions in patients with major depression');
+  await ann(ids.paper_rudzki_2019, 'journal', 'Psychoneuroendocrinology');
+  await ann(ids.paper_rudzki_2019, 'year', 2019);
+  await ann(ids.paper_rudzki_2019, 'type', 'paper');
+  await ann(ids.paper_rudzki_2019, 'doi', '10.1016/j.psyneuen.2018.10.010');
+  await ann(ids.paper_rudzki_2019, 'study_type', 'clinical_trial');
+
+  await ann(ids.paper_chahwan_2019, 'title', 'Gut feelings: A randomised, triple-blind, placebo-controlled trial of probiotics for depressive symptoms');
+  await ann(ids.paper_chahwan_2019, 'journal', 'Journal of Affective Disorders');
+  await ann(ids.paper_chahwan_2019, 'year', 2019);
+  await ann(ids.paper_chahwan_2019, 'type', 'paper');
+  await ann(ids.paper_chahwan_2019, 'doi', '10.1016/j.jad.2019.04.097');
+  await ann(ids.paper_chahwan_2019, 'study_type', 'clinical_trial');
+
+  await ann(ids.paper_zhu_2020, 'title', 'Transplantation of microbiota from drug-free patients with schizophrenia causes schizophrenia-like abnormal behaviors and dysregulated kynurenine metabolism in mice');
+  await ann(ids.paper_zhu_2020, 'journal', 'Molecular Psychiatry');
+  await ann(ids.paper_zhu_2020, 'year', 2020);
+  await ann(ids.paper_zhu_2020, 'type', 'paper');
+  await ann(ids.paper_zhu_2020, 'doi', '10.1038/s41380-019-0475-4');
+  await ann(ids.paper_zhu_2020, 'study_type', 'animal_study');
+
+  await ann(ids.paper_ohare_2025, 'title', 'The saNeuroGut Initiative: Investigating the Gut Microbiome and Symptoms of Anxiety, Depression, and Posttraumatic Stress');
+  await ann(ids.paper_ohare_2025, 'journal', 'Neuroimmunomodulation');
+  await ann(ids.paper_ohare_2025, 'year', 2025);
+  await ann(ids.paper_ohare_2025, 'type', 'paper');
+  await ann(ids.paper_ohare_2025, 'doi', '10.1159/000542696');
+  await ann(ids.paper_ohare_2025, 'study_type', 'cohort');
+
+  // Batch 3 researchers
+  const researchers3: [string, string][] = [
+    [ids.researcher_sudo, 'Nobuyuki Sudo'],
+    [ids.researcher_koga, 'Yasuhiro Koga'],
+    [ids.researcher_bravo, 'Javier A Bravo'],
+    [ids.researcher_forsythe, 'Paul Forsythe'],
+    [ids.researcher_bienenstock, 'John Bienenstock'],
+    [ids.researcher_kelly, 'John R Kelly'],
+    [ids.researcher_clarke, 'Gerard Clarke'],
+    [ids.researcher_zheng_peng, 'Peng Zheng'],
+    [ids.researcher_xie_peng, 'Peng Xie'],
+    [ids.researcher_nikolova, 'Viktoriya L Nikolova'],
+    [ids.researcher_young, 'Allan H Young'],
+    [ids.researcher_tian, 'Peijun Tian'],
+    [ids.researcher_chen_wei, 'Wei Chen'],
+    [ids.researcher_rudzki, 'Leszek Rudzki'],
+    [ids.researcher_szulc, 'Agata Szulc'],
+    [ids.researcher_chahwan, 'Bahia Chahwan'],
+    [ids.researcher_roberts, 'Lynette Roberts'],
+    [ids.researcher_zhu_feng, 'Feng Zhu'],
+    [ids.researcher_ma_xiancang, 'Xiancang Ma'],
+    [ids.researcher_ohare, 'Michaela A O\'Hare'],
+    [ids.researcher_hemmings, 'Sian M J Hemmings'],
+  ];
+  for (const [id, name] of researchers3) {
+    await ann(id, 'name', name);
+    await ann(id, 'type', 'researcher');
+  }
+
+  // Batch 3 institutions
+  const institutions3: [string, string, string][] = [
+    [ids.inst_kyushu, 'Kyushu University', 'Japan'],
+    [ids.inst_chongqing, 'Chongqing Medical University', 'China'],
+    [ids.inst_kings_college, 'King\'s College London', 'United Kingdom'],
+    [ids.inst_jiangnan, 'Jiangnan University', 'China'],
+    [ids.inst_bialystok, 'Medical University of Bialystok', 'Poland'],
+    [ids.inst_uts, 'University of Technology Sydney', 'Australia'],
+    [ids.inst_xian_jiaotong, 'Xi\'an Jiaotong University', 'China'],
+    [ids.inst_stellenbosch, 'Stellenbosch University', 'South Africa'],
+  ];
+  for (const [id, name, country] of institutions3) {
+    await ann(id, 'name', name);
+    await ann(id, 'type', 'institution');
+    await ann(id, 'country', country);
+  }
+
+  // Batch 3 new bacteria
+  const bacteria3: [string, string, string][] = [
+    [ids.bact_l_plantarum, 'Lactobacillus plantarum', 'species'],
+    [ids.bact_b_breve, 'Bifidobacterium breve', 'species'],
+    [ids.bact_ruminococcus_gnavus, 'Ruminococcus gnavus', 'species'],
+    [ids.bact_catenibacterium, 'Catenibacterium', 'genus'],
+    [ids.bact_collinsella, 'Collinsella', 'genus'],
+    [ids.bact_holdemanella, 'Holdemanella', 'genus'],
+  ];
+  for (const [id, name, rank] of bacteria3) {
+    await ann(id, 'name', name);
+    await ann(id, 'type', 'bacterium');
+    await ann(id, 'taxonomic_rank', rank);
+  }
+
+  // Batch 3 new metabolites
+  await ann(ids.metab_kynurenine, 'name', 'Kynurenine');
+  await ann(ids.metab_kynurenine, 'type', 'metabolite');
+  await ann(ids.metab_corticosterone, 'name', 'Corticosterone');
+  await ann(ids.metab_corticosterone, 'type', 'metabolite');
+
+  // Batch 3 new mechanisms
+  await ann(ids.mech_kynurenine_pathway, 'name', 'Tryptophan-kynurenine pathway');
+  await ann(ids.mech_kynurenine_pathway, 'type', 'mechanism');
+  await ann(ids.mech_developmental_window, 'name', 'Developmental critical window for microbial colonization');
+  await ann(ids.mech_developmental_window, 'type', 'mechanism');
+  await ann(ids.mech_fmt_transfer, 'name', 'Fecal microbiota transfer (behavior transfer)');
+  await ann(ids.mech_fmt_transfer, 'type', 'mechanism');
+
+  // Batch 3 new conditions
+  await ann(ids.cond_ptsd, 'name', 'Post-traumatic Stress Disorder');
+  await ann(ids.cond_ptsd, 'type', 'condition');
+
   return count;
 }
 
@@ -620,6 +853,90 @@ async function seedRelationships(db: RhizomeDB, author: string): Promise<number>
   await rel('producer', ids.bact_b_longum, 'produces', 'product', ids.metab_gaba, 'produced_by');
   await rel('producer', ids.bact_l_helveticus, 'produces', 'product', ids.metab_gaba, 'produced_by');
   await rel('producer', ids.bact_b_infantis, 'produces', 'product', ids.metab_tryptophan, 'produced_by');
+
+  // ===== Batch 3: Paper → Researcher =====
+
+  // Paper 17: Sudo et al. 2004
+  await rel('paper', ids.paper_sudo_2004, 'authors', 'author', ids.researcher_sudo, 'papers');
+  await rel('paper', ids.paper_sudo_2004, 'authors', 'author', ids.researcher_koga, 'papers');
+
+  // Paper 18: Bravo et al. 2011 (Cryan + Dinan already exist)
+  await rel('paper', ids.paper_bravo_2011, 'authors', 'author', ids.researcher_bravo, 'papers');
+  await rel('paper', ids.paper_bravo_2011, 'authors', 'author', ids.researcher_forsythe, 'papers');
+  await rel('paper', ids.paper_bravo_2011, 'authors', 'author', ids.researcher_bienenstock, 'papers');
+  await rel('paper', ids.paper_bravo_2011, 'authors', 'author', ids.researcher_dinan, 'papers');
+  await rel('paper', ids.paper_bravo_2011, 'authors', 'author', ids.researcher_cryan, 'papers');
+
+  // Paper 19: Kelly et al. 2017 (Cryan, Dinan, Bienenstock already exist)
+  await rel('paper', ids.paper_kelly_2017, 'authors', 'author', ids.researcher_kelly, 'papers');
+  await rel('paper', ids.paper_kelly_2017, 'authors', 'author', ids.researcher_bienenstock, 'papers');
+  await rel('paper', ids.paper_kelly_2017, 'authors', 'author', ids.researcher_cryan, 'papers');
+  await rel('paper', ids.paper_kelly_2017, 'authors', 'author', ids.researcher_clarke, 'papers');
+  await rel('paper', ids.paper_kelly_2017, 'authors', 'author', ids.researcher_dinan, 'papers');
+
+  // Paper 20: Zheng et al. 2016
+  await rel('paper', ids.paper_zheng_2016, 'authors', 'author', ids.researcher_zheng_peng, 'papers');
+  await rel('paper', ids.paper_zheng_2016, 'authors', 'author', ids.researcher_xie_peng, 'papers');
+
+  // Paper 21: Kelly et al. 2016 (Cryan, Dinan already exist)
+  await rel('paper', ids.paper_kelly_2016, 'authors', 'author', ids.researcher_kelly, 'papers');
+  await rel('paper', ids.paper_kelly_2016, 'authors', 'author', ids.researcher_cryan, 'papers');
+  await rel('paper', ids.paper_kelly_2016, 'authors', 'author', ids.researcher_dinan, 'papers');
+
+  // Paper 22: Nikolova et al. 2021
+  await rel('paper', ids.paper_nikolova_2021, 'authors', 'author', ids.researcher_nikolova, 'papers');
+  await rel('paper', ids.paper_nikolova_2021, 'authors', 'author', ids.researcher_young, 'papers');
+
+  // Paper 23: Tian et al. 2022
+  await rel('paper', ids.paper_tian_2022, 'authors', 'author', ids.researcher_tian, 'papers');
+  await rel('paper', ids.paper_tian_2022, 'authors', 'author', ids.researcher_chen_wei, 'papers');
+
+  // Paper 24: Rudzki et al. 2019
+  await rel('paper', ids.paper_rudzki_2019, 'authors', 'author', ids.researcher_rudzki, 'papers');
+  await rel('paper', ids.paper_rudzki_2019, 'authors', 'author', ids.researcher_szulc, 'papers');
+
+  // Paper 25: Chahwan et al. 2019
+  await rel('paper', ids.paper_chahwan_2019, 'authors', 'author', ids.researcher_chahwan, 'papers');
+  await rel('paper', ids.paper_chahwan_2019, 'authors', 'author', ids.researcher_roberts, 'papers');
+
+  // Paper 26: Zhu et al. 2020
+  await rel('paper', ids.paper_zhu_2020, 'authors', 'author', ids.researcher_zhu_feng, 'papers');
+  await rel('paper', ids.paper_zhu_2020, 'authors', 'author', ids.researcher_ma_xiancang, 'papers');
+
+  // Paper 27: O'Hare et al. 2025
+  await rel('paper', ids.paper_ohare_2025, 'authors', 'author', ids.researcher_ohare, 'papers');
+  await rel('paper', ids.paper_ohare_2025, 'authors', 'author', ids.researcher_hemmings, 'papers');
+
+  // ===== Batch 3: Researcher → Institution =====
+  await rel('researcher', ids.researcher_sudo, 'affiliations', 'member', ids.inst_kyushu, 'researchers');
+  await rel('researcher', ids.researcher_koga, 'affiliations', 'member', ids.inst_kyushu, 'researchers');
+  await rel('researcher', ids.researcher_bravo, 'affiliations', 'member', ids.inst_ucc_cork, 'researchers');
+  await rel('researcher', ids.researcher_forsythe, 'affiliations', 'member', ids.inst_mcmaster, 'researchers');
+  await rel('researcher', ids.researcher_bienenstock, 'affiliations', 'member', ids.inst_mcmaster, 'researchers');
+  await rel('researcher', ids.researcher_kelly, 'affiliations', 'member', ids.inst_ucc_cork, 'researchers');
+  await rel('researcher', ids.researcher_clarke, 'affiliations', 'member', ids.inst_ucc_cork, 'researchers');
+  await rel('researcher', ids.researcher_zheng_peng, 'affiliations', 'member', ids.inst_chongqing, 'researchers');
+  await rel('researcher', ids.researcher_xie_peng, 'affiliations', 'member', ids.inst_chongqing, 'researchers');
+  await rel('researcher', ids.researcher_nikolova, 'affiliations', 'member', ids.inst_kings_college, 'researchers');
+  await rel('researcher', ids.researcher_young, 'affiliations', 'member', ids.inst_kings_college, 'researchers');
+  await rel('researcher', ids.researcher_tian, 'affiliations', 'member', ids.inst_jiangnan, 'researchers');
+  await rel('researcher', ids.researcher_chen_wei, 'affiliations', 'member', ids.inst_jiangnan, 'researchers');
+  await rel('researcher', ids.researcher_rudzki, 'affiliations', 'member', ids.inst_bialystok, 'researchers');
+  await rel('researcher', ids.researcher_szulc, 'affiliations', 'member', ids.inst_bialystok, 'researchers');
+  await rel('researcher', ids.researcher_chahwan, 'affiliations', 'member', ids.inst_uts, 'researchers');
+  await rel('researcher', ids.researcher_roberts, 'affiliations', 'member', ids.inst_uts, 'researchers');
+  await rel('researcher', ids.researcher_zhu_feng, 'affiliations', 'member', ids.inst_xian_jiaotong, 'researchers');
+  await rel('researcher', ids.researcher_ma_xiancang, 'affiliations', 'member', ids.inst_xian_jiaotong, 'researchers');
+  await rel('researcher', ids.researcher_ohare, 'affiliations', 'member', ids.inst_stellenbosch, 'researchers');
+  await rel('researcher', ids.researcher_hemmings, 'affiliations', 'member', ids.inst_stellenbosch, 'researchers');
+
+  // ===== Batch 3: Bacterium → produces → Metabolite =====
+  await rel('producer', ids.bact_l_plantarum, 'produces', 'product', ids.metab_gaba, 'produced_by');
+  await rel('producer', ids.bact_b_breve, 'produces', 'product', ids.metab_gaba, 'produced_by');
+
+  // ===== Batch 3: Taxonomic hierarchy =====
+  await rel('species', ids.bact_l_plantarum, 'genus', 'genus', ids.bact_lactobacillus, 'species');
+  await rel('species', ids.bact_b_breve, 'genus', 'genus', ids.bact_bifidobacterium, 'species');
 
   // ===== Taxonomic hierarchy: species → genus =====
   // This allows genus-level queries to discover species-level claims
@@ -824,16 +1141,16 @@ async function seedClaims(db: RhizomeDB, author: string): Promise<number> {
     [ids.bact_eggerthella], [], [], [ids.cond_depression], 'increased_in_disease');
 
   await makeClaim(ids.paper_radjabzadeh_2022,
-    'Coprococcus associated with depressive symptoms',
-    [ids.bact_coprococcus], [], [], [ids.cond_depression]);
+    'Coprococcus depleted in individuals with depressive symptoms',
+    [ids.bact_coprococcus], [], [], [ids.cond_depression], 'decreased_in_disease');
 
   await makeClaim(ids.paper_radjabzadeh_2022,
-    'Subdoligranulum and Sellimonas associated with depressive symptoms',
-    [ids.bact_subdoligranulum, ids.bact_sellimonas], [], [], [ids.cond_depression]);
+    'Subdoligranulum and Sellimonas enriched in depressive symptoms',
+    [ids.bact_subdoligranulum, ids.bact_sellimonas], [], [], [ids.cond_depression], 'increased_in_disease');
 
   await makeClaim(ids.paper_radjabzadeh_2022,
-    'Hungatella and Ruminococcaceae associated with depressive symptoms',
-    [ids.bact_hungatella, ids.bact_ruminococcaceae], [], [], [ids.cond_depression]);
+    'Hungatella and Ruminococcaceae enriched in depressive symptoms',
+    [ids.bact_hungatella, ids.bact_ruminococcaceae], [], [], [ids.cond_depression], 'increased_in_disease');
 
   await makeClaim(ids.paper_radjabzadeh_2022,
     'Depression-associated bacteria involved in synthesis of glutamate, butyrate, serotonin and GABA',
@@ -1000,6 +1317,183 @@ async function seedClaims(db: RhizomeDB, author: string): Promise<number> {
   await makeClaim(ids.paper_dinan_2013,
     'Bifidobacterium infantis demonstrated antidepressant-like effects in preclinical models',
     [ids.bact_b_infantis], [], [], [ids.cond_depression]);
+
+  // ===================================================================
+  // Paper 17: Sudo et al. 2004 — Germ-free mice HPA axis (FOUNDATIONAL)
+  // ===================================================================
+  await makeClaim(ids.paper_sudo_2004,
+    'Germ-free mice show exaggerated HPA axis stress response with elevated corticosterone and ACTH',
+    [], [ids.metab_corticosterone, ids.metab_cortisol], [ids.mech_hpa], [ids.cond_anxiety]);
+
+  await makeClaim(ids.paper_sudo_2004,
+    'Germ-free mice have reduced BDNF expression in cortex and hippocampus',
+    [], [ids.metab_bdnf], [], []);
+
+  await makeClaim(ids.paper_sudo_2004,
+    'Monocolonization with Bifidobacterium infantis normalizes HPA axis when administered neonatally',
+    [ids.bact_b_infantis], [], [ids.mech_hpa, ids.mech_developmental_window], [ids.cond_anxiety]);
+
+  await makeClaim(ids.paper_sudo_2004,
+    'Critical developmental window: colonization at 6 weeks normalizes HPA, at 8 weeks does not',
+    [], [], [ids.mech_developmental_window, ids.mech_hpa], []);
+
+  // ===================================================================
+  // Paper 18: Bravo et al. 2011 — L. rhamnosus JB-1 in mice (ANIMAL)
+  // ===================================================================
+  await makeClaim(ids.paper_bravo_2011,
+    'L. rhamnosus JB-1 reduces anxiety and depression-like behavior in BALB/c mice',
+    [ids.bact_l_rhamnosus], [], [ids.mech_vagus], [ids.cond_depression, ids.cond_anxiety], 'decreased_in_disease');
+
+  await makeClaim(ids.paper_bravo_2011,
+    'L. rhamnosus JB-1 reduces stress-induced corticosterone in mice',
+    [ids.bact_l_rhamnosus], [ids.metab_corticosterone], [ids.mech_hpa], []);
+
+  await makeClaim(ids.paper_bravo_2011,
+    'L. rhamnosus JB-1 alters GABA receptor expression in multiple brain regions',
+    [ids.bact_l_rhamnosus], [ids.metab_gaba], [ids.mech_vagus], []);
+
+  await makeClaim(ids.paper_bravo_2011,
+    'All behavioral and neurochemical effects completely abolished by vagotomy',
+    [], [], [ids.mech_vagus], []);
+
+  // ===================================================================
+  // Paper 19: Kelly et al. 2017 — L. rhamnosus JB-1 FAILS in humans
+  // ===================================================================
+  await makeClaim(ids.paper_kelly_2017,
+    'L. rhamnosus JB-1 does NOT reduce stress, anxiety, or cognitive measures in healthy male humans',
+    [ids.bact_l_rhamnosus], [], [], [ids.cond_anxiety], 'no_effect');
+
+  await makeClaim(ids.paper_kelly_2017,
+    'L. rhamnosus JB-1 does NOT modulate cortisol response in humans',
+    [ids.bact_l_rhamnosus], [ids.metab_cortisol], [ids.mech_hpa], [], 'no_effect');
+
+  await makeClaim(ids.paper_kelly_2017,
+    'L. rhamnosus JB-1 does NOT alter inflammatory cytokine levels in humans',
+    [ids.bact_l_rhamnosus], [], [ids.mech_neuroinflammation], [], 'no_effect');
+
+  // ===================================================================
+  // Paper 20: Zheng et al. 2016 — FMT depression transfer (China)
+  // ===================================================================
+  await makeClaim(ids.paper_zheng_2016,
+    'FMT from MDD patients induces depression-like behavior in germ-free mice',
+    [], [], [ids.mech_fmt_transfer], [ids.cond_depression]);
+
+  await makeClaim(ids.paper_zheng_2016,
+    'Depression microbiota disrupts tryptophan and amino acid metabolism in colonized mice',
+    [], [ids.metab_tryptophan, ids.metab_kynurenine], [ids.mech_kynurenine_pathway], [ids.cond_depression]);
+
+  await makeClaim(ids.paper_zheng_2016,
+    'Gut microbiome composition differs significantly between MDD patients and healthy controls',
+    [], [], [], [ids.cond_depression]);
+
+  // ===================================================================
+  // Paper 21: Kelly et al. 2016 — FMT depression to rats (Ireland)
+  // ===================================================================
+  await makeClaim(ids.paper_kelly_2016,
+    'FMT from MDD patients induces anhedonia and anxiety-like behavior in rats',
+    [], [], [ids.mech_fmt_transfer], [ids.cond_depression, ids.cond_anxiety]);
+
+  await makeClaim(ids.paper_kelly_2016,
+    'Depression microbiota transfer alters kynurenine/tryptophan ratio in recipient rats',
+    [], [ids.metab_tryptophan, ids.metab_kynurenine], [ids.mech_kynurenine_pathway], [ids.cond_depression]);
+
+  await makeClaim(ids.paper_kelly_2016,
+    'Depression is associated with decreased gut microbiota richness and diversity',
+    [], [], [], [ids.cond_depression]);
+
+  // ===================================================================
+  // Paper 22: Nikolova et al. 2021 — JAMA Psychiatry meta-analysis
+  // ===================================================================
+  await makeClaim(ids.paper_nikolova_2021,
+    'Faecalibacterium consistently depleted across MDD, bipolar, schizophrenia, and anxiety (transdiagnostic)',
+    [ids.bact_faecalibacterium], [ids.metab_butyrate], [], [ids.cond_depression, ids.cond_bipolar, ids.cond_schizophrenia, ids.cond_anxiety], 'decreased_in_disease');
+
+  await makeClaim(ids.paper_nikolova_2021,
+    'Coprococcus consistently depleted across psychiatric disorders (transdiagnostic)',
+    [ids.bact_coprococcus], [ids.metab_butyrate], [], [ids.cond_depression, ids.cond_bipolar, ids.cond_schizophrenia, ids.cond_anxiety], 'decreased_in_disease');
+
+  await makeClaim(ids.paper_nikolova_2021,
+    'Eggerthella consistently enriched across MDD, bipolar, schizophrenia, and anxiety (transdiagnostic)',
+    [ids.bact_eggerthella], [], [ids.mech_neuroinflammation], [ids.cond_depression, ids.cond_bipolar, ids.cond_schizophrenia, ids.cond_anxiety], 'increased_in_disease');
+
+  await makeClaim(ids.paper_nikolova_2021,
+    'Butyrate-producing bacteria depleted as a class across psychiatric conditions',
+    [ids.bact_faecalibacterium, ids.bact_coprococcus, ids.bact_eubacterium_rectale], [ids.metab_butyrate], [], [ids.cond_depression, ids.cond_anxiety, ids.cond_bipolar, ids.cond_schizophrenia], 'decreased_in_disease');
+
+  // ===================================================================
+  // Paper 23: Tian et al. 2022 — B. breve CCFM1025 RCT (China)
+  // ===================================================================
+  await makeClaim(ids.paper_tian_2022,
+    'B. breve CCFM1025 improves depression scores vs placebo in MDD patients (n=45)',
+    [ids.bact_b_breve], [], [], [ids.cond_depression], 'increased_in_treatment');
+
+  await makeClaim(ids.paper_tian_2022,
+    'B. breve CCFM1025 increases fecal tryptophan derivatives correlated with symptom improvement',
+    [ids.bact_b_breve], [ids.metab_tryptophan], [ids.mech_kynurenine_pathway], [ids.cond_depression]);
+
+  // ===================================================================
+  // Paper 24: Rudzki et al. 2019 — L. plantarum 299v (Poland)
+  // ===================================================================
+  await makeClaim(ids.paper_rudzki_2019,
+    'L. plantarum 299v decreases plasma kynurenine concentration in MDD patients',
+    [ids.bact_l_plantarum], [ids.metab_kynurenine], [ids.mech_kynurenine_pathway], [ids.cond_depression], 'decreased_in_disease');
+
+  await makeClaim(ids.paper_rudzki_2019,
+    'L. plantarum 299v improves cognitive functions (attention, psychomotor speed) in MDD patients',
+    [ids.bact_l_plantarum], [], [], [ids.cond_depression]);
+
+  await makeClaim(ids.paper_rudzki_2019,
+    'L. plantarum 299v does NOT significantly improve depression scores (HDRS) vs placebo',
+    [ids.bact_l_plantarum], [], [], [ids.cond_depression], 'no_effect');
+
+  await makeClaim(ids.paper_rudzki_2019,
+    'No significant changes in inflammatory cytokines or cortisol from L. plantarum 299v',
+    [ids.bact_l_plantarum], [ids.metab_cortisol], [ids.mech_neuroinflammation], [], 'no_effect');
+
+  // ===================================================================
+  // Paper 25: Chahwan et al. 2019 — Multi-strain probiotic null result
+  // ===================================================================
+  await makeClaim(ids.paper_chahwan_2019,
+    'Multi-strain probiotic (Ecologic Barrier) does NOT reduce depression symptoms vs placebo',
+    [ids.bact_bifidobacterium, ids.bact_l_acidophilus, ids.bact_l_casei], [], [], [ids.cond_depression], 'no_effect');
+
+  await makeClaim(ids.paper_chahwan_2019,
+    'Both probiotic and placebo groups show equal improvement in depression scores',
+    [], [], [], [ids.cond_depression]);
+
+  await makeClaim(ids.paper_chahwan_2019,
+    'Ruminococcus gnavus positively correlates with depression severity',
+    [ids.bact_ruminococcus_gnavus], [], [], [ids.cond_depression], 'increased_in_disease');
+
+  // ===================================================================
+  // Paper 26: Zhu et al. 2020 — Schizophrenia FMT (China, multi-country)
+  // ===================================================================
+  await makeClaim(ids.paper_zhu_2020,
+    'FMT from schizophrenia patients induces psychomotor hyperactivity and learning impairment in mice',
+    [], [], [ids.mech_fmt_transfer], [ids.cond_schizophrenia]);
+
+  await makeClaim(ids.paper_zhu_2020,
+    'Schizophrenia microbiota dysregulates kynurenine metabolism in recipient mice',
+    [], [ids.metab_kynurenine, ids.metab_tryptophan], [ids.mech_kynurenine_pathway], [ids.cond_schizophrenia]);
+
+  await makeClaim(ids.paper_zhu_2020,
+    'Glutamate-GABA cycle disrupted by schizophrenia microbiota transfer',
+    [], [ids.metab_gaba, ids.metab_glutamate], [], [ids.cond_schizophrenia]);
+
+  // ===================================================================
+  // Paper 27: O'Hare et al. 2025 — saNeuroGut (South Africa)
+  // ===================================================================
+  await makeClaim(ids.paper_ohare_2025,
+    'Catenibacterium abundance positively associated with PTSD symptom severity',
+    [ids.bact_catenibacterium], [], [], [ids.cond_ptsd], 'increased_in_disease');
+
+  await makeClaim(ids.paper_ohare_2025,
+    'Collinsella abundance positively associated with PTSD symptom severity',
+    [ids.bact_collinsella], [], [], [ids.cond_ptsd], 'increased_in_disease');
+
+  await makeClaim(ids.paper_ohare_2025,
+    'Holdemanella abundance positively associated with PTSD symptom severity',
+    [ids.bact_holdemanella], [], [], [ids.cond_ptsd], 'increased_in_disease');
 
   return count;
 }

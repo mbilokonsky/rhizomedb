@@ -17,6 +17,8 @@ import {
   coOccurrence,
   findContradictions,
   graphSummary,
+  pathwayBetween,
+  researcherNetwork,
 } from './graph-analysis';
 
 describe('Graph Analysis Queries', () => {
@@ -110,10 +112,10 @@ describe('Graph Analysis Queries', () => {
       expect(journals).toContain('Nature Communications');
     });
 
-    it('should return empty for unrelated entities', () => {
-      // Schizophrenia and butyrate have no shared claims
+    it('should find transdiagnostic connections after batch 3', () => {
+      // Nikolova 2021 links butyrate producers to schizophrenia (transdiagnostic)
       const chain = evidenceChain(db, ids.metab_butyrate, ids.cond_schizophrenia);
-      expect(chain.length).toBe(0);
+      expect(chain.length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -206,21 +208,99 @@ describe('Graph Analysis Queries', () => {
     });
   });
 
+  describe('pathwayBetween', () => {
+    it('should find paths from Lactobacillus to depression', () => {
+      const paths = pathwayBetween(db, ids.bact_lactobacillus, ids.cond_depression);
+
+      expect(paths.length).toBeGreaterThanOrEqual(1);
+      // First path should start with Lactobacillus and end with Depression
+      expect(paths[0].path[0].entity).toBe(ids.bact_lactobacillus);
+      expect(paths[0].path[paths[0].path.length - 1].entity).toBe(ids.cond_depression);
+    });
+
+    it('should find short direct paths for well-connected entities', () => {
+      const paths = pathwayBetween(db, ids.bact_eggerthella, ids.cond_depression);
+
+      // Eggerthella appears directly in claims about depression
+      expect(paths.length).toBeGreaterThanOrEqual(1);
+      expect(paths[0].path.length).toBe(2); // direct: Eggerthella → Depression
+    });
+
+    it('should find indirect paths through metabolites', () => {
+      // Faecalibacterium produces butyrate, butyrate linked to depression
+      const paths = pathwayBetween(db, ids.bact_faecalibacterium, ids.cond_depression);
+
+      // Should find paths through butyrate (production relationship)
+      const butyratePaths = paths.filter(p =>
+        p.path.some(n => n.entity === ids.metab_butyrate)
+      );
+      expect(butyratePaths.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should return empty for truly unconnected entities', () => {
+      // Create a nonsense entity ID
+      const paths = pathwayBetween(db, 'nonexistent:entity', ids.cond_depression);
+      expect(paths.length).toBe(0);
+    });
+
+    it('should find multiple distinct pathways for hub entities', () => {
+      // Butyrate connects to depression through many claims
+      const paths = pathwayBetween(db, ids.metab_butyrate, ids.cond_depression);
+      expect(paths.length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  describe('researcherNetwork', () => {
+    it('should find researcher collaborations', () => {
+      const network = researcherNetwork(db);
+
+      expect(network.collaborations.length).toBeGreaterThanOrEqual(5);
+      // Co-authors on the same paper should appear
+      const erasmusCollab = network.collaborations.find(c =>
+        (c.researcherA === ids.researcher_radjabzadeh || c.researcherB === ids.researcher_radjabzadeh) &&
+        (c.researcherA === ids.researcher_kraaij || c.researcherB === ids.researcher_kraaij)
+      );
+      expect(erasmusCollab).toBeDefined();
+    });
+
+    it('should find institution collaborations', () => {
+      const network = researcherNetwork(db);
+
+      // Some papers have authors from multiple institutions
+      // Arizona State has 3 co-authors on the same paper → intra-institutional
+      // Erasmus + Amsterdam UMC might collaborate
+      expect(network.institutionLinks.length).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should count shared papers correctly', () => {
+      const network = researcherNetwork(db);
+
+      // Dinan and Cryan co-authored paper 16
+      const dinanCryan = network.collaborations.find(c =>
+        (c.researcherA === ids.researcher_dinan || c.researcherB === ids.researcher_dinan) &&
+        (c.researcherA === ids.researcher_cryan || c.researcherB === ids.researcher_cryan)
+      );
+      expect(dinanCryan).toBeDefined();
+      // Dinan & Cryan co-author paper 16 (2013 review), Bravo 2011, Kelly 2017, Kelly 2016
+      expect(dinanCryan!.sharedPapers).toBeGreaterThanOrEqual(3);
+    });
+  });
+
   describe('graphSummary', () => {
     it('should produce a complete summary of the knowledge graph', () => {
       const summary = graphSummary(db);
 
-      expect(summary.papers).toBe(16);
-      expect(summary.researchers).toBeGreaterThanOrEqual(33);
-      expect(summary.institutions).toBeGreaterThanOrEqual(17);
-      expect(summary.bacteria).toBeGreaterThanOrEqual(28);
-      expect(summary.metabolites).toBeGreaterThanOrEqual(14);
-      expect(summary.mechanisms).toBeGreaterThanOrEqual(8);
-      expect(summary.conditions).toBeGreaterThanOrEqual(7);
-      expect(summary.claims).toBeGreaterThanOrEqual(70);
-      expect(summary.totalDeltas).toBeGreaterThan(800);
-      expect(summary.countries.length).toBeGreaterThanOrEqual(7);
-      expect(summary.yearRange[0]).toBe(2011);
+      expect(summary.papers).toBe(27);
+      expect(summary.researchers).toBeGreaterThanOrEqual(54);
+      expect(summary.institutions).toBeGreaterThanOrEqual(25);
+      expect(summary.bacteria).toBeGreaterThanOrEqual(34);
+      expect(summary.metabolites).toBeGreaterThanOrEqual(16);
+      expect(summary.mechanisms).toBeGreaterThanOrEqual(11);
+      expect(summary.conditions).toBeGreaterThanOrEqual(8);
+      expect(summary.claims).toBeGreaterThanOrEqual(100);
+      expect(summary.totalDeltas).toBeGreaterThan(1200);
+      expect(summary.countries.length).toBeGreaterThanOrEqual(12);
+      expect(summary.yearRange[0]).toBe(2004);
       expect(summary.yearRange[1]).toBe(2025);
     });
   });

@@ -290,6 +290,202 @@ export function findContradictions(
 }
 
 /**
+ * Find multi-hop pathways between two entities through the knowledge graph.
+ *
+ * Example: pathwayBetween(db, 'bacterium:lactobacillus', 'condition:major-depressive-disorder')
+ * might return: Lactobacillus → produces → GABA → [via claim] → Depression
+ *
+ * Traversal strategy: BFS through claim co-mentions and production relationships.
+ * A "hop" is either:
+ *   - Two entities mentioned in the same claim (claim co-mention)
+ *   - A producer→product relationship (metabolite production)
+ */
+export function pathwayBetween(
+  db: RhizomeDB,
+  startEntity: string,
+  endEntity: string,
+  maxHops: number = 4
+): { path: { entity: string; name: string; type: string }[]; claims: string[] }[] {
+  // BFS from start to end
+  type PathState = {
+    entity: string;
+    path: { entity: string; name: string; type: string }[];
+    claims: string[];
+    visited: Set<string>;
+  };
+
+  const results: { path: { entity: string; name: string; type: string }[]; claims: string[] }[] = [];
+  const startResolved = db.resolve(startEntity);
+  const startNode = {
+    entity: startEntity,
+    name: (startResolved.name as string) || startEntity,
+    type: (startResolved.type as string) || 'unknown',
+  };
+
+  const queue: PathState[] = [{
+    entity: startEntity,
+    path: [startNode],
+    claims: [],
+    visited: new Set([startEntity]),
+  }];
+
+  // Build adjacency via claims: for each entity, find all entities it shares claims with
+  function getClaimNeighbors(entityId: string): { entity: string; claim: string }[] {
+    const neighbors: { entity: string; claim: string }[] = [];
+    const claims = db.relatedIds(entityId, 'claims_about', 'claim');
+    for (const claimId of claims) {
+      // Find all entities mentioned in this claim
+      for (const rel of ['bacteria', 'metabolites', 'mechanisms', 'conditions']) {
+        const subjects = db.relatedIds(claimId, rel, 'subject');
+        for (const s of subjects) {
+          if (s !== entityId) {
+            neighbors.push({ entity: s, claim: claimId });
+          }
+        }
+      }
+    }
+    return neighbors;
+  }
+
+  // Also traverse production relationships
+  function getProductionNeighbors(entityId: string): string[] {
+    const products = db.relatedIds(entityId, 'produces', 'product');
+    const producers = db.relatedIds(entityId, 'produced_by', 'producer');
+    return [...products, ...producers];
+  }
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    if (current.path.length > maxHops) continue;
+
+    // Check claim co-mentions
+    const claimNeighbors = getClaimNeighbors(current.entity);
+    for (const { entity: neighbor, claim } of claimNeighbors) {
+      if (current.visited.has(neighbor)) continue;
+
+      const resolved = db.resolve(neighbor);
+      const node = {
+        entity: neighbor,
+        name: (resolved.name as string) || neighbor,
+        type: (resolved.type as string) || 'unknown',
+      };
+
+      const newPath = [...current.path, node];
+      const newClaims = [...current.claims, claim];
+
+      if (neighbor === endEntity) {
+        results.push({ path: newPath, claims: newClaims });
+        continue; // Don't stop — find all paths up to maxHops
+      }
+
+      if (newPath.length < maxHops) {
+        const newVisited = new Set(current.visited);
+        newVisited.add(neighbor);
+        queue.push({ entity: neighbor, path: newPath, claims: newClaims, visited: newVisited });
+      }
+    }
+
+    // Check production relationships
+    const productionNeighbors = getProductionNeighbors(current.entity);
+    for (const neighbor of productionNeighbors) {
+      if (current.visited.has(neighbor)) continue;
+
+      const resolved = db.resolve(neighbor);
+      const node = {
+        entity: neighbor,
+        name: (resolved.name as string) || neighbor,
+        type: (resolved.type as string) || 'unknown',
+      };
+
+      const newPath = [...current.path, node];
+      const newClaims = [...current.claims]; // no claim for production edges
+
+      if (neighbor === endEntity) {
+        results.push({ path: newPath, claims: newClaims });
+        continue;
+      }
+
+      if (newPath.length < maxHops) {
+        const newVisited = new Set(current.visited);
+        newVisited.add(neighbor);
+        queue.push({ entity: neighbor, path: newPath, claims: newClaims, visited: newVisited });
+      }
+    }
+  }
+
+  // Sort by shortest path first
+  results.sort((a, b) => a.path.length - b.path.length);
+  return results;
+}
+
+/**
+ * Find the research collaboration network: which researchers share papers,
+ * and which institutions collaborate.
+ */
+export function researcherNetwork(db: RhizomeDB): {
+  collaborations: { researcherA: string; researcherB: string; nameA: string; nameB: string; sharedPapers: number }[];
+  institutionLinks: { instA: string; instB: string; nameA: string; nameB: string; sharedPapers: number }[];
+} {
+  const papers = db.entitiesOfType('paper');
+  const researcherPairs = new Map<string, { a: string; b: string; nameA: string; nameB: string; count: number }>();
+  const instPairs = new Map<string, { a: string; b: string; nameA: string; nameB: string; count: number }>();
+
+  for (const paperId of papers) {
+    const authors = db.relatedIds(paperId, 'authors', 'author');
+
+    // Researcher collaborations within a paper
+    for (let i = 0; i < authors.length; i++) {
+      for (let j = i + 1; j < authors.length; j++) {
+        const [a, b] = authors[i] < authors[j] ? [authors[i], authors[j]] : [authors[j], authors[i]];
+        const key = `${a}|${b}`;
+        if (!researcherPairs.has(key)) {
+          researcherPairs.set(key, {
+            a, b,
+            nameA: (db.resolve(a).name as string) || a,
+            nameB: (db.resolve(b).name as string) || b,
+            count: 0,
+          });
+        }
+        researcherPairs.get(key)!.count++;
+      }
+    }
+
+    // Institution collaborations: unique institutions per paper
+    const paperInsts = new Set<string>();
+    for (const author of authors) {
+      const affiliations = db.relatedIds(author, 'affiliations', 'member');
+      for (const inst of affiliations) paperInsts.add(inst);
+    }
+    const instList = Array.from(paperInsts);
+    for (let i = 0; i < instList.length; i++) {
+      for (let j = i + 1; j < instList.length; j++) {
+        const [a, b] = instList[i] < instList[j] ? [instList[i], instList[j]] : [instList[j], instList[i]];
+        const key = `${a}|${b}`;
+        if (!instPairs.has(key)) {
+          instPairs.set(key, {
+            a, b,
+            nameA: (db.resolve(a).name as string) || a,
+            nameB: (db.resolve(b).name as string) || b,
+            count: 0,
+          });
+        }
+        instPairs.get(key)!.count++;
+      }
+    }
+  }
+
+  const collaborations = Array.from(researcherPairs.values())
+    .map(p => ({ researcherA: p.a, researcherB: p.b, nameA: p.nameA, nameB: p.nameB, sharedPapers: p.count }))
+    .sort((a, b) => b.sharedPapers - a.sharedPapers);
+
+  const institutionLinks = Array.from(instPairs.values())
+    .map(p => ({ instA: p.a, instB: p.b, nameA: p.nameA, nameB: p.nameB, sharedPapers: p.count }))
+    .sort((a, b) => b.sharedPapers - a.sharedPapers);
+
+  return { collaborations, institutionLinks };
+}
+
+/**
  * Generate a summary report of the knowledge graph's contents.
  */
 export function graphSummary(db: RhizomeDB): {

@@ -20,7 +20,7 @@ describe('Academic Paper Knowledge Graph', () => {
     db = new RhizomeDB({ storage: 'memory', systemId: 'academic-digestion' });
     const result = await seedAcademicPapers(db);
     // eslint-disable-next-line no-console
-    console.error(`Seeded ${result.totalDeltas} deltas from 16 papers`);
+    console.error(`Seeded ${result.totalDeltas} deltas from 27 papers`);
   });
 
   describe('Basic ingestion', () => {
@@ -56,9 +56,9 @@ describe('Academic Paper Knowledge Graph', () => {
   });
 
   describe('Collection queries (entitiesOfType)', () => {
-    it('should find all 16 papers', () => {
+    it('should find all 27 papers', () => {
       const papers = db.entitiesOfType('paper');
-      expect(papers).toHaveLength(16);
+      expect(papers).toHaveLength(27);
     });
 
     it('should find all bacteria (batch 1 + batch 2)', () => {
@@ -489,10 +489,10 @@ describe('Academic Paper Knowledge Graph', () => {
       expect(countryCounts['Netherlands']).toBeGreaterThanOrEqual(1);
     });
 
-    it('should span 2011-2025 across 16 papers', () => {
+    it('should span 2004-2025 across 27 papers', () => {
       const allPapers = db.entitiesOfType('paper');
       const years = allPapers.map(p => db.resolve(p).year as number).sort();
-      expect(years[0]).toBe(2011);
+      expect(years[0]).toBe(2004);
       expect(years[years.length - 1]).toBe(2025);
     });
 
@@ -540,7 +540,7 @@ describe('Academic Paper Knowledge Graph', () => {
       expect(qiluResearchers.length).toBeGreaterThanOrEqual(1);
     });
 
-    it('should map research by geographic region across all 16 papers', () => {
+    it('should map research by geographic region across all 27 papers', () => {
       const allInstitutions = db.entitiesOfType('institution');
       const countryCounts: Record<string, number> = {};
       for (const instId of allInstitutions) {
@@ -548,12 +548,13 @@ describe('Academic Paper Knowledge Graph', () => {
         const country = resolved.country as string;
         if (country) countryCounts[country] = (countryCounts[country] || 0) + 1;
       }
-      // Should now have 7+ countries
-      expect(Object.keys(countryCounts).length).toBeGreaterThanOrEqual(7);
+      // Should now have 12+ countries (batch 3 adds Japan, Poland, Australia, South Africa, UK)
+      expect(Object.keys(countryCounts).length).toBeGreaterThanOrEqual(12);
       expect(countryCounts['United States']).toBeGreaterThanOrEqual(2);
       expect(countryCounts['Ireland']).toBeGreaterThanOrEqual(1);
-      expect(countryCounts['Belgium']).toBeGreaterThanOrEqual(1);
-      expect(countryCounts['New Zealand']).toBeGreaterThanOrEqual(1);
+      expect(countryCounts['Japan']).toBeGreaterThanOrEqual(1);
+      expect(countryCounts['Poland']).toBeGreaterThanOrEqual(1);
+      expect(countryCounts['South Africa']).toBeGreaterThanOrEqual(1);
     });
 
     it('should find vagus nerve cited across many papers now', () => {
@@ -590,6 +591,102 @@ describe('Academic Paper Knowledge Graph', () => {
     });
   });
 
+  describe('Batch 3: Translational gaps and contradictions', () => {
+    it('should capture the Bravo-Kelly contradiction: L. rhamnosus works in mice, fails in humans', () => {
+      // Bravo 2011 claims L. rhamnosus decreases anxiety (animal study)
+      const bravoClaims = db.relatedIds(ids.bact_l_rhamnosus, 'claims_about', 'claim');
+      const bravo2011Claims = bravoClaims.filter(c => {
+        const papers = db.relatedIds(c, 'source_paper', 'source');
+        return papers.includes(ids.paper_bravo_2011);
+      });
+      expect(bravo2011Claims.length).toBeGreaterThanOrEqual(1);
+
+      // Kelly 2017 claims L. rhamnosus has no effect (human trial)
+      const kelly2017Claims = bravoClaims.filter(c => {
+        const papers = db.relatedIds(c, 'source_paper', 'source');
+        return papers.includes(ids.paper_kelly_2017);
+      });
+      expect(kelly2017Claims.length).toBeGreaterThanOrEqual(1);
+
+      // Check that Kelly 2017 claims have no_effect direction
+      const kellyDirections = kelly2017Claims.map(c => db.resolve(c).direction);
+      expect(kellyDirections).toContain('no_effect');
+    });
+
+    it('should find the kynurenine pathway as a convergence point across multiple papers', () => {
+      const kynClaims = db.relatedIds(ids.mech_kynurenine_pathway, 'claims_about', 'claim');
+      const papers = new Set<string>();
+      for (const claim of kynClaims) {
+        const claimPapers = db.relatedIds(claim, 'source_paper', 'source');
+        for (const p of claimPapers) papers.add(p);
+      }
+      // Zheng 2016, Kelly 2016, Tian 2022, Rudzki 2019, Zhu 2020
+      expect(papers.size).toBeGreaterThanOrEqual(4);
+    });
+
+    it('should find FMT evidence for behavior transfer across depression and schizophrenia', () => {
+      const fmtClaims = db.relatedIds(ids.mech_fmt_transfer, 'claims_about', 'claim');
+      expect(fmtClaims.length).toBeGreaterThanOrEqual(3);
+
+      // Should link to both depression and schizophrenia
+      const conditions = new Set<string>();
+      for (const claim of fmtClaims) {
+        const condList = db.relatedIds(claim, 'conditions', 'subject');
+        for (const c of condList) conditions.add(c);
+      }
+      expect(conditions.has(ids.cond_depression)).toBe(true);
+      expect(conditions.has(ids.cond_schizophrenia)).toBe(true);
+    });
+
+    it('should find UCC Cork as the most prolific research hub', () => {
+      const uccResearchers = db.relatedIds(ids.inst_ucc_cork, 'researchers', 'researcher');
+      // Dinan, Cryan, Kelly, Clarke, Bravo
+      expect(uccResearchers.length).toBeGreaterThanOrEqual(4);
+
+      // They should be on many papers
+      const allPapers = new Set<string>();
+      for (const researcher of uccResearchers) {
+        const papers = db.relatedIds(researcher, 'papers', 'paper');
+        for (const p of papers) allPapers.add(p);
+      }
+      // Dinan&Cryan review, Bravo 2011, Kelly 2017, Kelly 2016 = 4+
+      expect(allPapers.size).toBeGreaterThanOrEqual(4);
+    });
+
+    it('should find PTSD as a newly represented condition from South Africa', () => {
+      const ptsdClaims = db.relatedIds(ids.cond_ptsd, 'claims_about', 'claim');
+      expect(ptsdClaims.length).toBeGreaterThanOrEqual(3);
+
+      // All PTSD claims should be from O'Hare 2025
+      const papers = new Set<string>();
+      for (const claim of ptsdClaims) {
+        const claimPapers = db.relatedIds(claim, 'source_paper', 'source');
+        for (const p of claimPapers) papers.add(p);
+      }
+      expect(papers.has(ids.paper_ohare_2025)).toBe(true);
+    });
+
+    it('should find Nikolova 2021 transdiagnostic claims linking bacteria to ALL major conditions', () => {
+      // Nikolova's claims about Faecalibacterium link to 4 conditions
+      const faecalClaims = db.relatedIds(ids.bact_faecalibacterium, 'claims_about', 'claim');
+      const nikolovaClaims = faecalClaims.filter(c => {
+        const papers = db.relatedIds(c, 'source_paper', 'source');
+        return papers.includes(ids.paper_nikolova_2021);
+      });
+
+      // Should have at least one Nikolova claim
+      expect(nikolovaClaims.length).toBeGreaterThanOrEqual(1);
+
+      // That claim should mention multiple conditions
+      const conditions = new Set<string>();
+      for (const claim of nikolovaClaims) {
+        const condList = db.relatedIds(claim, 'conditions', 'subject');
+        for (const c of condList) conditions.add(c);
+      }
+      expect(conditions.size).toBeGreaterThanOrEqual(4);
+    });
+  });
+
   describe('Taxonomic hierarchy traversal', () => {
     it('should link Lactobacillus species to the genus', () => {
       const species = db.relatedIds(ids.bact_lactobacillus, 'species', 'species');
@@ -597,12 +694,14 @@ describe('Academic Paper Knowledge Graph', () => {
       expect(species).toContain(ids.bact_l_helveticus);
       expect(species).toContain(ids.bact_l_acidophilus);
       expect(species).toContain(ids.bact_l_casei);
+      expect(species).toContain(ids.bact_l_plantarum); // batch 3
     });
 
     it('should link Bifidobacterium species to the genus', () => {
       const species = db.relatedIds(ids.bact_bifidobacterium, 'species', 'species');
       expect(species).toContain(ids.bact_b_longum);
       expect(species).toContain(ids.bact_b_infantis);
+      expect(species).toContain(ids.bact_b_breve); // batch 3
     });
 
     it('should find ALL claims about Lactobacillus (genus + all species)', () => {

@@ -314,6 +314,119 @@ describe('RhizomeDB', () => {
     });
   });
 
+  describe('Convenience Methods', () => {
+    it('resolve() should return resolved entity properties', async () => {
+      const personId = 'person_resolve';
+      await db.annotate(personId, 'name', 'Alice', 'author_1');
+      await db.annotate(personId, 'age', 30, 'author_1');
+
+      const view = db.resolve(personId);
+      expect(view.id).toBe(personId);
+      expect(view.name).toBe('Alice');
+      expect(view.age).toBe(30);
+    });
+
+    it('resolve() should return only id for unknown entity', () => {
+      const view = db.resolve('nonexistent');
+      expect(view).toEqual({ id: 'nonexistent' });
+    });
+
+    it('resolve() should use custom strategy', async () => {
+      const personId = 'person_strategy';
+      const d1 = await db.annotate(personId, 'name', 'Alice', 'author_1', 1000);
+      const d2 = await db.annotate(personId, 'name', 'Bob', 'author_1', 2000);
+
+      // firstWrite strategy: pick earliest
+      const { firstWrite } = require('../queries/view-resolver');
+      const view = db.resolve(personId, firstWrite);
+      expect(view.name).toBe('Alice');
+    });
+
+    it('resolve() should support time-travel via queryTimestamp', async () => {
+      const personId = 'person_timetravel';
+      await db.annotate(personId, 'name', 'Alice', 'author_1', 1000);
+      await db.annotate(personId, 'name', 'Bob', 'author_1', 2000);
+
+      const pastView = db.resolve(personId, undefined, 1500);
+      expect(pastView.name).toBe('Alice');
+
+      const presentView = db.resolve(personId);
+      expect(presentView.name).toBe('Bob');
+    });
+
+    it('allValuesFor() should return all values for a property', async () => {
+      const personId = 'person_allvals';
+      await db.annotate(personId, 'name', 'Alice', 'author_1', 1000);
+      await db.annotate(personId, 'name', 'Bob', 'author_2', 2000);
+
+      const names = db.allValuesFor(personId, 'name');
+      expect(names).toHaveLength(2);
+      expect(names).toContain('Alice');
+      expect(names).toContain('Bob');
+    });
+
+    it('allValuesFor() should return empty for unknown property', async () => {
+      const personId = 'person_novals';
+      await db.annotate(personId, 'name', 'Alice', 'author_1');
+
+      expect(db.allValuesFor(personId, 'age')).toEqual([]);
+    });
+
+    it('relatedIds() should return related entity IDs', async () => {
+      const folderId = 'folder_1';
+      const fileId = 'file_1';
+      const fileId2 = 'file_2';
+
+      await db.relate('parent', folderId, 'children', 'child', fileId, 'parent', 'author_1');
+      await db.relate('parent', folderId, 'children', 'child', fileId2, 'parent', 'author_1');
+
+      const childIds = db.relatedIds(folderId, 'children', 'child');
+      expect(childIds).toHaveLength(2);
+      expect(childIds).toContain(fileId);
+      expect(childIds).toContain(fileId2);
+    });
+
+    it('relatedIds() should return empty for unknown property', () => {
+      expect(db.relatedIds('entity_1', 'children', 'child')).toEqual([]);
+    });
+
+    it('annotate() should create and persist a delta', async () => {
+      const entityId = 'entity_annotate';
+      const delta = await db.annotate(entityId, 'name', 'Test', 'author_1');
+
+      expect(delta.id).toBeDefined();
+      expect(delta.pointers).toHaveLength(2);
+      expect(delta.pointers[0].role).toBe('named');
+      expect(delta.pointers[1].target).toBe('Test');
+
+      // Should be persisted
+      const retrieved = await db.getDeltas([delta.id]);
+      expect(retrieved).toHaveLength(1);
+    });
+
+    it('annotate() should support explicit timestamp', async () => {
+      const delta = await db.annotate('entity_ts', 'name', 'Test', 'author_1', 42000);
+      expect(delta.timestamp).toBe(42000);
+    });
+
+    it('relate() should create and persist a relationship delta', async () => {
+      const delta = await db.relate('parent', 'folder_1', 'children', 'child', 'file_1', 'parent', 'author_1');
+
+      expect(delta.id).toBeDefined();
+      expect(delta.pointers).toHaveLength(2);
+      expect(delta.pointers[0]).toEqual({ role: 'parent', target: { id: 'folder_1', context: 'children' } });
+      expect(delta.pointers[1]).toEqual({ role: 'child', target: { id: 'file_1', context: 'parent' } });
+
+      const retrieved = await db.getDeltas([delta.id]);
+      expect(retrieved).toHaveLength(1);
+    });
+
+    it('relate() should support explicit timestamp', async () => {
+      const delta = await db.relate('a', 'e1', 'ctx', 'b', 'e2', 'ctx2', 'author_1', 99000);
+      expect(delta.timestamp).toBe(99000);
+    });
+  });
+
   describe('Statistics', () => {
     it('should track instance statistics', async () => {
       const delta1 = db.createDelta('author_1', [{ role: 'test', target: 'value' }]);

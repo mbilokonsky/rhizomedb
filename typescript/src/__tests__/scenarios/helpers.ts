@@ -137,9 +137,7 @@ export function buildHyperView(
   registry.register(s);
 
   const allDeltas = db.queryDeltas({ includeNegated: true });
-  const deltasArray = Array.isArray(allDeltas) ? allDeltas : [];
-
-  return constructHyperView(entityId, s, deltasArray, registry, queryTimestamp);
+  return constructHyperView(entityId, s, allDeltas, registry, queryTimestamp);
 }
 
 /** Resolve an entity to a simple key-value View using mostRecent */
@@ -148,8 +146,7 @@ export function resolveEntity(
   entityId: string,
   queryTimestamp?: number
 ): Record<string, any> {
-  const hyperView = buildHyperView(db, entityId, undefined, queryTimestamp);
-  return resolveHyperView(hyperView, mostRecent);
+  return db.resolve(entityId, mostRecent, queryTimestamp);
 }
 
 /** Resolve an entity using a specific resolution strategy */
@@ -159,8 +156,7 @@ export function resolveEntityWith(
   strategy: (deltas: Delta[]) => any,
   queryTimestamp?: number
 ): Record<string, any> {
-  const hyperView = buildHyperView(db, entityId, undefined, queryTimestamp);
-  return resolveHyperView(hyperView, strategy);
+  return db.resolve(entityId, strategy, queryTimestamp);
 }
 
 /** Resolve a HyperView to a plain object */
@@ -201,18 +197,7 @@ export function allValuesFor(
   property: string,
   queryTimestamp?: number
 ): any[] {
-  const hyperView = buildHyperView(db, entityId, undefined, queryTimestamp);
-  const deltas = hyperView[property] as Delta[] | undefined;
-  if (!deltas || deltas.length === 0) return [];
-
-  return deltas.map((delta) => {
-    for (const p of delta.pointers) {
-      if (typeof p.target === 'string' || typeof p.target === 'number' || typeof p.target === 'boolean') {
-        return p.target;
-      }
-    }
-    return null;
-  }).filter((v) => v !== null);
+  return db.allValuesFor(entityId, property, queryTimestamp);
 }
 
 /** Get all relationship targets for a specific property */
@@ -223,19 +208,7 @@ export function relatedIds(
   throughRole: string,
   queryTimestamp?: number
 ): string[] {
-  const hyperView = buildHyperView(db, entityId, undefined, queryTimestamp);
-  const deltas = hyperView[property] as Delta[] | undefined;
-  if (!deltas || deltas.length === 0) return [];
-
-  const ids: string[] = [];
-  for (const delta of deltas) {
-    for (const p of delta.pointers) {
-      if (p.role === throughRole && typeof p.target === 'object' && 'id' in p.target) {
-        ids.push(p.target.id);
-      }
-    }
-  }
-  return ids;
+  return db.relatedIds(entityId, property, throughRole, queryTimestamp);
 }
 
 // ============================================================================
@@ -263,8 +236,7 @@ export function waitFor(
 }
 
 export function countEntityDeltas(db: RhizomeDB, entityId: string): number {
-  const deltas = db.queryDeltas({ targetIds: [entityId], includeNegated: true });
-  return Array.isArray(deltas) ? deltas.length : 0;
+  return db.queryDeltas({ targetIds: [entityId], includeNegated: true }).length;
 }
 
 // Re-exports for convenience

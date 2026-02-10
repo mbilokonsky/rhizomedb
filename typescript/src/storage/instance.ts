@@ -145,6 +145,10 @@ export class RhizomeDB
   private materializedViews: LRUCache<string, MaterializedHyperView>;
   /** Reverse index: objectId → Set of cache keys for views that reference this object */
   private viewsByObjectId: Map<string, Set<string>> = new Map();
+  /** Type index: type string → Set of entity IDs with that type annotation */
+  private typeIndex: Map<string, Set<string>> = new Map();
+  /** Reverse type index: delta ID → {entityId, type} for negation cleanup */
+  private typeDeltaIndex: Map<string, { entityId: string; type: string }> = new Map();
   private cacheStats = { hits: 0, misses: 0, evictions: 0 };
   private schemaRegistry: SchemaRegistry;
   private startTime: number = Date.now();
@@ -231,6 +235,9 @@ export class RhizomeDB
 
     // Add to secondary indexes
     this.deltaIndexes.addDelta(delta);
+
+    // Maintain type index
+    this.updateTypeIndex(delta);
 
     // Publish to subscribers
     await this.publishDelta(delta);
@@ -923,6 +930,86 @@ export class RhizomeDB
     if (timestamp !== undefined) delta.timestamp = timestamp;
     await this.persistDelta(delta);
     return delta;
+  }
+
+  /**
+   * Find all entity IDs that have been annotated with a given type value.
+   *
+   * Scans deltas for annotations where context='type' and the primitive value
+   * matches the given type string.
+   *
+   * @param type - The type value to search for (e.g., 'paper', 'bacterium')
+   * @returns Array of entity IDs
+   */
+  /**
+   * Maintain type index when a delta is persisted.
+   * Detects type-annotation deltas and negation deltas.
+   */
+  private updateTypeIndex(delta: Delta): void {
+    // Check if this is a type annotation delta
+    let entityId: string | null = null;
+    let typeValue: string | null = null;
+
+    for (const pointer of delta.pointers) {
+      if (isDomainNodeReference(pointer.target) && pointer.target.context === 'type') {
+        entityId = pointer.target.id;
+      }
+      if (typeof pointer.target === 'string' && pointer.role === 'type') {
+        typeValue = pointer.target;
+      }
+    }
+
+    if (entityId && typeValue) {
+      if (!this.typeIndex.has(typeValue)) {
+        this.typeIndex.set(typeValue, new Set());
+      }
+      this.typeIndex.get(typeValue)!.add(entityId);
+      this.typeDeltaIndex.set(delta.id, { entityId, type: typeValue });
+    }
+
+    // Check if this is a negation of a type delta
+    for (const pointer of delta.pointers) {
+      if (pointer.role === 'negates' && isDomainNodeReference(pointer.target)) {
+        const negatedEntry = this.typeDeltaIndex.get(pointer.target.id);
+        if (negatedEntry) {
+          const typeSet = this.typeIndex.get(negatedEntry.type);
+          if (typeSet) typeSet.delete(negatedEntry.entityId);
+        }
+      }
+    }
+  }
+
+  entitiesOfType(type: string): string[] {
+    const typeSet = this.typeIndex.get(type);
+    return typeSet ? Array.from(typeSet) : [];
+  }
+
+  /**
+   * Discover what properties (contexts) an entity has deltas for.
+   *
+   * Returns the set of context names found across all non-negated deltas
+   * that reference this entity ID.
+   *
+   * @param entityId - The entity to inspect
+   * @returns Array of property/context names
+   */
+  entityProperties(entityId: string): string[] {
+    const contexts = new Set<string>();
+    const negatedIds = getNegatedDeltaIds(this.deltas);
+
+    for (const delta of this.deltas) {
+      if (negatedIds.has(delta.id)) continue;
+
+      for (const pointer of delta.pointers) {
+        if (isDomainNodeReference(pointer.target) &&
+            pointer.target.id === entityId &&
+            pointer.target.context) {
+          contexts.add(pointer.target.context);
+        }
+      }
+    }
+
+    return Array.from(contexts);
   }
 
   /**
